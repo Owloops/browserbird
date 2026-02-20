@@ -1,0 +1,64 @@
+{
+  "name": "@owloops/browserbird",
+  "version": "0.0.0",
+  "description": "Lightweight orchestrator connecting Slack to Claude Code CLI sessions",
+  "type": "module",
+  "bin": {
+    "browserbird": "./bin/browserbird"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "files": [
+    "src",
+    "bin",
+    "web/dist",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "test": "node --test src/**/*.test.ts",
+    "start": "./bin/browserbird"
+  },
+  "keywords": [
+    "slack",
+    "claude",
+    "claude-code",
+    "orchestrator",
+    "cli",
+    "bot"
+  ],
+  "author": "Owloops",
+  "license": "FSL-1.1-ALv2",
+  "homepage": "https://github.com/Owloops/browserbird#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Owloops/browserbird.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Owloops/browserbird/issues"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.6.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.0",
+    "typescript": "^5.8.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

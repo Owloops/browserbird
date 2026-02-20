@@ -1,0 +1,29 @@
+node_modules/
+dist/
+*.local.*
+.env
+.env.*
+!.env.example
+
+# web frontend
+web/node_modules/
+web/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime data
+.browserbird/
+browserbird.json
+
+# Temporary files
+*.tmp
+temp/
+tmp/
