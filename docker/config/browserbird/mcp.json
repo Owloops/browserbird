@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "playwright-mcp",
+      "args": ["--config", "docker/config/browserbird/playwright.config.json"],
+      "env": {
+        "DISPLAY": ":1",
+        "PLAYWRIGHT_BROWSERS_PATH": "/home/bbuser/.cache/ms-playwright"
+      }
+    }
+  }
+}

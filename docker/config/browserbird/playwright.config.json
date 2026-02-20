@@ -1,0 +1,8 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "launchOptions": {
+      "args": ["--disable-gpu", "--no-sandbox"]
+    }
+  }
+}

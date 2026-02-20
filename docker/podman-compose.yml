@@ -1,0 +1,19 @@
+services:
+  browserbird:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    init: true
+    ports:
+      - "6080:6080"
+      - "18800:18800"
+    env_file: ../.env
+    environment:
+      - HOME=/home/bbuser
+    volumes:
+      - bb-data:/home/bbuser/.browserbird
+    shm_size: 2g
+    restart: unless-stopped
+
+volumes:
+  bb-data:

@@ -1,0 +1,59 @@
+{
+  "slack": {
+    "botToken": "env:SLACK_BOT_TOKEN",
+    "appToken": "env:SLACK_APP_TOKEN",
+    "coalesce": {
+      "debounceMs": 3000,
+      "bypassDms": true
+    },
+    "permissions": {
+      "allowChannels": ["*"],
+      "denyChannels": []
+    },
+    "quietHours": {
+      "enabled": false,
+      "start": "23:00",
+      "end": "08:00",
+      "timezone": "Asia/Tbilisi"
+    }
+  },
+  "agents": [
+    {
+      "id": "default",
+      "name": "BrowserBird",
+      "provider": "claude",
+      "model": "sonnet",
+      "fallbackModel": "haiku",
+      "maxTurns": 50,
+      "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
+      "channels": ["*"]
+    }
+  ],
+  "sessions": {
+    "ttlHours": 24,
+    "maxConcurrent": 5,
+    "processTimeoutMs": 300000,
+    "longResponseMode": "snippet"
+  },
+  "database": {
+    "retentionDays": 30,
+    "optimizeIntervalHours": 24
+  },
+  "browser": {
+    "enabled": false,
+    "mcpConfigPath": null,
+    "display": ":1",
+    "resolution": "1280x800x24",
+    "vncPort": 5900,
+    "novncPort": 6080
+  },
+  "cron": {
+    "enabled": true,
+    "maxFailures": 3
+  },
+  "web": {
+    "enabled": true,
+    "port": 18800,
+    "authToken": "env:BROWSERBIRD_AUTH_TOKEN"
+  }
+}
