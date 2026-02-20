@@ -1,0 +1,11 @@
+#!/usr/bin/env -S node --disable-warning=ExperimentalWarning
+
+import { run } from '../src/cli.ts';
+
+try {
+  await run(process.argv.slice(2));
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  process.stderr.write(`Error: ${message}\n`);
+  process.exitCode = 1;
+}
