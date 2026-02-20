@@ -1,0 +1,219 @@
+:root {
+  --color-bg-deep: #0c0f13;
+  --color-bg-surface: #13171d;
+  --color-bg-elevated: #1a1f28;
+  --color-bg-hover: #1f2630;
+
+  --color-border: #232a35;
+  --color-border-subtle: #2e3744;
+
+  --color-text-primary: #d4dae3;
+  --color-text-secondary: #8891a0;
+  --color-text-muted: #5c6573;
+
+  --color-accent: #5b8cf0;
+  --color-accent-glow: #7ba6ff;
+  --color-accent-dim: #3a5fba;
+  --color-accent-bg: rgba(91, 140, 240, 0.08);
+
+  --color-success: #3ec97a;
+  --color-success-bg: rgba(62, 201, 122, 0.08);
+  --color-warning: #e8a83e;
+  --color-warning-bg: rgba(232, 168, 62, 0.08);
+  --color-error: #e05c5c;
+  --color-error-bg: rgba(224, 92, 92, 0.08);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  --transition-fast: 0.12s ease;
+  --transition-normal: 0.2s ease;
+
+  --sidebar-width: 200px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg-deep);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: white;
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.769rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.846rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.769rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.btn-primary {
+  background: var(--color-accent-dim);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent-dim);
+}
+
+.btn-primary:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--color-error);
+  border-color: var(--color-border);
+}
+
+.btn-danger:hover {
+  background: var(--color-error-bg);
+  border-color: rgba(224, 92, 92, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.btn-outline:hover {
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-sm {
+  padding: 0.267rem 0.533rem;
+  font-size: 0.733rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.625rem;
+}
+
+.form-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.467rem 0.7rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.867rem;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input:focus {
+  border-color: var(--color-accent-dim);
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.form-textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.467rem 0.7rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.867rem;
+  transition: border-color var(--transition-fast);
+  resize: vertical;
+  min-height: 3.5rem;
+  line-height: 1.5;
+}
+
+.form-textarea:focus {
+  border-color: var(--color-accent-dim);
+  outline: none;
+}
+
+.form-textarea::placeholder {
+  color: var(--color-text-muted);
+}
