@@ -1,0 +1,38 @@
+FROM ubuntu:24.04
+
+ARG WIDTH=1280
+ARG HEIGHT=800
+ARG USERNAME=bbuser
+
+ENV USERNAME=$USERNAME \
+    PLAYWRIGHT_BROWSERS_PATH=/home/$USERNAME/.cache/ms-playwright \
+    XDG_RUNTIME_DIR=/tmp/xdg-runtime-bbuser \
+    WAYLAND_DISPLAY=wayland-1 \
+    DISPLAY=:1 \
+    WIDTH=$WIDTH \
+    HEIGHT=$HEIGHT
+
+COPY oci/vm/scripts/build/install_system.sh /opt/browserbird/build/
+COPY oci/vm/scripts/build/install_playwright.sh /opt/browserbird/build/
+COPY oci/vm/scripts/build/setup_user.sh /opt/browserbird/build/
+RUN chmod +x /opt/browserbird/build/*.sh
+
+RUN /opt/browserbird/build/install_system.sh
+RUN /opt/browserbird/build/setup_user.sh
+
+COPY --chown=$USERNAME:$USERNAME oci/vm/config/sway/ /home/$USERNAME/.config/sway/
+COPY --chown=$USERNAME:$USERNAME oci/vm/config/waybar/ /home/$USERNAME/.config/waybar/
+COPY oci/vm/config/playwright.config.json /opt/browserbird/
+
+COPY oci/vm/scripts/runtime/ /opt/browserbird/runtime/
+RUN chmod +x /opt/browserbird/runtime/*.sh
+
+USER $USERNAME
+
+RUN /opt/browserbird/build/install_playwright.sh
+
+WORKDIR /opt/browserbird
+
+EXPOSE 5900 6080 3000
+
+ENTRYPOINT ["/opt/browserbird/runtime/vm_entrypoint.sh"]

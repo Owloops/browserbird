@@ -5,10 +5,10 @@ echo "Building web UI..."
 cd web && npm run build && cd ..
 
 echo "Setting permissions..."
-chmod +x docker/scripts/runtime/*.sh
+chmod +x oci/app/scripts/runtime/*.sh
 
 echo "Copying agent context..."
-cp docker/config/browserbird/agent-context.md CLAUDE.md
-cp docker/config/browserbird/agent-context.md AGENTS.md
+cp oci/app/config/agent-context.md CLAUDE.md
+cp oci/app/config/agent-context.md AGENTS.md
 
 echo "App build complete"

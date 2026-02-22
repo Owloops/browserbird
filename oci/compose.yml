@@ -1,0 +1,41 @@
+services:
+  vm:
+    build:
+      context: ..
+      dockerfile: oci/vm/Dockerfile
+    init: true
+    ports:
+      - "5900:5900"
+      - "6080:6080"
+    shm_size: 2g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -tuln | grep -q ':3000 '"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  app:
+    build:
+      context: ..
+      dockerfile: oci/app/Dockerfile
+    init: true
+    ports:
+      - "18800:18800"
+    volumes:
+      - bb-data:/home/bbuser/.browserbird
+    env_file: ../.env
+    environment:
+      - HOME=/home/bbuser
+    depends_on:
+      vm:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  default:
+    name: browserbird-net
+
+volumes:
+  bb-data:
