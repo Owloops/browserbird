@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { StatusResponse, ConfigResponse } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
+  import RFB from '@novnc/novnc';
 
   interface Props {
     status: StatusResponse | null;
@@ -10,9 +11,23 @@
 
   let config: ConfigResponse | null = $state(null);
   let loading = $state(true);
-  let iframeError = $state(false);
+  let connState: 'connecting' | 'connected' | 'disconnected' | 'failed' = $state('connecting');
+  let viewerEl: HTMLDivElement | undefined = $state();
+  let connectKey = $state(0);
+  let rfbInstance: InstanceType<typeof RFB> | null = $state(null);
+  let clipboardOpen = $state(false);
+  let clipboardText = $state('');
+  let connInfoOpen = $state(false);
 
   const browserEnabled = $derived(status?.browser.enabled ?? false);
+
+  const connStateLabels: Record<'connecting' | 'connected' | 'disconnected' | 'failed', string> = {
+    connecting: 'Connecting',
+    connected: 'Connected',
+    disconnected: 'Disconnected',
+    failed: 'Failed',
+  };
+  const connStateLabel = $derived(connStateLabels[connState]);
 
   $effect(() => {
     const ac = new AbortController();
@@ -26,19 +41,61 @@
     return () => ac.abort();
   });
 
-  const novncUrl = $derived.by(() => {
+  const wsUrl = $derived.by(() => {
     if (!config?.browser) return '';
     const host = window.location.hostname;
     const port = config.browser.novncPort;
-    return `http://${host}:${port}/vnc.html?autoconnect=true&resize=scale&reconnect=true&reconnect_delay=1000`;
+    return `ws://${host}:${port}`;
   });
 
-  function handleIframeLoad(): void {
-    iframeError = false;
+  $effect(() => {
+    if (!browserEnabled || !wsUrl || !viewerEl || connectKey < 0) return;
+
+    connState = 'connecting';
+    let rfb: InstanceType<typeof RFB> | null = null;
+
+    try {
+      rfb = new RFB(viewerEl, wsUrl);
+      rfb.scaleViewport = true;
+      rfb.resizeSession = false;
+      rfbInstance = rfb;
+
+      rfb.addEventListener('connect', () => {
+        connState = 'connected';
+      });
+      rfb.addEventListener('disconnect', (e: Event) => {
+        const detail = (e as CustomEvent<{ clean: boolean }>).detail;
+        connState = detail.clean ? 'disconnected' : 'failed';
+        rfbInstance = null;
+      });
+    } catch {
+      connState = 'failed';
+      rfbInstance = null;
+    }
+
+    return () => {
+      rfb?.disconnect();
+      rfbInstance = null;
+    };
+  });
+
+  function reconnect(): void {
+    connState = 'connecting';
+    connectKey += 1;
   }
 
-  function handleIframeError(): void {
-    iframeError = true;
+  function disconnect(): void {
+    rfbInstance?.disconnect();
+  }
+
+  function toggleClipboard(): void {
+    clipboardOpen = !clipboardOpen;
+    clipboardText = '';
+  }
+
+  function onClipboardInput(): void {
+    if (!rfbInstance) return;
+    rfbInstance.clipboardPasteFrom(clipboardText);
   }
 </script>
 
@@ -76,48 +133,93 @@
   <div class="browser-viewer">
     <div class="toolbar">
       <div class="toolbar-left">
-        <span class="conn-dot" class:conn-on={!iframeError} class:conn-off={iframeError}></span>
-        <span class="toolbar-label">{iframeError ? 'Disconnected' : 'Connected'}</span>
+        <button
+          class="conn-status"
+          onclick={() => { connInfoOpen = !connInfoOpen; }}
+        >
+          <span
+            class="conn-dot"
+            class:conn-connecting={connState === 'connecting'}
+            class:conn-on={connState === 'connected'}
+            class:conn-off={connState === 'disconnected' || connState === 'failed'}
+          ></span>
+          <span class="toolbar-label">{connStateLabel}</span>
+        </button>
+        {#if connInfoOpen && config?.browser}
+          <div class="conn-info-popover">
+            <div class="conn-info-row">
+              <span class="conn-info-key">Display</span>
+              <span class="mono conn-info-val">{config.browser.display}</span>
+            </div>
+            <div class="conn-info-row">
+              <span class="conn-info-key">Resolution</span>
+              <span class="mono conn-info-val">{config.browser.resolution}</span>
+            </div>
+            <div class="conn-info-row">
+              <span class="conn-info-key">VNC port</span>
+              <span class="mono conn-info-val">{config.browser.vncPort}</span>
+            </div>
+            <div class="conn-info-row">
+              <span class="conn-info-key">noVNC port</span>
+              <span class="mono conn-info-val">{config.browser.novncPort}</span>
+            </div>
+          </div>
+        {/if}
       </div>
       {#if config?.browser}
         <div class="toolbar-right">
-          <span class="toolbar-meta">
-            <span class="toolbar-dim">Display</span>
-            <span class="mono">{config.browser.display}</span>
-          </span>
           <span class="toolbar-sep"></span>
-          <span class="toolbar-meta">
-            <span class="toolbar-dim">Resolution</span>
-            <span class="mono">{config.browser.resolution}</span>
-          </span>
-          <span class="toolbar-sep"></span>
-          <span class="toolbar-meta">
-            <span class="toolbar-dim">VNC</span>
-            <span class="mono">:{config.browser.vncPort}</span>
-          </span>
+          <button
+            class="toolbar-btn"
+            class:toolbar-btn-active={clipboardOpen}
+            onclick={toggleClipboard}
+            disabled={connState !== 'connected'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="4" rx="1" />
+              <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+            </svg>
+            Clipboard
+          </button>
+          {#if connState === 'connected'}
+            <button class="toolbar-btn toolbar-btn-danger" onclick={disconnect}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Disconnect
+            </button>
+          {/if}
         </div>
       {/if}
     </div>
 
-    <div class="iframe-container">
-      {#if iframeError}
-        <div class="error-overlay">
-          <p class="error-text">Could not connect to noVNC</p>
-          <p class="error-hint">Ensure the browser stack is running on port {config?.browser.novncPort ?? 6080}</p>
-          <button class="btn btn-outline btn-sm" onclick={() => { iframeError = false; }}>
-            Retry
-          </button>
+    <div class="vnc-container">
+      {#if clipboardOpen}
+        <div class="clipboard-popover">
+          <p class="clipboard-label">Type or paste — then use Ctrl+V inside the desktop</p>
+          <textarea
+            class="clipboard-textarea"
+            bind:value={clipboardText}
+            oninput={onClipboardInput}
+            placeholder="Paste text here…"
+            rows={4}
+          ></textarea>
         </div>
       {/if}
-      {#if novncUrl && !iframeError}
-        <iframe
-          src={novncUrl}
-          title="Virtual Desktop (noVNC)"
-          class="vnc-iframe"
-          onload={handleIframeLoad}
-          onerror={handleIframeError}
-        ></iframe>
+      {#if connState === 'failed' || connState === 'disconnected'}
+        <div class="error-overlay">
+          <p class="error-text">
+            {connState === 'failed' ? 'Connection failed' : 'Disconnected'}
+          </p>
+          <p class="error-hint">
+            Ensure the browser stack is running on port {config?.browser.novncPort ?? 6080}
+          </p>
+          <button class="btn btn-outline btn-sm" onclick={reconnect}>Reconnect</button>
+        </div>
       {/if}
+      <div bind:this={viewerEl} class="vnc-canvas" class:vnc-hidden={connState !== 'connected'}></div>
     </div>
   </div>
 {/if}
@@ -216,6 +318,56 @@
     display: flex;
     align-items: center;
     gap: 0.375rem;
+    position: relative;
+  }
+
+  .conn-status {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+  }
+
+  .conn-status:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .conn-info-popover {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    background: color-mix(in srgb, var(--color-bg-deep) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    z-index: 20;
+    min-width: 180px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  }
+
+  .conn-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .conn-info-key {
+    font-size: 0.733rem;
+    color: var(--color-text-muted);
+  }
+
+  .conn-info-val {
+    color: var(--color-text-secondary);
   }
 
   .toolbar-right {
@@ -229,6 +381,13 @@
     height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
+    transition: background var(--transition-normal), box-shadow var(--transition-normal);
+  }
+
+  .conn-connecting {
+    background: var(--color-warning);
+    box-shadow: 0 0 4px var(--color-warning);
+    animation: pulse 1.2s ease-in-out infinite;
   }
 
   .conn-on {
@@ -241,20 +400,14 @@
     box-shadow: 0 0 4px var(--color-error);
   }
 
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
   .toolbar-label {
     font-size: 0.8rem;
     color: var(--color-text-secondary);
-  }
-
-  .toolbar-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.769rem;
-  }
-
-  .toolbar-dim {
-    color: var(--color-text-muted);
   }
 
   .toolbar-sep {
@@ -263,20 +416,101 @@
     background: var(--color-border);
   }
 
-  .iframe-container {
+  .toolbar-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.769rem;
+    font-family: var(--font-sans);
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .toolbar-btn:hover:not(:disabled) {
+    color: var(--color-text-primary);
+    border-color: var(--color-border-subtle);
+  }
+
+  .toolbar-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .toolbar-btn.toolbar-btn-active {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .toolbar-btn.toolbar-btn-danger:hover {
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+
+  .clipboard-popover {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    width: 280px;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 10;
+    box-shadow: var(--shadow-card);
+  }
+
+  .clipboard-label {
+    font-size: 0.769rem;
+    color: var(--color-text-muted);
+  }
+
+  .clipboard-textarea {
+    width: 100%;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.769rem;
+    padding: 0.5rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--transition-fast);
+  }
+
+  .clipboard-textarea:focus {
+    border-color: var(--color-accent);
+  }
+
+
+  .vnc-container {
     flex: 1;
     position: relative;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     overflow: hidden;
-    background: var(--color-bg-surface);
+    background: var(--color-bg-deep);
   }
 
-  .vnc-iframe {
+  .vnc-canvas {
     width: 100%;
     height: 100%;
-    border: none;
-    display: block;
+  }
+
+  .vnc-canvas :global(div) {
+    background: var(--color-bg-deep) !important;
+  }
+
+  .vnc-hidden {
+    visibility: hidden;
   }
 
   .error-overlay {
@@ -288,6 +522,7 @@
     justify-content: center;
     background: var(--color-bg-surface);
     gap: 0.5rem;
+    z-index: 1;
   }
 
   .error-text {
