@@ -1,16 +1,15 @@
-FROM node:24
+FROM ubuntu:24.04
 
-ARG DISPLAY_NUM=1
 ARG WIDTH=1280
 ARG HEIGHT=800
 ARG USERNAME=bbuser
 
 ENV USERNAME=$USERNAME \
     PLAYWRIGHT_BROWSERS_PATH=/home/$USERNAME/.cache/ms-playwright \
-    DISPLAY_NUM=$DISPLAY_NUM \
+    XDG_RUNTIME_DIR=/tmp/xdg-runtime-bbuser \
+    WAYLAND_DISPLAY=wayland-1 \
     WIDTH=$WIDTH \
-    HEIGHT=$HEIGHT \
-    DISPLAY=:$DISPLAY_NUM
+    HEIGHT=$HEIGHT
 
 COPY docker/scripts/build/ /opt/browserbird/build/
 RUN chmod +x /opt/browserbird/build/*.sh
@@ -18,7 +17,8 @@ RUN chmod +x /opt/browserbird/build/*.sh
 RUN /opt/browserbird/build/install_system.sh
 RUN /opt/browserbird/build/setup_user.sh
 
-COPY --chown=$USERNAME:$USERNAME docker/config/tint2/ /home/$USERNAME/.config/tint2/
+COPY --chown=$USERNAME:$USERNAME docker/config/sway/ /home/$USERNAME/.config/sway/
+COPY --chown=$USERNAME:$USERNAME docker/config/waybar/ /home/$USERNAME/.config/waybar/
 
 USER $USERNAME
 

@@ -1,0 +1,27 @@
+output * bg #0c0f13 solid_color
+output * resolution 1280x800
+
+font pango:monospace 10
+
+default_border none
+default_floating_border none
+hide_edge_borders both
+
+gaps inner 8
+gaps outer 0
+
+bar {
+    swaybar_command waybar
+}
+
+seat * hide_cursor 2000
+
+input type:keyboard {
+    xkb_layout us
+}
+
+set $mod Mod4
+
+bindsym $mod+Return exec foot
+bindsym $mod+b exec chromium --disable-gpu --no-sandbox --ozone-platform=wayland
+bindsym $mod+q kill

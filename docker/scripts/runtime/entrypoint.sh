@@ -1,14 +1,16 @@
 #!/bin/bash
 set -e
 
-export DISPLAY=:${DISPLAY_NUM:-1}
+export XDG_RUNTIME_DIR=/tmp/xdg-runtime-bbuser
+export WAYLAND_DISPLAY=wayland-1
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
+
 eval $(dbus-launch)
 export DBUS_SESSION_BUS_ADDRESS
 
-./docker/scripts/runtime/xvfb_startup.sh
-./docker/scripts/runtime/mutter_startup.sh
-./docker/scripts/runtime/tint2_startup.sh
-./docker/scripts/runtime/x11vnc_startup.sh
+./docker/scripts/runtime/sway_startup.sh
+./docker/scripts/runtime/wayvnc_startup.sh
 ./docker/scripts/runtime/novnc_startup.sh
 
 echo "VNC stack ready"

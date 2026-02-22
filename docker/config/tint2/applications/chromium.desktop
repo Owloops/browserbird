@@ -1,5 +1,0 @@
-[Desktop Entry]
-Name=Chromium
-Exec=chromium --no-sandbox
-Icon=/home/bbuser/.config/tint2/icons/chromium.png
-Type=Application

@@ -4,7 +4,8 @@
       "command": "playwright-mcp",
       "args": ["--config", "docker/config/browserbird/playwright.config.json"],
       "env": {
-        "DISPLAY": ":1",
+        "WAYLAND_DISPLAY": "wayland-1",
+        "XDG_RUNTIME_DIR": "/tmp/xdg-runtime-bbuser",
         "PLAYWRIGHT_BROWSERS_PATH": "/home/bbuser/.cache/ms-playwright"
       }
     }

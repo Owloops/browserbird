@@ -1,0 +1,33 @@
+{
+    "layer": "top",
+    "position": "bottom",
+    "height": 32,
+    "margin-bottom": 6,
+    "margin-left": 8,
+    "margin-right": 8,
+    "modules-left": ["custom/chromium", "custom/terminal", "sway/workspaces"],
+    "modules-center": ["sway/window"],
+    "modules-right": ["clock"],
+    "sway/workspaces": {
+        "disable-scroll": true
+    },
+    "sway/window": {
+        "max-length": 60
+    },
+    "clock": {
+        "format": "{:%H:%M}",
+        "format-alt": "{:%Y-%m-%d %H:%M:%S}",
+        "interval": 1,
+        "tooltip": false
+    },
+    "custom/chromium": {
+        "format": "\uf0ac",
+        "on-click": "chromium --disable-gpu --no-sandbox --ozone-platform=wayland",
+        "tooltip": false
+    },
+    "custom/terminal": {
+        "format": "\uf120",
+        "on-click": "foot",
+        "tooltip": false
+    }
+}

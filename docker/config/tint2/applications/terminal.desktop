@@ -1,5 +1,0 @@
-[Desktop Entry]
-Name=Terminal
-Exec=xterm -fa "Monospace" -fs 12
-Icon=utilities-terminal
-Type=Application

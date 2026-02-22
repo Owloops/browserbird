@@ -2,7 +2,7 @@
   "browser": {
     "browserName": "chromium",
     "launchOptions": {
-      "args": ["--disable-gpu", "--no-sandbox"]
+      "args": ["--disable-gpu", "--no-sandbox", "--ozone-platform=wayland"]
     }
   }
 }
