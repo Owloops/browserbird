@@ -200,11 +200,13 @@
   }
 
   .content-header {
-    padding: 0.875rem 1.25rem;
+    height: 56px;
+    padding: 0 1.25rem;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
   }
 
   .page-title {

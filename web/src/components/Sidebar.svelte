@@ -45,10 +45,12 @@
   }
 
   .sidebar-brand {
-    padding: 0.625rem 0.875rem;
+    height: 56px;
+    padding: 0 0.875rem;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
+    flex-shrink: 0;
   }
 
   .brand-logo {
