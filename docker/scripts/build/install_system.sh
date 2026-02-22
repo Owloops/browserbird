@@ -12,8 +12,8 @@ apt-get install -y --no-install-recommends \
 rm -rf /var/lib/apt/lists/*
 
 echo "Installing noVNC..."
-git clone --depth 1 --branch v1.5.0 https://github.com/novnc/noVNC.git /opt/noVNC
-git clone --depth 1 --branch v0.12.0 https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify
+git -c advice.detachedHead=false clone --depth 1 --branch v1.5.0 https://github.com/novnc/noVNC.git /opt/noVNC
+git -c advice.detachedHead=false clone --depth 1 --branch v0.12.0 https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify
 rm -rf /opt/noVNC/.git /opt/noVNC/utils/websockify/.git
 
 echo "System installation complete"

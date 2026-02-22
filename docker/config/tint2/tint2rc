@@ -23,8 +23,8 @@ task_text = 1
 task_icon = 1
 task_maximum_size = 300 35
 task_padding = 4 2 4
-task_font_color = #e3e3e3 100
-task_active_font_color = #ffffff 100
+task_font_color = #8891a0 100
+task_active_font_color = #d4dae3 100
 task_background_id = 2
 task_active_background_id = 3
 
@@ -38,16 +38,16 @@ launcher_item_app = /home/bbuser/.config/tint2/applications/chromium.desktop
 launcher_item_app = /home/bbuser/.config/tint2/applications/terminal.desktop
 
 rounded = 0
-border_width = 0
-background_color = #1a1a2e 90
-border_color = #000000 30
-
-rounded = 4
 border_width = 1
-background_color = #333355 40
-border_color = #555577 30
+background_color = #13171d 100
+border_color = #232a35 100
 
-rounded = 4
+rounded = 3
 border_width = 1
-background_color = #4a4a7a 60
-border_color = #7777aa 50
+background_color = #1a1f28 100
+border_color = #232a35 100
+
+rounded = 3
+border_width = 1
+background_color = #5b8cf0 100
+border_color = #3a5fba 100

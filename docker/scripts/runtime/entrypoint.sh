@@ -6,8 +6,8 @@ eval $(dbus-launch)
 export DBUS_SESSION_BUS_ADDRESS
 
 ./docker/scripts/runtime/xvfb_startup.sh
-./docker/scripts/runtime/tint2_startup.sh
 ./docker/scripts/runtime/mutter_startup.sh
+./docker/scripts/runtime/tint2_startup.sh
 ./docker/scripts/runtime/x11vnc_startup.sh
 ./docker/scripts/runtime/novnc_startup.sh
 
