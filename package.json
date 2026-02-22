@@ -1,7 +1,7 @@
 {
   "name": "@owloops/browserbird",
   "version": "0.0.0",
-  "description": "Lightweight orchestrator connecting Slack to Claude Code CLI sessions",
+  "description": "Lightweight orchestrator connecting Slack to AI agent CLI sessions",
   "type": "module",
   "bin": {
     "browserbird": "./bin/browserbird"
@@ -33,7 +33,7 @@
     "bot"
   ],
   "author": "Owloops",
-  "license": "FSL-1.1-ALv2",
+  "license": "FSL-1.1-MIT",
   "homepage": "https://github.com/Owloops/browserbird#readme",
   "repository": {
     "type": "git",

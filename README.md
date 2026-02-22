@@ -4,7 +4,7 @@
 
 **AI agents in your Slack. Persistent sessions, scheduled birds, and a live browser.**
 
-[![License: FSL-1.1-ALv2](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue?style=flat-square)](LICENSE)
+[![License: FSL-1.1-MIT](https://img.shields.io/badge/license-FSL--1.1--MIT-blue?style=flat-square)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/@owloops/browserbird?style=flat-square)](https://www.npmjs.com/package/@owloops/browserbird)
 [![npm downloads](https://img.shields.io/npm/dm/@owloops/browserbird?style=flat-square)](https://www.npmjs.com/package/@owloops/browserbird)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24-brightgreen?style=flat-square)](https://nodejs.org)
@@ -254,7 +254,7 @@ Runs at `http://localhost:18800` by default. Real-time updates via SSE.
 
 ## License
 
-[FSL-1.1-ALv2](LICENSE) — source available, converts to Apache 2.0 after two years.
+[FSL-1.1-MIT](LICENSE) — source available, converts to MIT after two years.
 
 ---
 

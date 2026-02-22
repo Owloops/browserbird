@@ -416,20 +416,20 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
         const isSystem = cronJob.name.startsWith(SYSTEM_CRON_PREFIX);
         const job = isSystem
           ? enqueue(
-            'system_cron_run',
-            { cronJobId: cronJob.id, cronName: cronJob.name },
-            { maxAttempts: 3, timeout: 300, cronJobId: cronJob.id },
-          )
+              'system_cron_run',
+              { cronJobId: cronJob.id, cronName: cronJob.name },
+              { maxAttempts: 3, timeout: 300, cronJobId: cronJob.id },
+            )
           : enqueue(
-            'cron_run',
-            {
-              cronJobId: cronJob.id,
-              prompt: cronJob.prompt,
-              channelId: cronJob.target_channel_id,
-              agentId: cronJob.agent_id,
-            },
-            { cronJobId: cronJob.id },
-          );
+              'cron_run',
+              {
+                cronJobId: cronJob.id,
+                prompt: cronJob.prompt,
+                channelId: cronJob.target_channel_id,
+                agentId: cronJob.agent_id,
+              },
+              { cronJobId: cronJob.id },
+            );
         json(res, { success: true, jobId: job.id });
       },
     },
