@@ -39,7 +39,7 @@ export interface ConfigResponse {
     permissions: { allowChannels: string[]; denyChannels: string[] };
     quietHours: { enabled: boolean; start: string; end: string; timezone: string };
   };
-  cron: { maxFailures: number };
+  birds: { maxAttempts: number };
   browser: {
     enabled: boolean;
     display: string;
@@ -127,6 +127,18 @@ export interface CreateCronRequest {
   prompt: string;
   channel?: string;
   agent?: string;
+}
+
+export interface FlightRow {
+  id: number;
+  job_id: number;
+  cron_job_id: number;
+  bird_name: string;
+  started_at: string;
+  finished_at: string | null;
+  status: 'running' | 'success' | 'error';
+  result: string | null;
+  error: string | null;
 }
 
 export interface InvalidateEvent {

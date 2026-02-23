@@ -255,8 +255,8 @@
       <h2 class="group-title">Birds</h2>
       <div class="fields">
         <div class="field">
-          <span class="field-label">Max Failures</span>
-          <span class="field-value mono">{config.cron.maxFailures}</span>
+          <span class="field-label">Max Attempts</span>
+          <span class="field-value mono">{config.birds.maxAttempts}</span>
         </div>
       </div>
     </div>

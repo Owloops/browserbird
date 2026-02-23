@@ -167,7 +167,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
             agentId: job.agent_id,
           } satisfies CronRunPayload,
           {
-            maxAttempts: config.cron.maxFailures,
+            maxAttempts: config.birds.maxAttempts,
             timeout: 600,
             cronJobId: job.id,
           },

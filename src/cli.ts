@@ -21,6 +21,7 @@ import {
   deleteJob,
   clearJobs,
   listCronJobs,
+  listFlights,
   createCronJob,
   getCronJob,
   updateCronJob,
@@ -551,21 +552,32 @@ function handleBirds(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        const result = listJobs(1, perPage, { cronJobId: id });
+        const result = listFlights(1, perPage, { birdId: id });
         console.log(`flight history for bird #${id} (${result.totalItems} total):`);
         if (result.items.length === 0) {
           console.log('\n  no flights recorded');
           return;
         }
         console.log('');
-        const rows = result.items.map((job) => [
-          String(job.id),
-          job.status,
-          `${job.attempts}/${job.max_attempts}`,
-          job.created_at.slice(0, 19),
-          job.error ?? '',
-        ]);
-        printTable(['job', 'status', 'attempts', 'created', 'error'], rows, [undefined, undefined, undefined, undefined, 60]);
+        const rows = result.items.map((flight) => {
+          const durationMs = flight.finished_at
+            ? new Date(flight.finished_at).getTime() - new Date(flight.started_at).getTime()
+            : null;
+          const duration =
+            durationMs == null
+              ? '—'
+              : durationMs >= 60_000
+                ? `${Math.floor(durationMs / 60_000)}m ${Math.floor((durationMs % 60_000) / 1000)}s`
+                : `${Math.round(durationMs / 1000)}s`;
+          return [
+            String(flight.id),
+            flight.status,
+            duration,
+            flight.started_at.slice(0, 19),
+            flight.error ?? flight.result?.slice(0, 60) ?? '',
+          ];
+        });
+        printTable(['flight', 'status', 'duration', 'started', 'error / result'], rows, [undefined, undefined, undefined, undefined, 60]);
         break;
       }
 
@@ -833,7 +845,7 @@ function printSettingsAll(configPath?: string): void {
   console.log(`  quiet hours:     ${config.slack.quietHours.enabled ? `${config.slack.quietHours.start}-${config.slack.quietHours.end} (${config.slack.quietHours.timezone})` : 'disabled'}`);
 
   console.log('\nbirds:');
-  console.log(`  max failures: ${config.cron.maxFailures}`);
+  console.log(`  max attempts: ${config.birds.maxAttempts}`);
 
   console.log('\nbrowser:');
   console.log(`  enabled:    ${config.browser.enabled ? 'yes' : 'no'}`);

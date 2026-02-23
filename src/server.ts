@@ -16,6 +16,7 @@ import {
   listJobs,
   getJobStats,
   listCronJobs,
+  listFlights,
   getMessageStats,
   countActiveSessions,
   getRecentLogs,
@@ -196,7 +197,7 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
             permissions: config.slack.permissions,
             quietHours: config.slack.quietHours,
           },
-          cron: config.cron,
+          birds: config.birds,
           browser: config.browser,
           database: config.database,
           web: { port: config.web.port, authEnabled: !!config.web.authToken },
@@ -466,6 +467,32 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
               { cronJobId: cronJob.id },
             );
         json(res, { success: true, jobId: job.id });
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/flights'),
+      handler(req, res) {
+        const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+        const { page, perPage } = parsePagination(url);
+        const status = url.searchParams.get('status') ?? undefined;
+        const birdIdParam = url.searchParams.get('birdId');
+        const birdId = birdIdParam ? Number(birdIdParam) : undefined;
+        json(res, listFlights(page, perPage, { status, birdId }));
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/birds/:id/flights'),
+      handler(req, res, params) {
+        const id = Number(params['id']);
+        if (!Number.isFinite(id)) {
+          jsonError(res, 'Invalid bird ID', 400);
+          return;
+        }
+        const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+        const { page, perPage } = parsePagination(url);
+        json(res, listFlights(page, perPage, { birdId: id }));
       },
     },
     {

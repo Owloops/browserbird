@@ -55,8 +55,8 @@ export interface DatabaseConfig {
   optimizeIntervalHours: number;
 }
 
-export interface CronConfig {
-  maxFailures: number;
+export interface BirdsConfig {
+  maxAttempts: number;
 }
 
 export interface WebConfig {
@@ -72,7 +72,7 @@ export interface Config {
   sessions: SessionsConfig;
   database: DatabaseConfig;
   browser: BrowserConfig;
-  cron: CronConfig;
+  birds: BirdsConfig;
   web: WebConfig;
 }
 
