@@ -6,6 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
     "preview": "vite preview"
   },
   "devDependencies": {
