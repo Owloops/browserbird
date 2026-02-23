@@ -1,9 +1,9 @@
 /** @fileoverview Session router — maps Slack threads to CLI sessions. */
 
 import type { AgentConfig, Config } from '../core/types.ts';
-import type { SessionRow } from '../db.ts';
+import type { SessionRow } from '../db/index.ts';
 import { logger } from '../core/logger.ts';
-import * as db from '../db.ts';
+import * as db from '../db/index.ts';
 
 /**
  * Matches an incoming message to the correct agent based on channel config.
