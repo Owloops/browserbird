@@ -93,40 +93,52 @@ cp browserbird.example.json browserbird.json
     "permissions": { "allowChannels": ["*"], "denyChannels": [] },
     "quietHours": { "enabled": false, "start": "23:00", "end": "08:00", "timezone": "UTC" }
   },
-  "agents": [{
-    "id": "default",
-    "name": "BrowserBird",
-    "provider": "claude",
-    "model": "sonnet",
-    "fallbackModel": "haiku",
-    "maxTurns": 50,
-    "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
-    "channels": ["*"]
-  }],
-  "sessions": { "ttlHours": 24, "maxConcurrent": 5, "processTimeoutMs": 300000, "longResponseMode": "snippet" },
+  "agents": [
+    {
+      "id": "default",
+      "name": "BrowserBird",
+      "provider": "claude",
+      "model": "sonnet",
+      "fallbackModel": "haiku",
+      "maxTurns": 50,
+      "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
+      "channels": ["*"]
+    }
+  ],
+  "sessions": {
+    "ttlHours": 24,
+    "maxConcurrent": 5,
+    "processTimeoutMs": 300000,
+    "longResponseMode": "snippet"
+  },
   "database": { "retentionDays": 30, "optimizeIntervalHours": 24 },
   "browser": { "enabled": false, "mcpConfigPath": null },
-  "cron": { "maxFailures": 3 },
-  "web": { "enabled": true, "host": "127.0.0.1", "port": 18800, "authToken": "env:BROWSERBIRD_AUTH_TOKEN" }
+  "birds": { "maxAttempts": 3 },
+  "web": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 18800,
+    "authToken": "env:BROWSERBIRD_AUTH_TOKEN"
+  }
 }
 ```
 
 <details>
 <summary><strong>slack</strong></summary>
 
-| Key | Default | Description |
-|---|---|---|
-| `botToken` | required | Bot user OAuth token |
-| `appToken` | required | App-level token for Socket Mode |
-| `requireMention` | `true` | Only respond in channels when the bot is `@mentioned`; DMs always respond |
-| `coalesce.debounceMs` | `3000` | Wait N ms after last message before dispatching (group channels) |
-| `coalesce.bypassDms` | `true` | Skip debouncing for DMs |
-| `permissions.allowChannels` | `["*"]` | Restrict to specific channel IDs, or `"*"` for all |
-| `permissions.denyChannels` | `[]` | Explicitly blocked channel IDs |
-| `quietHours.enabled` | `false` | Silence the bot during specified hours |
-| `quietHours.start` | `"23:00"` | Start of quiet period (HH:MM) |
-| `quietHours.end` | `"08:00"` | End of quiet period (HH:MM), can wrap midnight |
-| `quietHours.timezone` | `"UTC"` | IANA timezone for quiet hours |
+| Key                         | Default   | Description                                                               |
+| --------------------------- | --------- | ------------------------------------------------------------------------- |
+| `botToken`                  | required  | Bot user OAuth token                                                      |
+| `appToken`                  | required  | App-level token for Socket Mode                                           |
+| `requireMention`            | `true`    | Only respond in channels when the bot is `@mentioned`; DMs always respond |
+| `coalesce.debounceMs`       | `3000`    | Wait N ms after last message before dispatching (group channels)          |
+| `coalesce.bypassDms`        | `true`    | Skip debouncing for DMs                                                   |
+| `permissions.allowChannels` | `["*"]`   | Restrict to specific channel IDs, or `"*"` for all                        |
+| `permissions.denyChannels`  | `[]`      | Explicitly blocked channel IDs                                            |
+| `quietHours.enabled`        | `false`   | Silence the bot during specified hours                                    |
+| `quietHours.start`          | `"23:00"` | Start of quiet period (HH:MM)                                             |
+| `quietHours.end`            | `"08:00"` | End of quiet period (HH:MM), can wrap midnight                            |
+| `quietHours.timezone`       | `"UTC"`   | IANA timezone for quiet hours                                             |
 
 </details>
 
@@ -135,16 +147,16 @@ cp browserbird.example.json browserbird.json
 
 Each agent is scoped to specific channels. Multiple agents are matched in order, first match wins.
 
-| Key | Default | Description |
-|---|---|---|
-| `id` | required | Unique agent identifier |
-| `name` | required | Display name |
-| `provider` | `"claude"` | Provider CLI to use |
-| `model` | `"sonnet"` | Primary model |
-| `fallbackModel` | none | Optional fallback when primary is unavailable |
-| `maxTurns` | `50` | Max conversation turns per session |
-| `systemPrompt` | none | Instructions prepended to every session |
-| `channels` | `["*"]` | Channel IDs this agent handles, or `"*"` for all |
+| Key                | Default                   | Description                                           |
+| ------------------ | ------------------------- | ----------------------------------------------------- |
+| `id`               | required                  | Unique agent identifier                               |
+| `name`             | required                  | Display name                                          |
+| `provider`         | `"claude"`                | Provider CLI to use                                   |
+| `model`            | `"sonnet"`                | Primary model                                         |
+| `fallbackModel`    | none                      | Optional fallback when primary is unavailable         |
+| `maxTurns`         | `50`                      | Max conversation turns per session                    |
+| `systemPrompt`     | none                      | Instructions prepended to every session               |
+| `channels`         | `["*"]`                   | Channel IDs this agent handles, or `"*"` for all      |
 | `processTimeoutMs` | inherits `sessions` value | Per-agent subprocess timeout override in milliseconds |
 
 </details>
@@ -152,11 +164,11 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 <details>
 <summary><strong>sessions</strong></summary>
 
-| Key | Default | Description |
-|---|---|---|
-| `ttlHours` | `24` | Session lifetime in hours (resets on each message) |
-| `maxConcurrent` | `5` | Max simultaneous agent processes |
-| `processTimeoutMs` | `300000` | Per-request timeout in milliseconds |
+| Key                | Default     | Description                                                                                      |
+| ------------------ | ----------- | ------------------------------------------------------------------------------------------------ |
+| `ttlHours`         | `24`        | Session lifetime in hours (resets on each message)                                               |
+| `maxConcurrent`    | `5`         | Max simultaneous agent processes                                                                 |
+| `processTimeoutMs` | `300000`    | Per-request timeout in milliseconds                                                              |
 | `longResponseMode` | `"snippet"` | How to handle responses over 3900 bytes: `snippet` (file upload) or `thread` (split into chunks) |
 
 </details>
@@ -164,45 +176,46 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 <details>
 <summary><strong>browser</strong></summary>
 
-| Key | Default | Description |
-|---|---|---|
-| `enabled` | `false` | Enable Playwright MCP for the agent |
-| `mcpConfigPath` | `null` | Path to your MCP config (relative or absolute) |
-| `display` | `":1"` | X display identifier |
-| `resolution` | `"1280x800x24"` | Browser resolution |
-| `vncPort` | `5900` | VNC server port |
-| `novncPort` | `6080` | noVNC WebSocket proxy port |
+| Key             | Default         | Description                                    |
+| --------------- | --------------- | ---------------------------------------------- |
+| `enabled`       | `false`         | Enable Playwright MCP for the agent            |
+| `mcpConfigPath` | `null`          | Path to your MCP config (relative or absolute) |
+| `display`       | `":1"`          | X display identifier                           |
+| `resolution`    | `"1280x800x24"` | Browser resolution                             |
+| `vncPort`       | `5900`          | VNC server port                                |
+| `novncPort`     | `6080`          | Upstream noVNC WebSocket port                  |
+| `novncHost`     | `"localhost"`   | Upstream noVNC host (e.g. `"vm"` in Docker)    |
 
 </details>
 
 <details>
-<summary><strong>cron</strong></summary>
+<summary><strong>birds</strong></summary>
 
-| Key | Default | Description |
-|---|---|---|
-| `maxFailures` | `3` | Max job attempts before a bird stops retrying |
+| Key           | Default | Description                                  |
+| ------------- | ------- | -------------------------------------------- |
+| `maxAttempts` | `3`     | Max job attempts before a bird stops retrying |
 
 </details>
 
 <details>
 <summary><strong>database</strong></summary>
 
-| Key | Default | Description |
-|---|---|---|
-| `retentionDays` | `30` | How long to keep messages, flight logs, jobs, and logs |
-| `optimizeIntervalHours` | `24` | How often to run WAL checkpoint and `PRAGMA optimize` |
+| Key                     | Default | Description                                            |
+| ----------------------- | ------- | ------------------------------------------------------ |
+| `retentionDays`         | `30`    | How long to keep messages, flight logs, jobs, and logs |
+| `optimizeIntervalHours` | `24`    | How often to run WAL checkpoint and `PRAGMA optimize`  |
 
 </details>
 
 <details>
 <summary><strong>web</strong></summary>
 
-| Key | Default | Description |
-|---|---|---|
-| `enabled` | `true` | Enable the web dashboard and API |
-| `host` | `"127.0.0.1"` | Bind address (`0.0.0.0` for Docker/remote) |
-| `port` | `18800` | Web UI and REST API port |
-| `authToken` | none | Bearer token for API auth (optional but recommended) |
+| Key         | Default       | Description                                          |
+| ----------- | ------------- | ---------------------------------------------------- |
+| `enabled`   | `true`        | Enable the web dashboard and API                     |
+| `host`      | `"127.0.0.1"` | Bind address (`0.0.0.0` for Docker/remote)           |
+| `port`      | `18800`       | Web UI and REST API port                             |
+| `authToken` | none          | Bearer token for API auth (optional but recommended) |
 
 </details>
 
@@ -210,15 +223,15 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 
 Values in config can reference environment variables using `"env:VAR_NAME"`. Additionally:
 
-| Variable | Description |
-|---|---|
-| `SLACK_BOT_TOKEN` | Bot user OAuth token |
-| `SLACK_APP_TOKEN` | App-level token for Socket Mode |
-| `BROWSERBIRD_AUTH_TOKEN` | Web UI auth token |
-| `CLAUDE_CODE_OAUTH_TOKEN` | Agent auth token, required for Docker (no interactive login in containers) |
-| `BROWSERBIRD_RETENTION_DAYS` | Override `database.retentionDays` |
-| `BROWSERBIRD_MCP_CONFIG_PATH` | Override `browser.mcpConfigPath` |
-| `NO_COLOR` | Disable colored output |
+| Variable                      | Description                                                                |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                       |
+| `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                            |
+| `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                          |
+| `CLAUDE_CODE_OAUTH_TOKEN`     | Agent auth token, required for Docker (no interactive login in containers) |
+| `BROWSERBIRD_RETENTION_DAYS`  | Override `database.retentionDays`                                          |
+| `BROWSERBIRD_MCP_CONFIG_PATH` | Override `browser.mcpConfigPath`                                           |
+| `NO_COLOR`                    | Disable colored output                                                     |
 
 ## CLI
 
@@ -234,8 +247,8 @@ browserbird doctor                 # Check agent CLI and Node.js version
 ```bash
 browserbird birds list
 browserbird birds add "0 9 * * 1-5" "Summarize what happened in #general yesterday" --channel C123456
-browserbird birds add "@daily" "Check the status page and report any incidents"
-browserbird birds edit <id> --schedule "0 8 * * *"
+browserbird birds add "@daily" "Check the status page and report any incidents" --agent code-reviewer
+browserbird birds edit <id> --schedule "0 8 * * *" --agent support-bot
 browserbird birds enable <id>
 browserbird birds disable <id>
 browserbird birds remove <id>
@@ -279,12 +292,12 @@ browserbird database jobs clear --failed
 
 Runs at `http://localhost:18800` by default. Real-time updates via SSE.
 
-| Page | Description |
-|---|---|
-| **Status** | System stats, active sessions overview |
-| **Sessions** | Agent sessions with message counts, clickable to inspect full history |
-| **Birds** | Scheduled birds — create, edit, enable/disable, trigger, inline flight history |
-| **Browser** | Live noVNC viewer (Docker only) |
+| Page         | Description                                                                         |
+| ------------ | ----------------------------------------------------------------------------------- |
+| **Status**   | System stats, active sessions overview                                              |
+| **Sessions** | Agent sessions with message counts, clickable to inspect full history               |
+| **Birds**    | Scheduled birds — create, edit, enable/disable, trigger, inline flight history      |
+| **Browser**  | Live noVNC viewer (Docker only)                                                     |
 | **Settings** | Config (agents, sessions, slack, browser) + Database tab (job queue, cleanup, logs) |
 
 ## License
