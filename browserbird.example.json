@@ -2,6 +2,7 @@
   "slack": {
     "botToken": "env:SLACK_BOT_TOKEN",
     "appToken": "env:SLACK_APP_TOKEN",
+    "requireMention": true,
     "coalesce": {
       "debounceMs": 3000,
       "bypassDms": true

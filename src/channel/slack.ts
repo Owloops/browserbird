@@ -144,6 +144,13 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     if ('subtype' in message && message.subtype && IGNORED_SUBTYPES.has(message.subtype)) return;
     if ('bot_id' in message && message.bot_id) return;
 
+    const channelType = (message as unknown as Record<string, unknown>)['channel_type'] as
+      | string
+      | undefined;
+    const isDm = channelType === 'im';
+
+    if (!isDm && config.slack.requireMention) return;
+
     const eventId = (body as Record<string, unknown>)['event_id'] as string | undefined;
     if (eventId) {
       if (recentEvents.has(eventId)) return;
@@ -152,11 +159,6 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
 
     const channelId = message.channel;
     if (!isChannelAllowed(channelId, config.slack.permissions)) return;
-
-    const channelType = (message as unknown as Record<string, unknown>)['channel_type'] as
-      | string
-      | undefined;
-    const isDm = channelType === 'im';
 
     if (!isDm && isQuietHours(config.slack.quietHours)) return;
 
@@ -177,28 +179,30 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     }
   });
 
-  app.event('app_mention', async ({ event, body }) => {
-    const eventId = (body as Record<string, unknown>)['event_id'] as string | undefined;
-    if (eventId) {
-      if (recentEvents.has(eventId)) return;
-      recentEvents.set(eventId, Date.now());
-    }
+  if (config.slack.requireMention) {
+    app.event('app_mention', async ({ event, body }) => {
+      const eventId = (body as Record<string, unknown>)['event_id'] as string | undefined;
+      if (eventId) {
+        if (recentEvents.has(eventId)) return;
+        recentEvents.set(eventId, Date.now());
+      }
 
-    const channelId = event.channel;
-    if (!isChannelAllowed(channelId, config.slack.permissions)) return;
-    if (isQuietHours(config.slack.quietHours)) return;
+      const channelId = event.channel;
+      if (!isChannelAllowed(channelId, config.slack.permissions)) return;
+      if (isQuietHours(config.slack.quietHours)) return;
 
-    const messageTs = event.ts;
-    if (!messageTs) return;
+      const messageTs = event.ts;
+      if (!messageTs) return;
 
-    const threadTs = event.thread_ts ?? messageTs;
-    const userId = event.user ?? 'unknown';
-    const text = stripMention(event.text ?? '');
+      const threadTs = event.thread_ts ?? messageTs;
+      const userId = event.user ?? 'unknown';
+      const text = stripMention(event.text ?? '');
 
-    if (!text.trim()) return;
+      if (!text.trim()) return;
 
-    coalescer.push(channelId, threadTs, userId, text, messageTs);
-  });
+      coalescer.push(channelId, threadTs, userId, text, messageTs);
+    });
+  }
 
   let connected = false;
 

@@ -190,6 +190,7 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
             longResponseMode: config.sessions.longResponseMode,
           },
           slack: {
+            requireMention: config.slack.requireMention,
             coalesce: config.slack.coalesce,
             permissions: config.slack.permissions,
             quietHours: config.slack.quietHours,

@@ -34,6 +34,7 @@ export interface ConfigResponse {
     longResponseMode: string;
   };
   slack: {
+    requireMention: boolean;
     coalesce: { debounceMs: number; bypassDms: boolean };
     permissions: { allowChannels: string[]; denyChannels: string[] };
     quietHours: { enabled: boolean; start: string; end: string; timezone: string };

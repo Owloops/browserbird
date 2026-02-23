@@ -9,6 +9,7 @@ const DEFAULTS: Config = {
   slack: {
     botToken: '',
     appToken: '',
+    requireMention: true,
     coalesce: { debounceMs: 3000, bypassDms: true },
     permissions: { allowChannels: ['*'], denyChannels: [] },
     quietHours: { enabled: false, start: '23:00', end: '08:00', timezone: 'UTC' },

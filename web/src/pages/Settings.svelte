@@ -160,6 +160,10 @@
     <h2 class="group-title">Slack</h2>
     <div class="fields">
       <div class="field">
+        <span class="field-label">Require Mention</span>
+        <span class="field-value">{config.slack.requireMention ? 'Yes' : 'No'}</span>
+      </div>
+      <div class="field">
         <span class="field-label">Debounce</span>
         <span class="field-value mono">{config.slack.coalesce.debounceMs}ms</span>
       </div>

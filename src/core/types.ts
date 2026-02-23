@@ -5,6 +5,7 @@ import type { ProviderName } from '../provider/types.ts';
 export interface SlackConfig {
   botToken: string;
   appToken: string;
+  requireMention: boolean;
   coalesce: {
     debounceMs: number;
     bypassDms: boolean;

@@ -90,6 +90,7 @@ cp browserbird.example.json browserbird.json
   "slack": {
     "botToken": "env:SLACK_BOT_TOKEN",
     "appToken": "env:SLACK_APP_TOKEN",
+    "requireMention": true,
     "coalesce": { "debounceMs": 3000, "bypassDms": true },
     "permissions": { "allowChannels": ["*"], "denyChannels": [] },
     "quietHours": { "enabled": false, "start": "23:00", "end": "08:00", "timezone": "UTC" }
@@ -119,6 +120,7 @@ cp browserbird.example.json browserbird.json
 |---|---|---|
 | `botToken` | required | Bot user OAuth token |
 | `appToken` | required | App-level token for Socket Mode |
+| `requireMention` | `true` | Only respond in channels when the bot is `@mentioned`; DMs always respond |
 | `coalesce.debounceMs` | `3000` | Wait N ms after last message before dispatching (group channels) |
 | `coalesce.bypassDms` | `true` | Skip debouncing for DMs |
 | `permissions.allowChannels` | `["*"]` | Restrict to specific channel IDs, or `"*"` for all |
