@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { PaginatedResult, CronJobRow, CreateCronRequest } from '../lib/types.ts';
+  import type { PaginatedResult, CronJobRow, CreateCronRequest, JobRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
@@ -16,6 +16,28 @@
   let loading = $state(true);
   let showSystem = $state(false);
   let lastUpdated = $state(timeStamp());
+
+  let expandedId: number | null = $state(null);
+  let flightHistory: Record<number, JobRow[]> = $state({});
+  let flightLoading: Record<number, boolean> = $state({});
+
+  async function toggleHistory(id: number): Promise<void> {
+    if (expandedId === id) {
+      expandedId = null;
+      return;
+    }
+    expandedId = id;
+    if (flightHistory[id]) return;
+    flightLoading = { ...flightLoading, [id]: true };
+    try {
+      const result = await api<PaginatedResult<JobRow>>(`/api/jobs?cronJobId=${id}&perPage=10`);
+      flightHistory = { ...flightHistory, [id]: result.items };
+    } catch {
+      flightHistory = { ...flightHistory, [id]: [] };
+    } finally {
+      flightLoading = { ...flightLoading, [id]: false };
+    }
+  }
 
   let showForm = $state(false);
   let editingId: number | null = $state(null);
@@ -57,6 +79,7 @@
   });
 
   function refresh(): Promise<void> {
+    flightHistory = {};
     return fetchCron(page, showSystem, new AbortController().signal);
   }
 
@@ -140,6 +163,8 @@
       const result = await api<{ success: boolean; jobId: number }>(`/api/birds/${id}/fly`, {
         method: 'POST',
       });
+      const { [id]: _, ...rest } = flightHistory;
+      flightHistory = rest;
       showToast(`Bird #${id} sent on a flight (job #${result.jobId})`, 'success');
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
@@ -254,13 +279,47 @@
         </td>
         <td>
           <div class="actions-cell">
-            <a class="btn btn-outline btn-sm" href="#/jobs?cronJobId={j.id}">History</a>
+            <button class="btn btn-outline btn-sm" class:btn-active={expandedId === j.id} onclick={() => toggleHistory(j.id)}>Flights</button>
             <button class="btn btn-outline btn-sm" onclick={() => openEdit(j)}>Edit</button>
             <button class="btn btn-outline btn-sm" onclick={() => runCron(j.id)}>Fly</button>
             <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id)}>Delete</button>
           </div>
         </td>
       </tr>
+      {#if expandedId === j.id}
+        <tr class="flight-history-row">
+          <td colspan="8">
+            {#if flightLoading[j.id]}
+              <div class="flight-loading">Loading flights...</div>
+            {:else if !flightHistory[j.id] || flightHistory[j.id].length === 0}
+              <div class="flight-empty">No flight history</div>
+            {:else}
+              <table class="flight-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Status</th>
+                    <th>Attempts</th>
+                    <th>Created</th>
+                    <th>Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each flightHistory[j.id] as flight (flight.id)}
+                    <tr>
+                      <td class="mono">#{flight.id}</td>
+                      <td><Badge status={flight.status} /></td>
+                      <td class="mono">{flight.attempts}/{flight.max_attempts}</td>
+                      <td>{formatAge(flight.created_at)}</td>
+                      <td class="flight-error">{flight.error ?? ''}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            {/if}
+          </td>
+        </tr>
+      {/if}
     {/each}
   </DataTable>
 {/if}
@@ -339,8 +398,56 @@
     gap: 0.25rem;
   }
 
-  .actions-cell a {
-    text-decoration: none;
+  .btn-active {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+  }
+
+  .flight-history-row td {
+    padding: 0;
+    background: var(--color-bg-deep);
+  }
+
+  .flight-loading,
+  .flight-empty {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .flight-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .flight-table th {
+    padding: 0.3rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.733rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .flight-table td {
+    padding: 0.3rem 0.75rem;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .flight-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .flight-error {
+    color: var(--color-error);
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   @media (max-width: 768px) {
