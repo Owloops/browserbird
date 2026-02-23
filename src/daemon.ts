@@ -114,11 +114,9 @@ export async function startDaemon(options: CliOptions): Promise<void> {
 
   const slackApp = createSlackChannel(config, controller.signal);
 
-  if (config.cron.enabled) {
-    startScheduler(config, controller.signal, {
-      postToSlack: (channel, text) => slackApp.postMessage(channel, text),
-    });
-  }
+  startScheduler(config, controller.signal, {
+    postToSlack: (channel, text) => slackApp.postMessage(channel, text),
+  });
 
   // Don't await Slack — Socket Mode retries indefinitely with back-off,
   // which would block the web server and everything else from starting.

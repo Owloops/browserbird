@@ -42,7 +42,7 @@ const DEFAULTS: Config = {
     vncPort: 5900,
     novncPort: 6080,
   },
-  cron: { enabled: true, maxFailures: 3 },
+  cron: { maxFailures: 3 },
   web: { enabled: true, host: '127.0.0.1', port: 18800, authToken: '' },
 };
 

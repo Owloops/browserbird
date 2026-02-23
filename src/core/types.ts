@@ -55,7 +55,6 @@ export interface DatabaseConfig {
 }
 
 export interface CronConfig {
-  enabled: boolean;
   maxFailures: number;
 }
 

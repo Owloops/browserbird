@@ -77,14 +77,6 @@
         out</span
       >
     </div>
-    <div class="stat-sep"></div>
-    <div class="stat">
-      <span class="stat-label">Subsystems</span>
-      <span class="stat-indicators">
-        <span class="indicator" class:indicator-on={data.cron.enabled}>birds</span>
-        <span class="indicator" class:indicator-on={data.browser.enabled}>browser</span>
-      </span>
-    </div>
   </div>
 
   <div class="sections">
@@ -188,27 +180,6 @@
   .stat-sub {
     font-size: 0.733rem;
     color: var(--color-text-muted);
-  }
-
-  .stat-indicators {
-    display: flex;
-    gap: 0.375rem;
-    margin-top: 0.125rem;
-  }
-
-  .indicator {
-    font-family: var(--font-mono);
-    font-size: 0.733rem;
-    font-weight: 500;
-    color: var(--color-text-muted);
-    padding: 0.133rem 0.4rem;
-    border-radius: var(--radius-sm);
-    background: rgba(92, 101, 115, 0.1);
-  }
-
-  .indicator-on {
-    color: var(--color-success);
-    background: var(--color-success-bg);
   }
 
   .sections {

@@ -48,7 +48,6 @@
     "novncPort": 6080
   },
   "cron": {
-    "enabled": true,
     "maxFailures": 3
   },
   "web": {

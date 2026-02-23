@@ -107,7 +107,7 @@ cp browserbird.example.json browserbird.json
   "sessions": { "ttlHours": 24, "maxConcurrent": 5, "processTimeoutMs": 300000, "longResponseMode": "snippet" },
   "database": { "retentionDays": 30, "optimizeIntervalHours": 24 },
   "browser": { "enabled": false, "mcpConfigPath": null },
-  "cron": { "enabled": true, "maxFailures": 3 },
+  "cron": { "maxFailures": 3 },
   "web": { "enabled": true, "host": "127.0.0.1", "port": 18800, "authToken": "env:BROWSERBIRD_AUTH_TOKEN" }
 }
 ```

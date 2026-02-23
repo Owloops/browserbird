@@ -13,7 +13,6 @@ export interface StatusResponse {
   sessions: { active: number; maxConcurrent: number };
   jobs: JobStats;
   messages: { totalMessages: number; totalTokensIn: number; totalTokensOut: number };
-  cron: { enabled: boolean };
   web: { enabled: boolean; port: number };
   browser: { enabled: boolean };
   slack: { connected: boolean };
@@ -39,7 +38,7 @@ export interface ConfigResponse {
     permissions: { allowChannels: string[]; denyChannels: string[] };
     quietHours: { enabled: boolean; start: string; end: string; timezone: string };
   };
-  cron: { enabled: boolean; maxFailures: number };
+  cron: { maxFailures: number };
   browser: {
     enabled: boolean;
     display: string;

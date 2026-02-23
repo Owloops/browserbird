@@ -192,33 +192,36 @@
   </div>
 
   <div class="group">
-    <h2 class="group-title">Subsystems</h2>
+    <h2 class="group-title">Birds</h2>
     <div class="fields">
       <div class="field">
-        <span class="field-label">Birds</span>
-        <span class="field-value">
-          <span class="dot" class:dot-on={config.cron.enabled} class:dot-off={!config.cron.enabled}
-          ></span>
-          {config.cron.enabled ? 'Enabled' : 'Disabled'}
-          {#if config.cron.enabled}
-            <span class="field-dim">· max {config.cron.maxFailures} failures</span>
-          {/if}
-        </span>
+        <span class="field-label">Max Failures</span>
+        <span class="field-value mono">{config.cron.maxFailures}</span>
       </div>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2 class="group-title">Browser</h2>
+    <div class="fields">
       <div class="field">
-        <span class="field-label">Browser</span>
-        <span class="field-value">
-          <span
-            class="dot"
-            class:dot-on={config.browser.enabled}
-            class:dot-off={!config.browser.enabled}
-          ></span>
-          {config.browser.enabled ? 'Enabled' : 'Disabled'}
-          {#if config.browser.enabled}
-            <span class="field-dim">· {config.browser.resolution}</span>
-          {/if}
-        </span>
+        <span class="field-label">Enabled</span>
+        <span class="field-value">{config.browser.enabled ? 'Yes' : 'No'}</span>
       </div>
+      {#if config.browser.enabled}
+        <div class="field">
+          <span class="field-label">Resolution</span>
+          <span class="field-value mono">{config.browser.resolution}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">VNC Port</span>
+          <span class="field-value mono">{config.browser.vncPort}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">noVNC Port</span>
+          <span class="field-value mono">{config.browser.novncPort}</span>
+        </div>
+      {/if}
     </div>
   </div>
 
