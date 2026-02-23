@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { StatusResponse, ConfigResponse, CleanupResponse, DoctorResponse, PaginatedResult, LogRow } from '../lib/types.ts';
+  import type { StatusResponse, ConfigResponse, CleanupResponse, DoctorResponse, PaginatedResult, LogRow, JobStats } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
-  import { formatUptime, formatAge } from '../lib/format.ts';
+  import { formatAge, formatUptime } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
 
   interface Props {
@@ -13,7 +13,9 @@
   let config: ConfigResponse | null = $state(null);
   let doctor: DoctorResponse | null = $state(null);
   let recentErrors: LogRow[] = $state([]);
+  let jobStats: JobStats | null = $state(null);
   let loading = $state(true);
+  let activeTab: 'config' | 'database' = $state('config');
 
   $effect(() => {
     const ac = new AbortController();
@@ -21,12 +23,14 @@
       api<ConfigResponse>('/api/config'),
       api<DoctorResponse>('/api/doctor'),
       api<PaginatedResult<LogRow>>('/api/logs?level=error&perPage=10'),
+      api<JobStats>('/api/jobs/stats'),
     ])
-      .then(([c, d, logs]) => {
+      .then(([c, d, logs, js]) => {
         if (ac.signal.aborted) return;
         config = c;
         doctor = d;
         recentErrors = logs.items;
+        jobStats = js;
       })
       .finally(() => {
         if (!ac.signal.aborted) loading = false;
@@ -35,6 +39,48 @@
   });
 
   let cleaningUp = $state(false);
+  let retryingFailed = $state(false);
+  let clearingCompleted = $state(false);
+  let clearingFailed = $state(false);
+
+  async function retryAllFailed(): Promise<void> {
+    retryingFailed = true;
+    try {
+      const result = await api<{ count: number }>('/api/jobs/retry-all', { method: 'POST' });
+      showToast(`${result.count} failed job(s) queued for retry`, 'success');
+      jobStats = await api<JobStats>('/api/jobs/stats');
+    } catch (err) {
+      showToast(`Failed: ${(err as Error).message}`, 'error');
+    } finally {
+      retryingFailed = false;
+    }
+  }
+
+  async function clearCompleted(): Promise<void> {
+    clearingCompleted = true;
+    try {
+      const result = await api<{ count: number }>('/api/jobs/clear?status=completed', { method: 'DELETE' });
+      showToast(`${result.count} completed job(s) cleared`, 'success');
+      jobStats = await api<JobStats>('/api/jobs/stats');
+    } catch (err) {
+      showToast(`Failed: ${(err as Error).message}`, 'error');
+    } finally {
+      clearingCompleted = false;
+    }
+  }
+
+  async function clearFailed(): Promise<void> {
+    clearingFailed = true;
+    try {
+      const result = await api<{ count: number }>('/api/jobs/clear?status=failed', { method: 'DELETE' });
+      showToast(`${result.count} failed job(s) cleared`, 'success');
+      jobStats = await api<JobStats>('/api/jobs/stats');
+    } catch (err) {
+      showToast(`Failed: ${(err as Error).message}`, 'error');
+    } finally {
+      clearingFailed = false;
+    }
+  }
 
   async function runCleanup(): Promise<void> {
     cleaningUp = true;
@@ -59,231 +105,300 @@
 {#if loading}
   <div class="loading">Loading...</div>
 {:else if config}
-  <div class="group">
-    <h2 class="group-title">System</h2>
-    <div class="fields">
-      <div class="field">
-        <span class="field-label">Uptime</span>
-        <span class="field-value">{status ? formatUptime(status.uptime) : '—'}</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Slack</span>
-        <span class="field-value">
-          <span
-            class="dot"
-            class:dot-on={status?.slack.connected}
-            class:dot-off={!status?.slack.connected}
-          ></span>
-          {status?.slack.connected ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
-      <div class="field">
-        <span class="field-label">Web Port</span>
-        <span class="field-value mono">{config.web.port}</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Auth</span>
-        <span class="field-value">{config.web.authEnabled ? 'Enabled' : 'Disabled'}</span>
-      </div>
-      {#if doctor}
+  <div class="tabs">
+    <button class="tab" class:tab-active={activeTab === 'config'} onclick={() => { activeTab = 'config'; }}>Config</button>
+    <button class="tab" class:tab-active={activeTab === 'database'} onclick={() => { activeTab = 'database'; }}>Database</button>
+  </div>
+
+  {#if activeTab === 'config'}
+    <div class="group">
+      <h2 class="group-title">System</h2>
+      <div class="fields">
+        {#if status}
+          <div class="field">
+            <span class="field-label">Uptime</span>
+            <span class="field-value mono">{formatUptime(status.uptime)}</span>
+          </div>
+        {/if}
         <div class="field">
-          <span class="field-label">Claude CLI</span>
+          <span class="field-label">Web Port</span>
+          <span class="field-value mono">{config.web.port}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Auth</span>
+          <span class="field-value">{config.web.authEnabled ? 'Enabled' : 'Disabled'}</span>
+        </div>
+        {#if doctor}
+          <div class="field">
+            <span class="field-label">Claude CLI</span>
+            <span class="field-value">
+              {#if doctor.claude.available}
+                <span class="dot dot-on"></span>
+                <span class="mono">{doctor.claude.version}</span>
+              {:else}
+                <span class="dot dot-off"></span>
+                Not found
+              {/if}
+            </span>
+          </div>
+          <div class="field">
+            <span class="field-label">Node.js</span>
+            <span class="field-value mono">{doctor.node}</span>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <div class="group">
+      <h2 class="group-title">Agents</h2>
+      {#each config.agents as agent (agent.id)}
+        <div class="agent-card">
+          <div class="agent-header">
+            <span class="agent-name">{agent.name}</span>
+            <span class="agent-id mono">{agent.id}</span>
+          </div>
+          <div class="fields">
+            <div class="field">
+              <span class="field-label">Provider</span>
+              <span class="field-value mono">{agent.provider}</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Model</span>
+              <span class="field-value mono">{agent.model}</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Max Turns</span>
+              <span class="field-value mono">{agent.maxTurns}</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Channels</span>
+              <span class="field-value mono">{agent.channels.join(', ') || '*'}</span>
+            </div>
+          </div>
+        </div>
+      {/each}
+    </div>
+
+    <div class="group">
+      <h2 class="group-title">Sessions</h2>
+      <div class="fields">
+        <div class="field">
+          <span class="field-label">Max Concurrent</span>
+          <span class="field-value mono">{config.sessions.maxConcurrent}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">TTL</span>
+          <span class="field-value mono">{config.sessions.ttlHours}h</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Timeout</span>
+          <span class="field-value mono">{(config.sessions.processTimeoutMs / 1000).toFixed(0)}s</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Long Response</span>
+          <span class="field-value mono">{config.sessions.longResponseMode}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2 class="group-title">Slack</h2>
+      <div class="fields">
+        {#if status}
+          <div class="field">
+            <span class="field-label">Connected</span>
+            <span class="field-value">
+              <span class="dot" class:dot-on={status.slack.connected} class:dot-off={!status.slack.connected}></span>
+              {status.slack.connected ? 'Yes' : 'No'}
+            </span>
+          </div>
+        {/if}
+        <div class="field">
+          <span class="field-label">Require Mention</span>
+          <span class="field-value">{config.slack.requireMention ? 'Yes' : 'No'}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Debounce</span>
+          <span class="field-value mono">{config.slack.coalesce.debounceMs}ms</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Bypass DMs</span>
+          <span class="field-value">{config.slack.coalesce.bypassDms ? 'Yes' : 'No'}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Allow Channels</span>
+          <span class="field-value mono">{config.slack.permissions.allowChannels.join(', ') || '*'}</span>
+        </div>
+        {#if config.slack.permissions.denyChannels.length > 0}
+          <div class="field">
+            <span class="field-label">Deny Channels</span>
+            <span class="field-value mono">{config.slack.permissions.denyChannels.join(', ')}</span>
+          </div>
+        {/if}
+        <div class="field">
+          <span class="field-label">Quiet Hours</span>
           <span class="field-value">
-            {#if doctor.claude.available}
-              <span class="dot dot-on"></span>
-              <span class="mono">{doctor.claude.version}</span>
+            {#if config.slack.quietHours.enabled}
+              <span class="mono">{config.slack.quietHours.start}-{config.slack.quietHours.end}</span>
+              ({config.slack.quietHours.timezone})
             {:else}
-              <span class="dot dot-off"></span>
-              Not found
+              Disabled
             {/if}
           </span>
         </div>
-        <div class="field">
-          <span class="field-label">Node.js</span>
-          <span class="field-value mono">{doctor.node}</span>
-        </div>
-      {/if}
-    </div>
-  </div>
-
-  <div class="group">
-    <h2 class="group-title">Agents</h2>
-    {#each config.agents as agent (agent.id)}
-      <div class="agent-card">
-        <div class="agent-header">
-          <span class="agent-name">{agent.name}</span>
-          <span class="agent-id mono">{agent.id}</span>
-        </div>
-        <div class="fields">
-          <div class="field">
-            <span class="field-label">Provider</span>
-            <span class="field-value mono">{agent.provider}</span>
-          </div>
-          <div class="field">
-            <span class="field-label">Model</span>
-            <span class="field-value mono">{agent.model}</span>
-          </div>
-          <div class="field">
-            <span class="field-label">Max Turns</span>
-            <span class="field-value mono">{agent.maxTurns}</span>
-          </div>
-          <div class="field">
-            <span class="field-label">Channels</span>
-            <span class="field-value mono">{agent.channels.join(', ') || '*'}</span>
-          </div>
-        </div>
-      </div>
-    {/each}
-  </div>
-
-  <div class="group">
-    <h2 class="group-title">Sessions</h2>
-    <div class="fields">
-      <div class="field">
-        <span class="field-label">Max Concurrent</span>
-        <span class="field-value mono">{config.sessions.maxConcurrent}</span>
-      </div>
-      <div class="field">
-        <span class="field-label">TTL</span>
-        <span class="field-value mono">{config.sessions.ttlHours}h</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Timeout</span>
-        <span class="field-value mono">{(config.sessions.processTimeoutMs / 1000).toFixed(0)}s</span
-        >
-      </div>
-      <div class="field">
-        <span class="field-label">Long Response</span>
-        <span class="field-value mono">{config.sessions.longResponseMode}</span>
       </div>
     </div>
-  </div>
 
-  <div class="group">
-    <h2 class="group-title">Slack</h2>
-    <div class="fields">
-      <div class="field">
-        <span class="field-label">Require Mention</span>
-        <span class="field-value">{config.slack.requireMention ? 'Yes' : 'No'}</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Debounce</span>
-        <span class="field-value mono">{config.slack.coalesce.debounceMs}ms</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Bypass DMs</span>
-        <span class="field-value">{config.slack.coalesce.bypassDms ? 'Yes' : 'No'}</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Allow Channels</span>
-        <span class="field-value mono">{config.slack.permissions.allowChannels.join(', ')}</span>
-      </div>
-      {#if config.slack.permissions.denyChannels.length > 0}
-        <div class="field">
-          <span class="field-label">Deny Channels</span>
-          <span class="field-value mono">{config.slack.permissions.denyChannels.join(', ')}</span>
-        </div>
-      {/if}
-      <div class="field">
-        <span class="field-label">Quiet Hours</span>
-        <span class="field-value">
-          {#if config.slack.quietHours.enabled}
-            <span class="mono">{config.slack.quietHours.start}–{config.slack.quietHours.end}</span>
-            ({config.slack.quietHours.timezone})
-          {:else}
-            Disabled
-          {/if}
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <div class="group">
-    <h2 class="group-title">Birds</h2>
-    <div class="fields">
-      <div class="field">
-        <span class="field-label">Max Failures</span>
-        <span class="field-value mono">{config.cron.maxFailures}</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="group">
-    <h2 class="group-title">Browser</h2>
-    <div class="fields">
-      <div class="field">
-        <span class="field-label">Enabled</span>
-        <span class="field-value">{config.browser.enabled ? 'Yes' : 'No'}</span>
-      </div>
-      {#if config.browser.enabled}
-        <div class="field">
-          <span class="field-label">Resolution</span>
-          <span class="field-value mono">{config.browser.resolution}</span>
-        </div>
-        <div class="field">
-          <span class="field-label">VNC Port</span>
-          <span class="field-value mono">{config.browser.vncPort}</span>
-        </div>
-        <div class="field">
-          <span class="field-label">noVNC Port</span>
-          <span class="field-value mono">{config.browser.novncPort}</span>
-        </div>
-      {/if}
-    </div>
-  </div>
-
-  <div class="group">
-    <h2 class="group-title">Database</h2>
-    <div class="fields">
-      <div class="field">
-        <span class="field-label">Retention</span>
-        <span class="field-value mono">{config.database.retentionDays}d</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Optimize Interval</span>
-        <span class="field-value mono">{config.database.optimizeIntervalHours}h</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="group">
-    <h2 class="group-title">Maintenance</h2>
-    <div class="fields">
-      <div class="field">
-        <span class="field-label">Cleanup</span>
-        <span class="field-value">
-          <span class="field-dim">Delete records older than {config.database.retentionDays}d</span>
-          <button class="btn btn-outline btn-sm" disabled={cleaningUp} onclick={runCleanup}
-            >{cleaningUp ? 'Running...' : 'Run Cleanup'}</button
-          >
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <div class="group">
-    <h2 class="group-title">Recent Errors</h2>
-    {#if recentErrors.length === 0}
+    <div class="group">
+      <h2 class="group-title">Birds</h2>
       <div class="fields">
         <div class="field">
-          <span class="field-dim">No errors recorded</span>
+          <span class="field-label">Max Failures</span>
+          <span class="field-value mono">{config.cron.maxFailures}</span>
         </div>
       </div>
-    {:else}
-      <div class="error-list">
-        {#each recentErrors as error (error.id)}
-          <div class="error-row">
-            <span class="error-source mono">{error.source}</span>
-            <span class="error-message">{error.message}</span>
-            <span class="error-time">{formatAge(error.created_at)}</span>
+    </div>
+
+    <div class="group">
+      <h2 class="group-title">Browser</h2>
+      <div class="fields">
+        <div class="field">
+          <span class="field-label">Enabled</span>
+          <span class="field-value">{config.browser.enabled ? 'Yes' : 'No'}</span>
+        </div>
+        {#if config.browser.enabled}
+          <div class="field">
+            <span class="field-label">Resolution</span>
+            <span class="field-value mono">{config.browser.resolution}</span>
           </div>
-        {/each}
+          <div class="field">
+            <span class="field-label">VNC Port</span>
+            <span class="field-value mono">{config.browser.vncPort}</span>
+          </div>
+          <div class="field">
+            <span class="field-label">noVNC Port</span>
+            <span class="field-value mono">{config.browser.novncPort}</span>
+          </div>
+        {/if}
       </div>
-    {/if}
-  </div>
+    </div>
+
+    <div class="group">
+      <h2 class="group-title">Database</h2>
+      <div class="fields">
+        <div class="field">
+          <span class="field-label">Retention</span>
+          <span class="field-value mono">{config.database.retentionDays}d</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Optimize Interval</span>
+          <span class="field-value mono">{config.database.optimizeIntervalHours}h</span>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  {#if activeTab === 'database'}
+    <div class="group">
+      <h2 class="group-title">Job Queue</h2>
+      <div class="fields">
+        {#if jobStats}
+          <div class="field">
+            <span class="field-label">Queue</span>
+            <span class="field-value mono">{jobStats.pending} pending  {jobStats.running} running  {jobStats.completed} done  {jobStats.failed} failed</span>
+          </div>
+        {/if}
+        <div class="field">
+          <span class="field-label">Retry Failed</span>
+          <span class="field-value">
+            <span class="field-dim">Reset all failed jobs to pending</span>
+            <button class="btn btn-outline btn-sm" disabled={retryingFailed || (jobStats?.failed ?? 0) === 0} onclick={retryAllFailed}>{retryingFailed ? 'Retrying...' : 'Retry All Failed'}</button>
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-label">Clear Completed</span>
+          <span class="field-value">
+            <span class="field-dim">Delete completed job records</span>
+            <button class="btn btn-outline btn-sm" disabled={clearingCompleted || (jobStats?.completed ?? 0) === 0} onclick={clearCompleted}>{clearingCompleted ? 'Clearing...' : 'Clear Completed'}</button>
+          </span>
+        </div>
+        <div class="field">
+          <span class="field-label">Clear Failed</span>
+          <span class="field-value">
+            <span class="field-dim">Delete failed job records</span>
+            <button class="btn btn-outline btn-sm" disabled={clearingFailed || (jobStats?.failed ?? 0) === 0} onclick={clearFailed}>{clearingFailed ? 'Clearing...' : 'Clear Failed'}</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2 class="group-title">Cleanup</h2>
+      <div class="fields">
+        <div class="field">
+          <span class="field-label">Run Cleanup</span>
+          <span class="field-value">
+            <span class="field-dim">Delete records older than {config.database.retentionDays}d</span>
+            <button class="btn btn-outline btn-sm" disabled={cleaningUp} onclick={runCleanup}>{cleaningUp ? 'Running...' : 'Run Cleanup'}</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2 class="group-title">Logs</h2>
+      {#if recentErrors.length === 0}
+        <div class="fields">
+          <div class="field">
+            <span class="field-dim">No logs recorded</span>
+          </div>
+        </div>
+      {:else}
+        <div class="error-list">
+          {#each recentErrors as error (error.id)}
+            <div class="error-row">
+              <span class="error-source mono">{error.source}</span>
+              <span class="error-message">{error.message}</span>
+              <span class="error-time">{formatAge(error.created_at)}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
 {/if}
 
 <style>
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    padding: 0.4rem 0.875rem;
+    font-size: 0.867rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .tab:hover {
+    color: var(--color-text-secondary);
+  }
+
+  .tab-active {
+    color: var(--color-text-primary);
+    border-bottom-color: var(--color-accent);
+  }
+
   .group {
     margin-bottom: 1.25rem;
   }
