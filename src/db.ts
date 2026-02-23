@@ -501,8 +501,18 @@ export function updateCronJob(jobId: number, fields: UpdateCronJobFields): CronJ
 }
 
 export function deleteCronJob(jobId: number): boolean {
-  const result = getDb().prepare('DELETE FROM cron_jobs WHERE id = ?').run(jobId);
-  return Number(result.changes) > 0;
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    db.prepare('DELETE FROM cron_runs WHERE job_id = ?').run(jobId);
+    db.prepare('UPDATE jobs SET cron_job_id = NULL WHERE cron_job_id = ?').run(jobId);
+    const result = db.prepare('DELETE FROM cron_jobs WHERE id = ?').run(jobId);
+    db.exec('COMMIT');
+    return Number(result.changes) > 0;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 }
 
 export function createCronRun(jobId: number): CronRunRow {

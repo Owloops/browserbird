@@ -2,6 +2,7 @@
   import type { PaginatedResult, SessionRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge } from '../lib/format.ts';
+  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
 
   const PER_PAGE = 20;
@@ -31,10 +32,12 @@
     const p = page;
     const ac = new AbortController();
     fetchSessions(p, ac.signal);
-    const timer = setInterval(() => fetchSessions(p, ac.signal), 15_000);
+    const unsub = onInvalidate((e) => {
+      if (e.resource === 'sessions') fetchSessions(p, ac.signal);
+    });
     return () => {
       ac.abort();
-      clearInterval(timer);
+      unsub();
     };
   });
 </script>

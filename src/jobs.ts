@@ -9,9 +9,12 @@ import {
   failStaleJobs,
   deleteOldJobs,
   insertLog,
+  updateCronJobStatus,
+  getCronJob,
 } from './db.ts';
 import { logger } from './core/logger.ts';
 import { recordError } from './core/metrics.ts';
+import { broadcastSSE } from './server.ts';
 
 type JobHandler = (payload: unknown) => Promise<string | void> | string | void;
 
@@ -55,17 +58,32 @@ async function processJob(job: JobRow): Promise<void> {
     return;
   }
 
+  let finalStatus = 'completed';
   try {
     const payload = job.payload ? (JSON.parse(job.payload) as unknown) : undefined;
     const result = await handler(payload);
     completeJob(job.id, typeof result === 'string' ? result : undefined);
     logger.debug(`job ${job.id} completed: ${job.name}`);
   } catch (err) {
+    finalStatus = 'failed';
     const message = err instanceof Error ? err.message : String(err);
     failJob(job.id, message);
     logger.warn(`job ${job.id} failed (attempt ${job.attempts}/${job.max_attempts}): ${message}`);
     recordError('cron');
     insertLog('error', 'cron', message);
+  } finally {
+    if (job.cron_job_id != null && job.name === 'cron_run') {
+      const cronJob = getCronJob(job.cron_job_id);
+      if (cronJob != null) {
+        const newFailureCount =
+          finalStatus === 'failed' ? cronJob.failure_count + 1 : cronJob.failure_count;
+        updateCronJobStatus(job.cron_job_id, finalStatus, newFailureCount);
+      }
+    }
+    const resource = job.name === 'cron_run' ? 'birds' : 'sessions';
+    const invalidatePayload: { resource: string; cronJobId?: number } = { resource };
+    if (job.cron_job_id != null) invalidatePayload.cronJobId = job.cron_job_id;
+    broadcastSSE('invalidate', invalidatePayload);
   }
 }
 

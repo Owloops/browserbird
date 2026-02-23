@@ -2,6 +2,7 @@
   import type { SessionDetail } from '../lib/types.ts';
   import { api, getHashParams } from '../lib/api.ts';
   import { formatAge } from '../lib/format.ts';
+  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import StatCard from '../components/StatCard.svelte';
@@ -39,7 +40,13 @@
     const ac = new AbortController();
     loading = true;
     fetchDetail(p, ac.signal);
-    return () => ac.abort();
+    const unsub = onInvalidate((e) => {
+      if (e.resource === 'sessions') fetchDetail(p, ac.signal);
+    });
+    return () => {
+      ac.abort();
+      unsub();
+    };
   });
 
   function navigateBack(): void {

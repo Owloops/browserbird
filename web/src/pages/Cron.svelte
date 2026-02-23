@@ -3,6 +3,7 @@
   import { api } from '../lib/api.ts';
   import { formatAge, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
+  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import Toggle from '../components/Toggle.svelte';
@@ -71,10 +72,17 @@
     const system = showSystem;
     const ac = new AbortController();
     fetchCron(p, system, ac.signal);
-    const timer = setInterval(() => fetchCron(p, system, ac.signal), 15_000);
+    const unsub = onInvalidate((e) => {
+      if (e.resource !== 'birds') return;
+      fetchCron(p, system, ac.signal);
+      if (e.cronJobId != null && expandedId === e.cronJobId) {
+        const { [e.cronJobId]: _, ...rest } = flightHistory;
+        flightHistory = rest;
+      }
+    });
     return () => {
       ac.abort();
-      clearInterval(timer);
+      unsub();
     };
   });
 
@@ -171,11 +179,11 @@
     }
   }
 
-  async function deleteCron(id: number): Promise<void> {
+  async function deleteCron(id: number, name: string): Promise<void> {
+    if (!confirm(`Delete bird "${name}"? This will also remove all flight history.`)) return;
     try {
       await api(`/api/birds/${id}`, { method: 'DELETE' });
       showToast(`Bird #${id} deleted`, 'success');
-      await refresh();
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
@@ -201,7 +209,7 @@
           page = 1;
         }}
       />
-      <span>System jobs</span>
+      <span>System birds</span>
     </div>
     <div class="filter-spacer"></div>
     <span class="last-updated">Updated {lastUpdated}</span>
@@ -282,7 +290,7 @@
             <button class="btn btn-outline btn-sm" class:btn-active={expandedId === j.id} onclick={() => toggleHistory(j.id)}>Flights</button>
             <button class="btn btn-outline btn-sm" onclick={() => openEdit(j)}>Edit</button>
             <button class="btn btn-outline btn-sm" onclick={() => runCron(j.id)}>Fly</button>
-            <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id)}>Delete</button>
+            <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id, j.name)}>Delete</button>
           </div>
         </td>
       </tr>

@@ -15,6 +15,7 @@ import {
 } from '../db.ts';
 import { expireStaleSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
+import { broadcastSSE } from '../server.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import { parseCron, matchesCron } from './parse.ts';
 import type { CronSchedule } from './parse.ts';
@@ -174,6 +175,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       }
 
       updateCronJobStatus(job.id, 'triggered', job.failure_count);
+      broadcastSSE('invalidate', { resource: 'birds', cronJobId: job.id });
     }
   };
 

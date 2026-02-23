@@ -129,6 +129,11 @@ export interface CreateCronRequest {
   agent?: string;
 }
 
+export interface InvalidateEvent {
+  resource: 'sessions' | 'birds';
+  cronJobId?: number;
+}
+
 export interface CleanupResponse {
   messages: number;
   cronRuns: number;

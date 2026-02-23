@@ -10,6 +10,7 @@ import { spawnProvider } from '../provider/spawn.ts';
 import * as db from '../db.ts';
 import { logger } from '../core/logger.ts';
 import { recordError } from '../core/metrics.ts';
+import { broadcastSSE } from '../server.ts';
 
 interface SessionLock {
   processing: boolean;
@@ -270,6 +271,7 @@ export function createHandler(client: ChannelClient, config: Config, signal: Abo
         db.logMessage(channelId, threadTs, msg.userId, 'in', msg.text);
       }
       db.touchSession(session.id, messages.length + 1);
+      broadcastSSE('invalidate', { resource: 'sessions' });
 
       const prompt = formatPrompt(messages);
       const lastMessage = messages[messages.length - 1]!;

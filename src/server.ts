@@ -33,6 +33,7 @@ import {
   deleteOldJobs,
   deleteOldLogs,
   optimizeDatabase,
+  insertLog,
 } from './db.ts';
 import { enqueue } from './jobs.ts';
 import { getErrorRates } from './core/metrics.ts';
@@ -330,6 +331,7 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
           return;
         }
         if (setCronJobEnabled(id, true)) {
+          broadcastSSE('invalidate', { resource: 'birds' });
           json(res, { success: true });
         } else {
           jsonError(res, `Bird #${id} not found`, 404);
@@ -346,6 +348,7 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
           return;
         }
         if (setCronJobEnabled(id, false)) {
+          broadcastSSE('invalidate', { resource: 'birds' });
           json(res, { success: true });
         } else {
           jsonError(res, `Bird #${id} not found`, 404);
@@ -379,6 +382,7 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
           body.channel?.trim() || undefined,
           body.agent?.trim() || undefined,
         );
+        broadcastSSE('invalidate', { resource: 'birds' });
         json(res, job, 201);
       },
     },
@@ -406,6 +410,7 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
           agentId: body.agent?.trim() || undefined,
         });
         if (updated) {
+          broadcastSSE('invalidate', { resource: 'birds' });
           json(res, updated);
         } else {
           jsonError(res, `Bird #${id} not found`, 404);
@@ -422,6 +427,7 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
           return;
         }
         if (deleteCronJob(id)) {
+          broadcastSSE('invalidate', { resource: 'birds' });
           json(res, { success: true });
         } else {
           jsonError(res, `Bird #${id} not found`, 404);
@@ -525,9 +531,10 @@ function handleSSE(
   if (!checkAuth(config, req, res, true)) return;
 
   res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
   });
 
   sseConnections.add(res);
@@ -554,6 +561,13 @@ function handleSSE(
     clearInterval(timer);
     sseConnections.delete(res);
   });
+}
+
+export function broadcastSSE(event: string, data: unknown): void {
+  const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const res of sseConnections) {
+    if (!res.destroyed) res.write(payload);
+  }
 }
 
 function closeAllSSE(): void {
@@ -639,7 +653,9 @@ export function createWebServer(
       try {
         await route.handler(req, res, params);
       } catch (err) {
-        logger.error(`api error: ${err instanceof Error ? err.message : String(err)}`);
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error(`api error: ${msg}`);
+        insertLog('error', 'api', msg);
         jsonError(res, 'Internal server error', 500);
       }
       return;

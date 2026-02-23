@@ -2,6 +2,7 @@
   import type { StatusResponse, PaginatedResult, SessionRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge } from '../lib/format.ts';
+  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
 
   interface Props {
@@ -10,59 +11,62 @@
 
   let { status }: Props = $props();
 
-  let initialStatus: StatusResponse | null = $state(null);
   let sessions: SessionRow[] = $state([]);
-  let loading = $state(true);
+  let sessionsLoading = $state(true);
 
-  const data = $derived(status ?? initialStatus);
+  async function fetchSessions(signal: AbortSignal): Promise<void> {
+    try {
+      const data = await api<PaginatedResult<SessionRow>>('/api/sessions?perPage=5');
+      if (signal.aborted) return;
+      sessions = data.items;
+    } catch {
+    } finally {
+      if (!signal.aborted) sessionsLoading = false;
+    }
+  }
 
   $effect(() => {
     const ac = new AbortController();
-    Promise.all([
-      api<StatusResponse>('/api/status'),
-      api<PaginatedResult<SessionRow>>('/api/sessions?perPage=5'),
-    ])
-      .then(([s, sess]) => {
-        if (ac.signal.aborted) return;
-        initialStatus = s;
-        sessions = sess.items;
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) loading = false;
-      });
-    return () => ac.abort();
+    fetchSessions(ac.signal);
+    const unsub = onInvalidate((e) => {
+      if (e.resource === 'sessions') fetchSessions(ac.signal);
+    });
+    return () => {
+      ac.abort();
+      unsub();
+    };
   });
 </script>
 
-{#if loading && !data}
+{#if !status}
   <div class="loading">Loading...</div>
-{:else if data}
+{:else}
   <div class="stats">
     <div class="stat">
       <span class="stat-label">Sessions</span>
       <span class="stat-value"
-        >{data.sessions.active}<span class="stat-dim">/{data.sessions.maxConcurrent}</span></span
+        >{status.sessions.active}<span class="stat-dim">/{status.sessions.maxConcurrent}</span></span
       >
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
       <span class="stat-label">Flights</span>
-      <span class="stat-value">{data.jobs.pending + data.jobs.running}<span class="stat-dim">&nbsp;active</span></span>
-      <span class="stat-sub">{data.jobs.completed} done / {data.jobs.failed} failed</span>
+      <span class="stat-value">{status.jobs.pending + status.jobs.running}<span class="stat-dim">&nbsp;active</span></span>
+      <span class="stat-sub">{status.jobs.completed} done / {status.jobs.failed} failed</span>
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
       <span class="stat-label">Messages</span>
-      <span class="stat-value">{data.messages.totalMessages}</span>
+      <span class="stat-value">{status.messages.totalMessages}</span>
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
       <span class="stat-label">Tokens</span>
       <span class="stat-value"
-        >{(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()}</span
+        >{(status.messages.totalTokensIn + status.messages.totalTokensOut).toLocaleString()}</span
       >
       <span class="stat-sub"
-        >{data.messages.totalTokensIn.toLocaleString()} in / {data.messages.totalTokensOut.toLocaleString()}
+        >{status.messages.totalTokensIn.toLocaleString()} in / {status.messages.totalTokensOut.toLocaleString()}
         out</span
       >
     </div>

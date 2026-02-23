@@ -11,6 +11,7 @@
     api,
   } from './lib/api.ts';
   import { connectSSE, disconnectSSE, isSSEConnected } from './lib/sse.ts';
+  import { dispatchInvalidate } from './lib/invalidate.ts';
   import Sidebar from './components/Sidebar.svelte';
   import Toast from './components/Toast.svelte';
   import Status from './pages/Status.svelte';
@@ -71,6 +72,7 @@
         status = data;
         connectionState = 'connected';
       },
+      (e) => dispatchInvalidate(e),
       (state) => {
         connectionState = state;
       },
@@ -86,6 +88,7 @@
               status = data;
               connectionState = 'connected';
             },
+            (e) => dispatchInvalidate(e),
             (state) => {
               connectionState = state;
             },
