@@ -230,41 +230,41 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem 1.25rem;
+    padding: var(--space-8) var(--space-5);
     text-align: center;
   }
 
   .disabled-icon {
     color: var(--color-text-muted);
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-4);
     opacity: 0.5;
   }
 
   .disabled-title {
-    font-size: 1.067rem;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--color-text-secondary);
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
   }
 
   .disabled-text {
-    font-size: 0.867rem;
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
     max-width: 400px;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-6);
   }
 
   .disabled-steps {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
+    gap: var(--space-2-5);
     text-align: left;
   }
 
   .step {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
+    gap: var(--space-2-5);
   }
 
   .step-num {
@@ -276,22 +276,22 @@
     border-radius: 50%;
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--color-text-secondary);
     flex-shrink: 0;
   }
 
   .step-text {
-    font-size: 0.833rem;
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
   }
 
   .step-text code {
     font-family: var(--font-mono);
-    font-size: 0.769rem;
+    font-size: var(--text-xs);
     background: var(--color-bg-elevated);
-    padding: 0.1rem 0.35rem;
+    padding: 0.1rem var(--space-1-5);
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
   }
@@ -299,36 +299,36 @@
   .browser-viewer {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 7rem);
+    height: calc(100vh - var(--header-height) - var(--space-10));
   }
 
   .toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.4rem 0.75rem;
+    padding: var(--space-1-5) var(--space-3);
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    margin-bottom: 0.625rem;
+    margin-bottom: var(--space-2-5);
     flex-shrink: 0;
   }
 
   .toolbar-left {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: var(--space-1-5);
     position: relative;
   }
 
   .conn-status {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: var(--space-1-5);
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 0.15rem 0.35rem;
+    padding: var(--space-1) var(--space-1-5);
     border-radius: var(--radius-sm);
     transition: background var(--transition-fast);
   }
@@ -339,16 +339,16 @@
 
   .conn-info-popover {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: calc(100% + var(--space-2));
     left: 0;
     background: color-mix(in srgb, var(--color-bg-deep) 92%, transparent);
     backdrop-filter: blur(8px);
     border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md);
-    padding: 0.625rem 0.75rem;
+    padding: var(--space-2-5) var(--space-3);
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
+    gap: var(--space-1-5);
     z-index: 20;
     min-width: 180px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
@@ -358,11 +358,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   .conn-info-key {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     color: var(--color-text-muted);
   }
 
@@ -373,12 +373,12 @@
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
+    gap: var(--space-2-5);
   }
 
   .conn-dot {
-    width: 7px;
-    height: 7px;
+    width: var(--dot-size);
+    height: var(--dot-size);
     border-radius: 50%;
     flex-shrink: 0;
     transition: background var(--transition-normal), box-shadow var(--transition-normal);
@@ -406,7 +406,7 @@
   }
 
   .toolbar-label {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
   }
 
@@ -419,9 +419,9 @@
   .toolbar-btn {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.769rem;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-xs);
     font-family: var(--font-sans);
     color: var(--color-text-secondary);
     background: transparent;
@@ -453,22 +453,22 @@
 
   .clipboard-popover {
     position: absolute;
-    top: 0.625rem;
-    right: 0.625rem;
+    top: var(--space-2-5);
+    right: var(--space-2-5);
     width: 280px;
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md);
-    padding: 0.75rem;
+    padding: var(--space-3);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
     z-index: 10;
     box-shadow: var(--shadow-card);
   }
 
   .clipboard-label {
-    font-size: 0.769rem;
+    font-size: var(--text-xs);
     color: var(--color-text-muted);
   }
 
@@ -479,8 +479,8 @@
     border-radius: var(--radius-sm);
     color: var(--color-text-primary);
     font-family: var(--font-mono);
-    font-size: 0.769rem;
-    padding: 0.5rem;
+    font-size: var(--text-xs);
+    padding: var(--space-2);
     resize: vertical;
     outline: none;
     transition: border-color var(--transition-fast);
@@ -489,7 +489,6 @@
   .clipboard-textarea:focus {
     border-color: var(--color-accent);
   }
-
 
   .vnc-container {
     flex: 1;
@@ -521,19 +520,19 @@
     align-items: center;
     justify-content: center;
     background: var(--color-bg-surface);
-    gap: 0.5rem;
+    gap: var(--space-2);
     z-index: 1;
   }
 
   .error-text {
-    font-size: 0.933rem;
+    font-size: var(--text-base);
     font-weight: 500;
     color: var(--color-text-secondary);
   }
 
   .error-hint {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
-    margin-bottom: 0.375rem;
+    margin-bottom: var(--space-1-5);
   }
 </style>

@@ -26,10 +26,10 @@
   .badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.2rem 0.467rem;
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
     font-family: var(--font-mono);
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     font-weight: 500;
     line-height: 1.4;
   }

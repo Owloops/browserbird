@@ -110,10 +110,10 @@
 
   .stat {
     flex: 1;
-    padding: 0.75rem 1rem;
+    padding: var(--space-3) var(--space-4);
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
+    gap: var(--space-1);
     min-width: 0;
   }
 
@@ -124,7 +124,7 @@
   }
 
   .stat-label {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--color-text-muted);
     text-transform: uppercase;
@@ -133,7 +133,7 @@
 
   .stat-value {
     font-family: var(--font-mono);
-    font-size: 1.2rem;
+    font-size: var(--text-xl);
     font-weight: 600;
     color: var(--color-text-primary);
     line-height: 1.3;
@@ -148,23 +148,23 @@
   }
 
   .stat-sub {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     color: var(--color-text-muted);
   }
 
   .section {
-    margin-top: 1.25rem;
+    margin-top: var(--space-5);
   }
 
   .section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
   }
 
   .section-title {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-text-muted);
     text-transform: uppercase;
@@ -172,7 +172,7 @@
   }
 
   .section-link {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     color: var(--color-accent);
     text-decoration: none;
     font-family: var(--font-mono);

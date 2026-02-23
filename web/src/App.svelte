@@ -201,8 +201,8 @@
   }
 
   .content-header {
-    height: 56px;
-    padding: 0 1.25rem;
+    height: var(--header-height);
+    padding: 0 var(--space-5);
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
@@ -211,7 +211,7 @@
   }
 
   .page-title {
-    font-size: 1.067rem;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--color-text-secondary);
     letter-spacing: -0.01em;
@@ -220,12 +220,12 @@
   .header-right {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   .slack-status {
-    width: 8px;
-    height: 8px;
+    width: var(--dot-size);
+    height: var(--dot-size);
     border-radius: 50%;
   }
 
@@ -241,7 +241,7 @@
 
   .content-body {
     flex: 1;
-    padding: 1.25rem;
+    padding: var(--space-5);
     overflow-y: auto;
   }
 
@@ -259,30 +259,30 @@
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 2rem 1.75rem;
+    padding: var(--space-8) var(--space-6);
     width: 100%;
     max-width: 320px;
   }
 
   .login-brand {
     text-align: center;
-    margin-bottom: 1.75rem;
+    margin-bottom: var(--space-6);
   }
 
   .login-brand :global(.login-logo) {
-    height: 40px;
+    height: 44px;
     width: auto;
   }
 
   .login-error {
     color: var(--color-error);
-    font-size: 0.769rem;
-    margin-bottom: 0.625rem;
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-2-5);
   }
 
   .login-submit {
     width: 100%;
-    margin-top: 0.5rem;
+    margin-top: var(--space-2);
   }
 
   @media (max-width: 768px) {

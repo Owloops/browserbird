@@ -373,15 +373,15 @@
 <style>
   .tabs {
     display: flex;
-    gap: 0.25rem;
-    margin-bottom: 1.25rem;
+    gap: var(--space-1);
+    margin-bottom: var(--space-5);
     border-bottom: 1px solid var(--color-border);
     padding-bottom: 0;
   }
 
   .tab {
-    padding: 0.4rem 0.875rem;
-    font-size: 0.867rem;
+    padding: var(--space-1-5) var(--space-3);
+    font-size: var(--text-base);
     font-weight: 500;
     color: var(--color-text-muted);
     background: none;
@@ -402,16 +402,16 @@
   }
 
   .group {
-    margin-bottom: 1.25rem;
+    margin-bottom: var(--space-5);
   }
 
   .group-title {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
   }
 
   .fields {
@@ -425,7 +425,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--color-border);
   }
 
@@ -434,23 +434,23 @@
   }
 
   .field-label {
-    font-size: 0.867rem;
+    font-size: var(--text-base);
     color: var(--color-text-muted);
     flex-shrink: 0;
   }
 
   .field-value {
-    font-size: 0.867rem;
+    font-size: var(--text-base);
     color: var(--color-text-primary);
     text-align: right;
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: var(--space-1-5);
   }
 
   .field-dim {
     color: var(--color-text-muted);
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
   }
 
   .agent-card {
@@ -458,7 +458,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     overflow: hidden;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
   }
 
   .agent-card .fields {
@@ -471,17 +471,17 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-2) var(--space-3);
   }
 
   .agent-name {
-    font-size: 0.933rem;
+    font-size: var(--text-base);
     font-weight: 600;
     color: var(--color-text-primary);
   }
 
   .agent-id {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
   }
 
@@ -496,10 +496,10 @@
     display: grid;
     grid-template-columns: 6rem 1fr auto;
     align-items: baseline;
-    gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
+    gap: var(--space-2);
+    padding: var(--space-1-5) var(--space-3);
     border-bottom: 1px solid var(--color-border);
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
   }
 
   .error-row:last-child {
@@ -508,7 +508,7 @@
 
   .error-source {
     color: var(--color-error);
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     flex-shrink: 0;
   }
 
@@ -521,14 +521,14 @@
 
   .error-time {
     color: var(--color-text-muted);
-    font-size: 0.692rem;
+    font-size: var(--text-xs);
     font-family: var(--font-mono);
     flex-shrink: 0;
   }
 
   .dot {
-    width: 7px;
-    height: 7px;
+    width: var(--dot-size);
+    height: var(--dot-size);
     border-radius: 50%;
     flex-shrink: 0;
   }

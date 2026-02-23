@@ -16,12 +16,12 @@
 <style>
   .toast-container {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
+    top: var(--space-4);
+    right: var(--space-4);
     z-index: 10000;
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
+    gap: var(--space-1-5);
     pointer-events: none;
   }
 
@@ -29,13 +29,13 @@
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 0.625rem;
-    padding: 0.5rem 0.75rem;
+    gap: var(--space-2-5);
+    padding: var(--space-2) var(--space-3);
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
-    font-size: 0.769rem;
+    font-size: var(--text-sm);
     color: var(--color-text-primary);
     min-width: 240px;
     max-width: 380px;
@@ -43,7 +43,7 @@
   }
 
   .toast::before {
-    font-size: 0.846rem;
+    font-size: var(--text-base);
     flex-shrink: 0;
   }
 
@@ -71,7 +71,7 @@
     border: none;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 0.846rem;
+    font-size: var(--text-base);
     padding: 0;
     line-height: 1;
   }

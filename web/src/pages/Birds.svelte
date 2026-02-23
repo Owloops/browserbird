@@ -337,16 +337,16 @@
   .filter-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
     align-items: center;
   }
 
   .system-toggle {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
-    font-size: 0.769rem;
+    gap: var(--space-1-5);
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
     user-select: none;
   }
@@ -356,7 +356,7 @@
   }
 
   .last-updated {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     color: var(--color-text-muted);
     font-family: var(--font-mono);
   }
@@ -365,15 +365,15 @@
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   .form-title {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-text-muted);
     text-transform: uppercase;
@@ -383,12 +383,12 @@
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   .form-actions {
     display: flex;
-    gap: 0.375rem;
+    gap: var(--space-1-5);
     justify-content: flex-end;
   }
 
@@ -397,14 +397,14 @@
   }
 
   .last-run-age {
-    font-size: 0.769rem;
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
-    margin-right: 0.375rem;
+    margin-right: var(--space-1-5);
   }
 
   .actions-cell {
     display: flex;
-    gap: 0.25rem;
+    gap: var(--space-1);
   }
 
   .btn-active {
@@ -419,22 +419,22 @@
 
   .flight-loading,
   .flight-empty {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
   }
 
   .flight-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
   }
 
   .flight-table th {
-    padding: 0.3rem 0.75rem;
+    padding: var(--space-1-5) var(--space-3);
     text-align: left;
     font-weight: 600;
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -442,7 +442,7 @@
   }
 
   .flight-table td {
-    padding: 0.3rem 0.75rem;
+    padding: var(--space-1-5) var(--space-3);
     color: var(--color-text-secondary);
     border-bottom: 1px solid var(--color-border);
   }

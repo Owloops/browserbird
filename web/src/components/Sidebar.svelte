@@ -63,8 +63,8 @@
   }
 
   .sidebar-brand {
-    height: 56px;
-    padding: 0 0.875rem;
+    height: var(--header-height);
+    padding: 0 var(--space-3);
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
@@ -72,24 +72,24 @@
   }
 
   .brand-logo {
-    height: 26px;
+    height: 28px;
     width: auto;
   }
 
   .sidebar-nav {
     flex: 1;
-    padding: 0.375rem 0;
+    padding: var(--space-1-5) 0;
     overflow-y: auto;
   }
 
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 0.533rem;
-    padding: 0.467rem 0.933rem;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
     color: var(--color-text-muted);
     text-decoration: none;
-    font-size: 0.933rem;
+    font-size: var(--text-base);
     font-weight: 500;
     transition: color var(--transition-fast);
   }
@@ -103,8 +103,8 @@
   }
 
   .nav-icon {
-    width: 1rem;
-    height: 1rem;
+    width: 1.125rem;
+    height: 1.125rem;
     flex-shrink: 0;
     opacity: 0.5;
   }
@@ -129,7 +129,7 @@
 
     .nav-item {
       white-space: nowrap;
-      padding: 0.4rem 0.625rem;
+      padding: var(--space-1-5) var(--space-2-5);
     }
 
     .nav-icon {

@@ -124,12 +124,12 @@
   .detail-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
   }
 
   .session-title {
-    font-size: 1rem;
+    font-size: var(--text-md);
     font-weight: 600;
     color: var(--color-text-primary);
     margin: 0;
@@ -138,9 +138,9 @@
   .meta-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem 2rem;
-    margin-bottom: 1rem;
-    padding: 0.75rem 1rem;
+    gap: var(--space-4) var(--space-8);
+    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -149,11 +149,11 @@
   .meta-item {
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
+    gap: var(--space-1);
   }
 
   .meta-label {
-    font-size: 0.667rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--color-text-muted);
     text-transform: uppercase;
@@ -161,15 +161,15 @@
   }
 
   .meta-value {
-    font-size: 0.867rem;
+    font-size: var(--text-base);
     color: var(--color-text-secondary);
   }
 
   .stat-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.625rem;
-    margin-bottom: 1rem;
+    gap: var(--space-2-5);
+    margin-bottom: var(--space-4);
   }
 
   .content-cell {
@@ -183,7 +183,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.75rem;
+    gap: var(--space-3);
     color: var(--color-error);
   }
 

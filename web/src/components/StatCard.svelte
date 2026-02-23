@@ -28,30 +28,30 @@
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: 0.733rem 0.867rem;
+    padding: var(--space-3) var(--space-4);
   }
 
   .card-label {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 0.2rem;
+    margin-bottom: var(--space-1);
   }
 
   .card-value {
     font-family: var(--font-mono);
-    font-size: 1.333rem;
+    font-size: var(--text-xl);
     font-weight: 600;
     color: var(--color-text-primary);
     line-height: 1.2;
   }
 
   .card-sub {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     color: var(--color-text-muted);
-    margin-top: 0.2rem;
+    margin-top: var(--space-1);
   }
 
   .stat-card-info .card-value {

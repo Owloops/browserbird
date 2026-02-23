@@ -46,16 +46,16 @@
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    padding: 1.25rem 1.5rem;
+    padding: var(--space-5) var(--space-6);
     max-width: 360px;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   .message {
-    font-size: 0.9rem;
+    font-size: var(--text-base);
     color: var(--color-text-secondary);
     margin: 0;
     line-height: 1.5;
@@ -64,6 +64,6 @@
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.375rem;
+    gap: var(--space-1-5);
   }
 </style>

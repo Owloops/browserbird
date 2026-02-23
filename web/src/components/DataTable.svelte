@@ -70,19 +70,19 @@
   .table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.933rem;
+    font-size: var(--text-base);
     table-layout: auto;
   }
 
   .table :global(th),
   .table :global(td) {
     text-align: left;
-    padding: 0.6rem 0.867rem;
+    padding: var(--space-2-5) var(--space-4);
     border-bottom: 1px solid var(--color-border);
   }
 
   .table :global(th) {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     color: var(--color-text-muted);
     text-transform: uppercase;
@@ -107,7 +107,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-2) var(--space-3);
     border-top: 1px solid var(--color-border);
     background: var(--color-bg-elevated);
   }
@@ -117,9 +117,9 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     color: var(--color-text-secondary);
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     font-family: var(--font-mono);
-    padding: 0.333rem 0.6rem;
+    padding: var(--space-1) var(--space-2);
     cursor: pointer;
     transition:
       color var(--transition-fast),
@@ -137,7 +137,7 @@
   }
 
   .pg-info {
-    font-size: 0.733rem;
+    font-size: var(--text-xs);
     color: var(--color-text-muted);
     font-family: var(--font-mono);
   }
