@@ -60,7 +60,7 @@ async function processJob(job: JobRow): Promise<void> {
     return;
   }
 
-  const isCronRun = job.name === 'cron_run' && job.cron_job_id != null;
+  const isCronRun = job.cron_job_id != null;
   const cronRun = isCronRun ? createCronRun(job.cron_job_id!) : null;
 
   let finalStatus = 'completed';
@@ -96,7 +96,7 @@ async function processJob(job: JobRow): Promise<void> {
         updateCronJobStatus(job.cron_job_id, finalStatus, newFailureCount);
       }
     }
-    const resource = job.name === 'cron_run' ? 'birds' : 'sessions';
+    const resource = isCronRun ? 'birds' : 'sessions';
     const invalidatePayload: { resource: string; cronJobId?: number } = { resource };
     if (job.cron_job_id != null) invalidatePayload.cronJobId = job.cron_job_id;
     broadcastSSE('invalidate', invalidatePayload);
