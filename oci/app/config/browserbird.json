@@ -1,0 +1,15 @@
+{
+  "slack": {
+    "botToken": "env:SLACK_BOT_TOKEN",
+    "appToken": "env:SLACK_APP_TOKEN"
+  },
+  "browser": {
+    "enabled": true,
+    "mcpConfigPath": "oci/app/config/mcp.json",
+    "novncHost": "vm"
+  },
+  "web": {
+    "host": "0.0.0.0",
+    "authToken": "env:BROWSERBIRD_AUTH_TOKEN"
+  }
+}

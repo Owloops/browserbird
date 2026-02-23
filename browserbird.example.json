@@ -46,10 +46,11 @@
     "display": ":1",
     "resolution": "1280x800x24",
     "vncPort": 5900,
-    "novncPort": 6080
+    "novncPort": 6080,
+    "novncHost": "localhost"
   },
-  "cron": {
-    "maxFailures": 3
+  "birds": {
+    "maxAttempts": 3
   },
   "web": {
     "enabled": true,
