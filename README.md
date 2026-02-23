@@ -46,7 +46,7 @@ Run on a headless server with everything pre-wired: virtual display, VNC, noVNC,
 
 ```bash
 cp .env.example .env
-# Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, BROWSERBIRD_AUTH_TOKEN, CLAUDE_CODE_OAUTH_TOKEN
+# Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, BROWSERBIRD_AUTH_TOKEN, and agent auth (see below)
 
 docker compose -f oci/compose.yml up -d
 # or: podman-compose -f oci/compose.yml up -d
@@ -228,10 +228,14 @@ Values in config can reference environment variables using `"env:VAR_NAME"`. Add
 | `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                       |
 | `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                            |
 | `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                          |
-| `CLAUDE_CODE_OAUTH_TOKEN`     | Agent auth token, required for Docker (no interactive login in containers) |
+| `ANTHROPIC_API_KEY`           | Agent auth via API key (recommended). Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
+| `CLAUDE_CODE_OAUTH_TOKEN`     | Agent auth via OAuth token (personal use). Uses your Claude Pro/Max subscription. See note below |
 | `BROWSERBIRD_RETENTION_DAYS`  | Override `database.retentionDays`                                          |
 | `BROWSERBIRD_MCP_CONFIG_PATH` | Override `browser.mcpConfigPath`                                           |
 | `NO_COLOR`                    | Disable colored output                                                     |
+
+> [!NOTE]
+> **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. Set one or the other, not both.
 
 ## CLI
 
