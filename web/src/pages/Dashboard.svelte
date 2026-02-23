@@ -56,10 +56,8 @@
     <div class="stat-sep"></div>
     <div class="stat">
       <span class="stat-label">Jobs</span>
-      <span class="stat-value"
-        >{data.jobs.pending + data.jobs.running}<span class="stat-dim"> active</span></span
-      >
-      <span class="stat-sub">{data.jobs.completed} done · {data.jobs.failed} failed</span>
+      <span class="stat-value">{data.jobs.pending + data.jobs.running}<span class="stat-dim">&nbsp;active</span></span>
+      <span class="stat-sub">{data.jobs.completed} done / {data.jobs.failed} failed</span>
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
@@ -73,7 +71,7 @@
         >{(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()}</span
       >
       <span class="stat-sub"
-        >{data.messages.totalTokensIn.toLocaleString()} in · {data.messages.totalTokensOut.toLocaleString()}
+        >{data.messages.totalTokensIn.toLocaleString()} in / {data.messages.totalTokensOut.toLocaleString()}
         out</span
       >
     </div>

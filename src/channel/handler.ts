@@ -269,6 +269,7 @@ export function createHandler(client: ChannelClient, config: Config, signal: Abo
       for (const msg of messages) {
         db.logMessage(channelId, threadTs, msg.userId, 'in', msg.text);
       }
+      db.touchSession(session.id, messages.length + 1);
 
       const prompt = formatPrompt(messages);
       const lastMessage = messages[messages.length - 1]!;

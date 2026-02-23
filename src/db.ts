@@ -333,11 +333,11 @@ export function createSession(
   return stmt.get(channelId, threadTs, agentId, providerSessionId) as unknown as SessionRow;
 }
 
-export function touchSession(id: number): void {
+export function touchSession(id: number, messageCountDelta = 1): void {
   const stmt = getDb().prepare(
-    `UPDATE sessions SET last_active = datetime('now'), message_count = message_count + 1 WHERE id = ?`,
+    `UPDATE sessions SET last_active = datetime('now'), message_count = message_count + ? WHERE id = ?`,
   );
-  stmt.run(id);
+  stmt.run(messageCountDelta, id);
 }
 
 export function listSessions(page = 1, perPage = DEFAULT_PER_PAGE): PaginatedResult<SessionRow> {

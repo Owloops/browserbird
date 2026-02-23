@@ -46,7 +46,6 @@ export function resolveSession(
       return { session: existing, agent, isNew: true };
     }
 
-    db.touchSession(existing.id);
     return { session: existing, agent, isNew: false };
   }
 
