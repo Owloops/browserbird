@@ -80,13 +80,10 @@ export const COMMANDS = {
   START: 'start',
   STOP: 'stop',
   STATUS: 'status',
-  LOGS: 'logs',
   SESSIONS: 'sessions',
   BIRDS: 'birds',
-  AGENTS: 'agents',
-  CONFIG: 'config',
-  DB: 'db',
-  JOBS: 'jobs',
+  SETTINGS: 'settings',
+  DATABASE: 'database',
   DOCTOR: 'doctor',
 } as const;
 

@@ -13,6 +13,7 @@ import {
   deleteOldMessages,
   deleteOldCronRuns,
   optimizeDatabase,
+  listSessions,
   listJobs,
   getJobStats,
   retryJob,
@@ -41,12 +42,11 @@ usage: browserbird [command] [options]
 
 commands:
 
-  birds       manage scheduled birds
-  sessions    manage claude sessions
-  jobs        manage background jobs
-  logs        show recent log entries
   status      show daemon status
-  db          database maintenance
+  sessions    manage claude sessions
+  birds       manage scheduled birds
+  settings    view configuration
+  database    database maintenance and inspection
   doctor      check system dependencies
 
 options:
@@ -60,6 +60,32 @@ run 'browserbird <command> --help' for command-specific options.
 `.trim();
 
 const COMMAND_HELP: Record<string, string> = {
+  status: `
+usage: browserbird status [options]
+
+show daemon status (requires daemon to be running).
+
+options:
+
+  --config <path>   config file path
+  -h, --help        show this help
+`.trim(),
+
+  sessions: `
+usage: browserbird sessions <subcommand> [options]
+
+manage claude sessions.
+
+subcommands:
+
+  list          list recent sessions
+  logs <id>     show session detail and message history
+
+options:
+
+  -h, --help   show this help
+`.trim(),
+
   birds: `
 usage: browserbird birds <subcommand> [options]
 
@@ -74,102 +100,64 @@ subcommands:
   enable <id>                  enable a bird
   disable <id>                 disable a bird
   fly <id>                     trigger a bird manually
+  logs <id>                    show flight history for a bird
 
 options:
 
-  --channel <id>    target slack channel
-  --agent <id>      target agent id
-  --schedule <expr> cron schedule expression
-  --prompt <text>   prompt text
-  -h, --help        show this help
+  --channel <id>     target slack channel
+  --agent <id>       target agent id
+  --schedule <expr>  cron schedule expression
+  --prompt <text>    prompt text
+  --limit <n>        number of flights to show (default: 10, with logs)
+  -h, --help         show this help
 `.trim(),
 
-  sessions: `
-usage: browserbird sessions <subcommand> [options]
+  settings: `
+usage: browserbird settings [options]
 
-manage claude sessions.
-
-subcommands:
-
-  inspect <id>   show session detail and message history
+view full configuration.
 
 options:
 
-  -h, --help   show this help
-`.trim(),
-
-  jobs: `
-usage: browserbird jobs <subcommand> [options]
-
-manage background jobs.
-
-subcommands:
-
-  list              list all jobs
-  stats             show job queue statistics
-  retry <id>        retry a failed job
-  delete <id>       delete a job
-  clear             clear completed or failed jobs
-
-options:
-
-  --status <s>     filter by status: pending, running, completed, failed
-  --all-failed     retry all failed jobs (with retry)
-  --completed      clear completed jobs (with clear)
-  --failed         clear failed jobs (with clear)
+  --config <path>  config file path
   -h, --help       show this help
 `.trim(),
 
-  logs: `
-usage: browserbird logs [options]
+  database: `
+usage: browserbird database <subcommand> [options]
 
-show recent log entries from the database.
-
-options:
-
-  --level <lvl>   filter by level: debug, info, warn, error
-  --limit <n>     number of entries to show (default: 20)
-  -h, --help      show this help
-`.trim(),
-
-  status: `
-usage: browserbird status [options]
-
-show daemon status (requires daemon to be running).
-
-options:
-
-  --config <path>   config file path
-  -h, --help        show this help
-`.trim(),
-
-  db: `
-usage: browserbird db <subcommand> [options]
-
-database maintenance.
+database maintenance and inspection.
 
 subcommands:
 
-  cleanup   delete old records and optimize
+  cleanup          delete old records and optimize
+  logs             show recent log entries (default: error level)
+  jobs             list raw job queue entries
+  jobs stats       show job queue statistics
+  jobs retry <id>  retry a failed job (or --all-failed)
+  jobs delete <id> delete a job
+  jobs clear       clear completed or failed jobs
 
 options:
 
-  --days <n>      retention days (overrides config)
-  --config <path> config file path
-  -h, --help      show this help
+  --level <lvl>    filter by level: error, warn, info (with logs, default: error)
+  --limit <n>      number of entries to show (with logs, default: 20)
+  --status <s>     filter by status: pending, running, completed, failed (with jobs)
+  --name <s>       filter by job name (with jobs)
+  --all-failed     retry all failed jobs (with jobs retry)
+  --completed      clear completed jobs (with jobs clear)
+  --failed         clear failed jobs (with jobs clear)
+  --days <n>       retention days override (with cleanup)
+  --config <path>  config file path
+  -h, --help       show this help
 `.trim(),
 
   doctor: `
 usage: browserbird doctor
 
 check system dependencies (claude cli, node.js).
-
-options:
-
-  -h, --help   show this help
 `.trim(),
 };
-
 
 export async function run(argv: string[]): Promise<void> {
   const command = argv[0];
@@ -184,10 +172,6 @@ export async function run(argv: string[]): Promise<void> {
     return;
   }
 
-  if (command === '--verbose') {
-    logger.setLevel('debug');
-  }
-
   const rest = argv.slice(1);
   const isHelp = rest.includes('--help') || rest.includes('-h');
 
@@ -197,33 +181,11 @@ export async function run(argv: string[]): Promise<void> {
   }
 
   switch (command as Command) {
-    case COMMANDS.DOCTOR:
-      if (isHelp) { console.log(COMMAND_HELP.doctor); return; }
-      handleDoctor();
-      break;
-    case COMMANDS.DB:
-      if (isHelp) { console.log(COMMAND_HELP.db); return; }
-      handleDb(rest);
-      break;
-    case COMMANDS.JOBS:
-      if (isHelp) { console.log(COMMAND_HELP.jobs); return; }
-      handleJobs(rest);
-      break;
-    case COMMANDS.BIRDS:
-      if (isHelp) { console.log(COMMAND_HELP.birds); return; }
-      handleCron(rest);
-      break;
     case COMMANDS.START:
       await startDaemon(parseGlobalFlags(argv));
       break;
     case COMMANDS.STOP:
-    case COMMANDS.AGENTS:
-    case COMMANDS.CONFIG:
       logger.info(`command "${command}" not yet implemented`);
-      break;
-    case COMMANDS.LOGS:
-      if (isHelp) { console.log(COMMAND_HELP.logs); return; }
-      handleLogs(rest);
       break;
     case COMMANDS.STATUS:
       if (isHelp) { console.log(COMMAND_HELP.status); return; }
@@ -232,6 +194,21 @@ export async function run(argv: string[]): Promise<void> {
     case COMMANDS.SESSIONS:
       if (isHelp) { console.log(COMMAND_HELP.sessions); return; }
       handleSessions(rest);
+      break;
+    case COMMANDS.BIRDS:
+      if (isHelp) { console.log(COMMAND_HELP.birds); return; }
+      handleBirds(rest);
+      break;
+    case COMMANDS.SETTINGS:
+      if (isHelp) { console.log(COMMAND_HELP.settings); return; }
+      handleSettings(rest);
+      break;
+    case COMMANDS.DATABASE:
+      if (isHelp) { console.log(COMMAND_HELP.database); return; }
+      handleDatabase(rest);
+      break;
+    case COMMANDS.DOCTOR:
+      handleDoctor();
       break;
     default:
       logger.error(`unknown command: ${command}`);
@@ -252,166 +229,6 @@ function parseGlobalFlags(argv: string[]): { flags: { verbose: boolean; config?:
   });
   if (values.verbose) logger.setLevel('debug');
   return { flags: { verbose: values.verbose as boolean, config: values.config as string | undefined } };
-}
-
-function handleSessions(argv: string[]): void {
-  const subcommand = argv[0];
-  const args = argv.slice(1);
-
-  if (subcommand !== 'inspect') {
-    if (subcommand) {
-      unknownSubcommand(subcommand, 'sessions');
-    } else {
-      console.log(COMMAND_HELP.sessions);
-    }
-    return;
-  }
-
-  const { values, positionals } = parseArgs({
-    args,
-    options: {},
-    allowPositionals: true,
-    strict: false,
-  });
-  void values;
-
-  const id = Number(positionals[0]);
-  if (!Number.isFinite(id)) {
-    logger.error('usage: browserbird sessions inspect <id>');
-    process.exitCode = 1;
-    return;
-  }
-
-  const dbPath = resolve('.browserbird', 'browserbird.db');
-  openDatabase(dbPath);
-
-  try {
-    const session = getSession(id);
-    if (!session) {
-      logger.error(`session #${id} not found`);
-      process.exitCode = 1;
-      return;
-    }
-
-    const tokenStats = getSessionTokenStats(session.slack_channel_id, session.slack_thread_ts);
-
-    console.log(`session #${id}`);
-    console.log('------------------');
-    console.log(`channel:      ${session.slack_channel_id}`);
-    console.log(`thread:       ${session.slack_thread_ts ?? '(none)'}`);
-    console.log(`agent:        ${session.agent_id}`);
-    console.log(`provider id:  ${session.provider_session_id}`);
-    console.log(`created:      ${session.created_at}`);
-    console.log(`last active:  ${session.last_active}`);
-    console.log(`messages:     ${session.message_count}`);
-    console.log(`tokens:       ${tokenStats.totalTokensIn} in / ${tokenStats.totalTokensOut} out`);
-    console.log('');
-
-    const result = getSessionMessages(session.slack_channel_id, session.slack_thread_ts, 1, 50);
-
-    if (result.items.length === 0) {
-      console.log('no messages recorded.');
-      return;
-    }
-
-    console.log(`messages (${result.totalItems} total, showing page 1 of ${result.totalPages}):`);
-    console.log('------------------');
-
-    for (const msg of result.items) {
-      const dir = msg.direction === 'in' ? '->' : '<-';
-      const tokens =
-        msg.tokens_in != null || msg.tokens_out != null
-          ? `  [in:${msg.tokens_in ?? 0} out:${msg.tokens_out ?? 0}]`
-          : '';
-      const preview = (msg.content ?? '').slice(0, 120);
-      const truncated = (msg.content?.length ?? 0) > 120 ? '...' : '';
-      console.log(`${dir} ${msg.slack_user_id}  ${msg.created_at}${tokens}`);
-      if (preview) console.log(`   ${preview}${truncated}`);
-    }
-  } finally {
-    closeDatabase();
-  }
-}
-
-export interface DoctorResult {
-  claude: { available: boolean; version: string | null };
-  node: string;
-}
-
-export function checkDoctor(): DoctorResult {
-  try {
-    const output = execFileSync('claude', ['--version'], {
-      timeout: 5000,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-    const version = output.trim().split('\n')[0] ?? null;
-    return { claude: { available: true, version }, node: process.version };
-  } catch {
-    return { claude: { available: false, version: null }, node: process.version };
-  }
-}
-
-function handleDoctor(): void {
-  const result = checkDoctor();
-
-  console.log('browserbird doctor');
-  console.log('------------------');
-
-  if (result.claude.available) {
-    logger.success(`claude cli: ${result.claude.version}`);
-  } else {
-    logger.error('claude cli: not found');
-    process.stderr.write('  install: npm install -g @anthropic-ai/claude-code\n');
-  }
-
-  logger.success(`node.js: ${result.node}`);
-}
-
-function handleLogs(argv: string[]): void {
-  const { values } = parseArgs({
-    args: argv,
-    options: {
-      level: { type: 'string' },
-      limit: { type: 'string' },
-    },
-    allowPositionals: false,
-    strict: false,
-  });
-
-  const level = values.level as string | undefined;
-  const perPage = values.limit != null ? Number(values.limit) : 20;
-
-  if (!Number.isFinite(perPage) || perPage < 1) {
-    logger.error('--limit must be a positive number');
-    process.exitCode = 1;
-    return;
-  }
-
-  const dbPath = resolve('.browserbird', 'browserbird.db');
-  openDatabase(dbPath);
-
-  try {
-    const result = getRecentLogs(1, perPage, level);
-
-    if (result.items.length === 0) {
-      logger.info('no log entries found');
-      return;
-    }
-
-    console.log(`logs (${result.totalItems} total, showing ${result.items.length}):`);
-    console.log('');
-
-    const rows = result.items.map((entry) => [
-      entry.created_at.slice(11, 19),
-      entry.level,
-      entry.source,
-      entry.message,
-    ]);
-    printTable(['time', 'level', 'source', 'message'], rows, [undefined, undefined, undefined, 80]);
-  } finally {
-    closeDatabase();
-  }
 }
 
 async function handleStatus(argv: string[]): Promise<void> {
@@ -473,167 +290,106 @@ async function handleStatus(argv: string[]): Promise<void> {
   console.log(`tokens:    ${(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()} (${data.messages.totalTokensIn.toLocaleString()} in / ${data.messages.totalTokensOut.toLocaleString()} out)`);
 }
 
-function handleDb(argv: string[]): void {
-  const subcommand = argv[0];
-  const rest = argv.slice(1);
+function handleSessions(argv: string[]): void {
+  const subcommand = argv[0] ?? 'list';
+  const args = argv.slice(1);
 
-  if (subcommand !== 'cleanup') {
-    if (subcommand) {
-      unknownSubcommand(subcommand, 'db');
-    } else {
-      console.log(COMMAND_HELP.db);
+  const dbPath = resolve('.browserbird', 'browserbird.db');
+
+  if (subcommand === 'list') {
+    openDatabase(dbPath);
+    try {
+      const { items, totalItems } = listSessions(1, 20);
+      console.log(`sessions (${totalItems} total):`);
+      if (items.length === 0) {
+        console.log('\n  no sessions found');
+        return;
+      }
+      console.log('');
+      const rows = items.map((s) => [
+        String(s.id),
+        s.slack_channel_id,
+        s.agent_id,
+        String(s.message_count),
+        s.last_active.slice(0, 19),
+      ]);
+      printTable(['id', 'channel', 'agent', 'messages', 'last active'], rows);
+    } finally {
+      closeDatabase();
     }
     return;
   }
 
-  const { values } = parseArgs({
-    args: rest,
-    options: {
-      days: { type: 'string' },
-      config: { type: 'string' },
-    },
-    allowPositionals: false,
-    strict: false,
-  });
-
-  const config = loadConfig(values.config as string | undefined);
-  const envDays = process.env['BROWSERBIRD_RETENTION_DAYS'];
-  const days =
-    values.days != null
-      ? Number(values.days)
-      : envDays != null
-        ? Number(envDays)
-        : config.database.retentionDays;
-
-  if (!Number.isFinite(days) || days < 1) {
-    logger.error('--days must be a positive number');
-    process.exitCode = 1;
+  if (subcommand !== 'logs') {
+    unknownSubcommand(subcommand, 'sessions');
     return;
   }
 
-  const dbPath = resolve('.browserbird', 'browserbird.db');
-  openDatabase(dbPath);
-  const msgs = deleteOldMessages(days);
-  const runs = deleteOldCronRuns(days);
-  optimizeDatabase();
-  closeDatabase();
-
-  logger.success(`cleaned up: ${msgs} messages, ${runs} flight logs older than ${days}d`);
-}
-
-function handleJobs(argv: string[]): void {
-  const subcommand = argv[0] ?? 'list';
-  const rest = argv.slice(1);
-
-  const { values, positionals } = parseArgs({
-    args: rest,
-    options: {
-      status: { type: 'string' },
-      'all-failed': { type: 'boolean', default: false },
-      completed: { type: 'boolean', default: false },
-      failed: { type: 'boolean', default: false },
-    },
+  const { positionals } = parseArgs({
+    args,
+    options: {},
     allowPositionals: true,
     strict: false,
   });
 
-  const dbPath = resolve('.browserbird', 'browserbird.db');
+  const id = Number(positionals[0]);
+  if (!Number.isFinite(id)) {
+    logger.error('usage: browserbird sessions logs <id>');
+    process.exitCode = 1;
+    return;
+  }
+
   openDatabase(dbPath);
 
   try {
-    switch (subcommand) {
-      case 'list': {
-        const result = listJobs(1, 100, { status: values.status as string | undefined });
-        console.log(`jobs (${result.totalItems} total):`);
-        if (result.items.length === 0) {
-          console.log('\n  no jobs found');
-          return;
-        }
-        console.log('');
-        const rows = result.items.map((job) => [
-          String(job.id),
-          job.status,
-          job.name,
-          `${job.attempts}/${job.max_attempts}`,
-          job.created_at.slice(0, 19),
-          job.error ?? '',
-        ]);
-        printTable(['id', 'status', 'name', 'attempts', 'created', 'error'], rows, [undefined, undefined, 30, undefined, undefined, 40]);
-        break;
-      }
+    const session = getSession(id);
+    if (!session) {
+      logger.error(`session #${id} not found`);
+      process.exitCode = 1;
+      return;
+    }
 
-      case 'stats': {
-        const stats = getJobStats();
-        console.log('job queue statistics');
-        console.log('');
-        console.log(`  pending:    ${stats.pending}`);
-        console.log(`  running:    ${stats.running}`);
-        console.log(`  completed:  ${stats.completed}`);
-        console.log(`  failed:     ${stats.failed}`);
-        console.log('              --');
-        console.log(`  total:      ${stats.total}`);
-        break;
-      }
+    const tokenStats = getSessionTokenStats(session.slack_channel_id, session.slack_thread_ts);
 
-      case 'retry': {
-        if (values['all-failed']) {
-          const count = retryAllFailedJobs();
-          logger.success(`reset ${count} failed job(s) to pending`);
-          return;
-        }
-        const id = Number(positionals[0]);
-        if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird jobs retry <id> | --all-failed');
-          process.exitCode = 1;
-          return;
-        }
-        if (retryJob(id)) {
-          logger.success(`job #${id} reset to pending`);
-        } else {
-          logger.error(`job #${id} not found or not in failed state`);
-          process.exitCode = 1;
-        }
-        break;
-      }
+    console.log(`session #${id}`);
+    console.log('------------------');
+    console.log(`channel:      ${session.slack_channel_id}`);
+    console.log(`thread:       ${session.slack_thread_ts ?? '(none)'}`);
+    console.log(`agent:        ${session.agent_id}`);
+    console.log(`provider id:  ${session.provider_session_id}`);
+    console.log(`created:      ${session.created_at}`);
+    console.log(`last active:  ${session.last_active}`);
+    console.log(`messages:     ${session.message_count}`);
+    console.log(`tokens:       ${tokenStats.totalTokensIn} in / ${tokenStats.totalTokensOut} out`);
+    console.log('');
 
-      case 'delete': {
-        const id = Number(positionals[0]);
-        if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird jobs delete <id>');
-          process.exitCode = 1;
-          return;
-        }
-        if (deleteJob(id)) {
-          logger.success(`job #${id} deleted`);
-        } else {
-          logger.error(`job #${id} not found`);
-          process.exitCode = 1;
-        }
-        break;
-      }
+    const result = getSessionMessages(session.slack_channel_id, session.slack_thread_ts, 1, 50);
 
-      case 'clear': {
-        if (!values.completed && !values.failed) {
-          logger.error('usage: browserbird jobs clear --completed | --failed');
-          process.exitCode = 1;
-          return;
-        }
-        let total = 0;
-        if (values.completed) total += clearJobs('completed');
-        if (values.failed) total += clearJobs('failed');
-        logger.success(`cleared ${total} job(s)`);
-        break;
-      }
+    if (result.items.length === 0) {
+      console.log('no messages recorded.');
+      return;
+    }
 
-      default:
-        unknownSubcommand(subcommand, 'jobs');
+    console.log(`messages (${result.totalItems} total, showing page 1 of ${result.totalPages}):`);
+    console.log('------------------');
+
+    for (const msg of result.items) {
+      const dir = msg.direction === 'in' ? '->' : '<-';
+      const tokens =
+        msg.tokens_in != null || msg.tokens_out != null
+          ? `  [in:${msg.tokens_in ?? 0} out:${msg.tokens_out ?? 0}]`
+          : '';
+      const preview = (msg.content ?? '').slice(0, 120);
+      const truncated = (msg.content?.length ?? 0) > 120 ? '...' : '';
+      console.log(`${dir} ${msg.slack_user_id}  ${msg.created_at}${tokens}`);
+      if (preview) console.log(`   ${preview}${truncated}`);
     }
   } finally {
     closeDatabase();
   }
 }
 
-function handleCron(argv: string[]): void {
+function handleBirds(argv: string[]): void {
   const subcommand = argv[0] ?? 'list';
   const rest = argv.slice(1);
 
@@ -644,6 +400,7 @@ function handleCron(argv: string[]): void {
       agent: { type: 'string' },
       schedule: { type: 'string' },
       prompt: { type: 'string' },
+      limit: { type: 'string' },
     },
     allowPositionals: true,
     strict: false,
@@ -781,6 +538,37 @@ function handleCron(argv: string[]): void {
         break;
       }
 
+      case 'logs': {
+        const id = Number(positionals[0]);
+        if (!Number.isFinite(id)) {
+          logger.error('usage: browserbird birds logs <id>');
+          process.exitCode = 1;
+          return;
+        }
+        const perPage = values.limit != null ? Number(values.limit) : 10;
+        if (!Number.isFinite(perPage) || perPage < 1) {
+          logger.error('--limit must be a positive number');
+          process.exitCode = 1;
+          return;
+        }
+        const result = listJobs(1, perPage, { cronJobId: id });
+        console.log(`flight history for bird #${id} (${result.totalItems} total):`);
+        if (result.items.length === 0) {
+          console.log('\n  no flights recorded');
+          return;
+        }
+        console.log('');
+        const rows = result.items.map((job) => [
+          String(job.id),
+          job.status,
+          `${job.attempts}/${job.max_attempts}`,
+          job.created_at.slice(0, 19),
+          job.error ?? '',
+        ]);
+        printTable(['job', 'status', 'attempts', 'created', 'error'], rows, [undefined, undefined, undefined, undefined, 60]);
+        break;
+      }
+
       default:
         unknownSubcommand(subcommand, 'birds');
     }
@@ -788,3 +576,279 @@ function handleCron(argv: string[]): void {
     closeDatabase();
   }
 }
+
+export interface DoctorResult {
+  claude: { available: boolean; version: string | null };
+  node: string;
+}
+
+export function checkDoctor(): DoctorResult {
+  try {
+    const output = execFileSync('claude', ['--version'], {
+      timeout: 5000,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const version = output.trim().split('\n')[0] ?? null;
+    return { claude: { available: true, version }, node: process.version };
+  } catch {
+    return { claude: { available: false, version: null }, node: process.version };
+  }
+}
+
+function handleDoctor(): void {
+  const result = checkDoctor();
+  console.log('doctor');
+  console.log('------');
+  if (result.claude.available) {
+    logger.success(`claude cli: ${result.claude.version}`);
+  } else {
+    logger.error('claude cli: not found');
+    process.stderr.write('  install: npm install -g @anthropic-ai/claude-code\n');
+  }
+  logger.success(`node.js: ${result.node}`);
+}
+
+function handleSettings(argv: string[]): void {
+  const { values } = parseArgs({
+    args: argv,
+    options: { config: { type: 'string' } },
+    allowPositionals: false,
+    strict: false,
+  });
+  printSettingsAll(values.config as string | undefined);
+}
+
+function handleDatabase(argv: string[]): void {
+  const subcommand = argv[0];
+
+  if (!subcommand) {
+    console.log(COMMAND_HELP.database);
+    return;
+  }
+
+  const { values, positionals } = parseArgs({
+    args: argv,
+    options: {
+      level: { type: 'string' },
+      limit: { type: 'string' },
+      status: { type: 'string' },
+      name: { type: 'string' },
+      'all-failed': { type: 'boolean', default: false },
+      completed: { type: 'boolean', default: false },
+      failed: { type: 'boolean', default: false },
+      days: { type: 'string' },
+      config: { type: 'string' },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+
+  switch (subcommand) {
+    case 'cleanup': {
+      const config = loadConfig(values.config as string | undefined);
+      const envDays = process.env['BROWSERBIRD_RETENTION_DAYS'];
+      const days =
+        values.days != null
+          ? Number(values.days)
+          : envDays != null
+            ? Number(envDays)
+            : config.database.retentionDays;
+      if (!Number.isFinite(days) || days < 1) {
+        logger.error('--days must be a positive number');
+        process.exitCode = 1;
+        return;
+      }
+      const dbPath = resolve('.browserbird', 'browserbird.db');
+      openDatabase(dbPath);
+      const msgs = deleteOldMessages(days);
+      const runs = deleteOldCronRuns(days);
+      optimizeDatabase();
+      closeDatabase();
+      logger.success(`cleaned up: ${msgs} messages, ${runs} flight logs older than ${days}d`);
+      break;
+    }
+
+    case 'logs': {
+      const level = values.level as string | undefined;
+      const perPage = values.limit != null ? Number(values.limit) : 20;
+      if (!Number.isFinite(perPage) || perPage < 1) {
+        logger.error('--limit must be a positive number');
+        process.exitCode = 1;
+        return;
+      }
+      const dbPath = resolve('.browserbird', 'browserbird.db');
+      openDatabase(dbPath);
+      try {
+        const result = getRecentLogs(1, perPage, level ?? 'error');
+        console.log(`logs (${result.totalItems} total, showing ${result.items.length}):`);
+        if (result.items.length === 0) {
+          console.log('\n  no logs recorded');
+          return;
+        }
+        console.log('');
+        const rows = result.items.map((entry) => [
+          entry.created_at.slice(11, 19),
+          entry.level,
+          entry.source,
+          entry.message,
+        ]);
+        printTable(['time', 'level', 'source', 'message'], rows, [undefined, undefined, undefined, 80]);
+      } finally {
+        closeDatabase();
+      }
+      break;
+    }
+
+    case 'jobs': {
+      const jobSubcommand = positionals[1] ?? 'list';
+      const dbPath = resolve('.browserbird', 'browserbird.db');
+      openDatabase(dbPath);
+      try {
+        switch (jobSubcommand) {
+          case 'list': {
+            const result = listJobs(1, 100, {
+              status: values.status as string | undefined,
+              name: values.name as string | undefined,
+            });
+            console.log(`jobs (${result.totalItems} total):`);
+            if (result.items.length === 0) {
+              console.log('\n  no jobs found');
+              return;
+            }
+            console.log('');
+            const rows = result.items.map((job) => [
+              String(job.id),
+              job.status,
+              job.name,
+              `${job.attempts}/${job.max_attempts}`,
+              job.created_at.slice(0, 19),
+              job.error ?? '',
+            ]);
+            printTable(['id', 'status', 'name', 'attempts', 'created', 'error'], rows, [undefined, undefined, 30, undefined, undefined, 40]);
+            break;
+          }
+          case 'stats': {
+            const stats = getJobStats();
+            console.log('job queue statistics');
+            console.log('');
+            console.log(`  pending:    ${stats.pending}`);
+            console.log(`  running:    ${stats.running}`);
+            console.log(`  completed:  ${stats.completed}`);
+            console.log(`  failed:     ${stats.failed}`);
+            console.log('              --');
+            console.log(`  total:      ${stats.total}`);
+            break;
+          }
+          case 'retry': {
+            if (values['all-failed']) {
+              const count = retryAllFailedJobs();
+              logger.success(`reset ${count} failed job(s) to pending`);
+              return;
+            }
+            const id = Number(positionals[2]);
+            if (!Number.isFinite(id)) {
+              logger.error('usage: browserbird database jobs retry <id> | --all-failed');
+              process.exitCode = 1;
+              return;
+            }
+            if (retryJob(id)) {
+              logger.success(`job #${id} reset to pending`);
+            } else {
+              logger.error(`job #${id} not found or not in failed state`);
+              process.exitCode = 1;
+            }
+            break;
+          }
+          case 'delete': {
+            const id = Number(positionals[2]);
+            if (!Number.isFinite(id)) {
+              logger.error('usage: browserbird database jobs delete <id>');
+              process.exitCode = 1;
+              return;
+            }
+            if (deleteJob(id)) {
+              logger.success(`job #${id} deleted`);
+            } else {
+              logger.error(`job #${id} not found`);
+              process.exitCode = 1;
+            }
+            break;
+          }
+          case 'clear': {
+            if (!values.completed && !values.failed) {
+              logger.error('usage: browserbird db jobs clear --completed | --failed');
+              process.exitCode = 1;
+              return;
+            }
+            let total = 0;
+            if (values.completed) total += clearJobs('completed');
+            if (values.failed) total += clearJobs('failed');
+            logger.success(`cleared ${total} job(s)`);
+            break;
+          }
+          default:
+            unknownSubcommand(jobSubcommand, 'database jobs');
+        }
+      } finally {
+        closeDatabase();
+      }
+      break;
+    }
+
+    default:
+      unknownSubcommand(subcommand, 'database');
+  }
+}
+
+function printSettingsAll(configPath?: string): void {
+  const config = loadConfig(configPath);
+
+  console.log('settings');
+  console.log('--------');
+
+  console.log('\nagents:');
+  for (const a of config.agents) {
+    console.log(`  ${a.id} (${a.name})`);
+    console.log(`    provider:  ${a.provider}`);
+    console.log(`    model:     ${a.model}`);
+    console.log(`    max turns: ${a.maxTurns}`);
+    console.log(`    channels:  ${a.channels.join(', ') || '*'}`);
+  }
+
+  console.log('\nsessions:');
+  console.log(`  max concurrent:  ${config.sessions.maxConcurrent}`);
+  console.log(`  ttl:             ${config.sessions.ttlHours}h`);
+  console.log(`  timeout:         ${config.sessions.processTimeoutMs / 1000}s`);
+  console.log(`  long response:   ${config.sessions.longResponseMode}`);
+
+  console.log('\nslack:');
+  console.log(`  require mention: ${config.slack.requireMention ? 'yes' : 'no'}`);
+  console.log(`  debounce:        ${config.slack.coalesce.debounceMs}ms`);
+  console.log(`  bypass dms:      ${config.slack.coalesce.bypassDms ? 'yes' : 'no'}`);
+  console.log(`  allow channels:  ${config.slack.permissions.allowChannels.join(', ') || '(all)'}`);
+  if (config.slack.permissions.denyChannels.length > 0) {
+    console.log(`  deny channels:   ${config.slack.permissions.denyChannels.join(', ')}`);
+  }
+  console.log(`  quiet hours:     ${config.slack.quietHours.enabled ? `${config.slack.quietHours.start}-${config.slack.quietHours.end} (${config.slack.quietHours.timezone})` : 'disabled'}`);
+
+  console.log('\nbirds:');
+  console.log(`  max failures: ${config.cron.maxFailures}`);
+
+  console.log('\nbrowser:');
+  console.log(`  enabled:    ${config.browser.enabled ? 'yes' : 'no'}`);
+  if (config.browser.enabled) {
+    console.log(`  resolution: ${config.browser.resolution}`);
+    console.log(`  vnc port:   ${config.browser.vncPort}`);
+    console.log(`  novnc port: ${config.browser.novncPort}`);
+  }
+
+  console.log('\ndatabase:');
+  console.log(`  retention: ${config.database.retentionDays}d`);
+  console.log(`  optimize:  every ${config.database.optimizeIntervalHours}h`);
+
+  console.log('\nweb:');
+  console.log(`  port: ${config.web.port}`);
+  console.log(`  auth: ${config.web.authToken ? 'enabled' : 'disabled'}`);
+}
+
