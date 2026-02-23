@@ -5,6 +5,11 @@
     "background_color": "#1a1a2e"
   },
   "features": {
+    "app_home": {
+      "home_tab_enabled": true,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
     "bot_user": {
       "display_name": "BrowserBird",
       "always_online": true
@@ -43,7 +48,7 @@
       ]
     },
     "interactivity": {
-      "is_enabled": false
+      "is_enabled": true
     },
     "org_deploy_enabled": false,
     "socket_mode_enabled": true,
