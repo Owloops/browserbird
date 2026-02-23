@@ -189,7 +189,8 @@
   }
 
   async function deleteCron(id: number, name: string): Promise<void> {
-    if (!(await showConfirm(`Delete bird "${name}"? This will also remove all flight history.`))) return;
+    if (!(await showConfirm(`Delete bird "${name}"? This will also remove all flight history.`)))
+      return;
     try {
       await api(`/api/birds/${id}`, { method: 'DELETE' });
       showToast(`Bird #${id} deleted`, 'success');
@@ -296,10 +297,16 @@
         </td>
         <td>
           <div class="actions-cell">
-            <button class="btn btn-outline btn-sm" class:btn-active={expandedId === j.id} onclick={() => toggleHistory(j.id)}>Flights</button>
+            <button
+              class="btn btn-outline btn-sm"
+              class:btn-active={expandedId === j.id}
+              onclick={() => toggleHistory(j.id)}>Flights</button
+            >
             <button class="btn btn-outline btn-sm" onclick={() => openEdit(j)}>Edit</button>
             <button class="btn btn-outline btn-sm" onclick={() => runCron(j.id)}>Fly</button>
-            <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id, j.name)}>Delete</button>
+            <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id, j.name)}
+              >Delete</button
+            >
           </div>
         </td>
       </tr>
@@ -308,7 +315,7 @@
           <td colspan="8">
             {#if flightLoading[j.id]}
               <div class="flight-loading">Loading flights...</div>
-            {:else if !flightHistory[j.id] || flightHistory[j.id].length === 0}
+            {:else if !flightHistory[j.id]?.length}
               <div class="flight-empty">No flight history</div>
             {:else}
               <table class="flight-table">
