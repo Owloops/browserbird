@@ -48,6 +48,7 @@ export interface BrowserConfig {
   resolution: string;
   vncPort: number;
   novncPort: number;
+  novncHost: string;
 }
 
 export interface DatabaseConfig {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { StatusResponse, ConfigResponse } from '../lib/types.ts';
-  import { api } from '../lib/api.ts';
+  import { api, getAuthToken } from '../lib/api.ts';
   import RFB from '@novnc/novnc';
 
   interface Props {
@@ -43,9 +43,10 @@
 
   const wsUrl = $derived.by(() => {
     if (!config?.browser) return '';
-    const host = window.location.hostname;
-    const port = config.browser.novncPort;
-    return `ws://${host}:${port}`;
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const token = getAuthToken();
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return `${proto}//${window.location.host}/vnc${query}`;
   });
 
   $effect(() => {
@@ -120,7 +121,7 @@
       </svg>
     </div>
     <h2 class="disabled-title">Browser Not Enabled</h2>
-    <p class="disabled-text">The visible browser requires Docker with Xvfb, x11vnc, and noVNC.</p>
+    <p class="disabled-text">The visible browser requires Docker with sway, wayvnc, and noVNC.</p>
     <div class="disabled-steps">
       <div class="step">
         <span class="step-num">1</span>
@@ -128,11 +129,11 @@
       </div>
       <div class="step">
         <span class="step-num">2</span>
-        <span class="step-text">Run with <code>podman-compose up</code></span>
+        <span class="step-text">Run with <code>docker compose -f oci/compose.yml up</code></span>
       </div>
       <div class="step">
         <span class="step-num">3</span>
-        <span class="step-text">Open this page to view the virtual desktop</span>
+        <span class="step-text">Open this page to view the live browser</span>
       </div>
     </div>
   </div>
@@ -240,9 +241,7 @@
           <p class="error-text">
             {connState === 'failed' ? 'Connection failed' : 'Disconnected'}
           </p>
-          <p class="error-hint">
-            Ensure the browser stack is running on port {config?.browser.novncPort ?? 6080}
-          </p>
+          <p class="error-hint">Ensure the browser stack (noVNC) is running</p>
           <button class="btn btn-outline btn-sm" onclick={reconnect}>Reconnect</button>
         </div>
       {/if}

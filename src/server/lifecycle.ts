@@ -10,6 +10,7 @@ import { checkAuth, jsonError } from './http.ts';
 import { buildRoutes } from './routes.ts';
 import { handleSSE, closeAllSSE } from './sse.ts';
 import { serveStatic } from './static.ts';
+import { handleVncUpgrade } from './vnc-proxy.ts';
 
 export function createWebServer(
   config: Config,
@@ -71,6 +72,16 @@ export function createWebServer(
               jsonError(res, 'Internal server error', 500);
             }
           });
+        });
+
+        server.on('upgrade', (req, socket, head) => {
+          const url = req.url ?? '/';
+          const pathOnly = url.indexOf('?') !== -1 ? url.slice(0, url.indexOf('?')) : url;
+          if (pathOnly === '/vnc') {
+            handleVncUpgrade(config, req, socket, head);
+          } else {
+            socket.destroy();
+          }
         });
 
         server.on('error', (err) => {
