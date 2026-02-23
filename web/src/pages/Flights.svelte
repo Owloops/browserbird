@@ -4,6 +4,7 @@
   import { formatAge } from '../lib/format.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
+  import Toggle from '../components/Toggle.svelte';
 
   const columns: ColumnDef[] = [
     { key: 'id', label: '#', sortable: true },
@@ -15,6 +16,7 @@
   ];
 
   let statusFilter = $state('');
+  let showSystem = $state(localStorage.getItem('flights-show-system') === 'true');
   let expandedId: number | null = $state(null);
 
   const table = createDataTable<FlightRow>({
@@ -25,9 +27,10 @@
     buildParams: () => {
       const p: Record<string, string> = {};
       if (statusFilter) p['status'] = statusFilter;
+      if (showSystem) p['system'] = 'true';
       return p;
     },
-    watchExtras: () => statusFilter,
+    watchExtras: () => `${statusFilter}|${showSystem}`,
   });
 
   function flightDuration(startedAt: string, finishedAt: string | null): string {
@@ -67,6 +70,17 @@
         <option value="error">Error</option>
         <option value="running">Running</option>
       </select>
+      <div class="system-toggle">
+        <Toggle
+          active={showSystem}
+          onToggle={() => {
+            showSystem = !showSystem;
+            localStorage.setItem('flights-show-system', String(showSystem));
+            table.setPage(1);
+          }}
+        />
+        <span>System flights</span>
+      </div>
     {/snippet}
     {#each table.items as flight (flight.id)}
       <tr
@@ -117,6 +131,15 @@
     font-size: var(--text-sm);
     padding: var(--space-1) var(--space-2);
     cursor: pointer;
+  }
+
+  .system-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    user-select: none;
   }
 
   .flight-row {

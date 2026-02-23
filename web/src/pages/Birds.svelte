@@ -26,7 +26,7 @@
     { key: 'actions', label: 'Actions' },
   ];
 
-  let showSystem = $state(false);
+  let showSystem = $state(localStorage.getItem('birds-show-system') === 'true');
   let lastUpdated = $state(timeStamp());
   let expandedId: number | null = $state(null);
   let flightHistory: Record<number, FlightRow[]> = $state({});
@@ -249,6 +249,7 @@
           active={showSystem}
           onToggle={() => {
             showSystem = !showSystem;
+            localStorage.setItem('birds-show-system', String(showSystem));
             table.setPage(1);
           }}
         />
@@ -284,11 +285,15 @@
               class:btn-active={expandedId === j.id}
               onclick={() => toggleHistory(j.id)}>Flights</button
             >
-            <button class="btn btn-outline btn-sm" onclick={() => openEdit(j)}>Edit</button>
+            {#if !j.name.startsWith('__bb_')}
+              <button class="btn btn-outline btn-sm" onclick={() => openEdit(j)}>Edit</button>
+            {/if}
             <button class="btn btn-outline btn-sm" onclick={() => runCron(j.id)}>Fly</button>
-            <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id, j.name)}
-              >Delete</button
-            >
+            {#if !j.name.startsWith('__bb_')}
+              <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id, j.name)}
+                >Delete</button
+              >
+            {/if}
           </div>
         </td>
       </tr>

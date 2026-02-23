@@ -54,6 +54,7 @@ export interface FlightRow {
 export interface ListFlightsFilters {
   birdId?: number;
   status?: string;
+  system?: boolean;
 }
 
 export interface UpdateCronJobFields {
@@ -206,6 +207,9 @@ export function listFlights(
   const conditions: string[] = [];
   const params: (string | number)[] = [];
 
+  if (!filters.system) {
+    conditions.push(`j.name NOT LIKE '${SYSTEM_CRON_PREFIX}%'`);
+  }
   if (filters.birdId != null) {
     conditions.push('r.job_id = ?');
     params.push(filters.birdId);

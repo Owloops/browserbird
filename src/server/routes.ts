@@ -364,12 +364,18 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           jsonError(res, 'Invalid bird ID', 400);
           return;
         }
-        if (deleteCronJob(id)) {
-          broadcastSSE('invalidate', { resource: 'birds' });
-          json(res, { success: true });
-        } else {
+        const cronJob = getCronJob(id);
+        if (!cronJob) {
           jsonError(res, `Bird #${id} not found`, 404);
+          return;
         }
+        if (cronJob.name.startsWith(SYSTEM_CRON_PREFIX)) {
+          jsonError(res, 'System birds cannot be deleted', 403);
+          return;
+        }
+        deleteCronJob(id);
+        broadcastSSE('invalidate', { resource: 'birds' });
+        json(res, { success: true });
       },
     },
     {
@@ -415,12 +421,13 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const status = url.searchParams.get('status') ?? undefined;
         const birdIdParam = url.searchParams.get('birdId');
         const birdId = birdIdParam ? Number(birdIdParam) : undefined;
+        const system = parseSystemFlag(url);
         json(
           res,
           listFlights(
             page,
             perPage,
-            { status, birdId },
+            { status, birdId, system },
             parseSortParam(url),
             parseSearchParam(url),
           ),
@@ -440,7 +447,13 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const { page, perPage } = parsePagination(url);
         json(
           res,
-          listFlights(page, perPage, { birdId: id }, parseSortParam(url), parseSearchParam(url)),
+          listFlights(
+            page,
+            perPage,
+            { birdId: id, system: true },
+            parseSortParam(url),
+            parseSearchParam(url),
+          ),
         );
       },
     },
