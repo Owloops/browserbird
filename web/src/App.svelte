@@ -13,19 +13,17 @@
   import { connectSSE, disconnectSSE, isSSEConnected } from './lib/sse.ts';
   import Sidebar from './components/Sidebar.svelte';
   import Toast from './components/Toast.svelte';
-  import Dashboard from './pages/Dashboard.svelte';
+  import Status from './pages/Status.svelte';
   import Sessions from './pages/Sessions.svelte';
-  import Jobs from './pages/Jobs.svelte';
   import Birds from './pages/Cron.svelte';
   import Browser from './pages/Browser.svelte';
   import Settings from './pages/Settings.svelte';
   import SessionDetail from './pages/SessionDetail.svelte';
 
   const PAGE_TITLES: Record<string, string> = {
-    dashboard: 'Dashboard',
+    status: 'Status',
     sessions: 'Sessions',
     'session-detail': 'Session Detail',
-    jobs: 'Jobs',
     birds: 'Birds',
     browser: 'Browser',
     settings: 'Settings',
@@ -40,7 +38,7 @@
   let loginToken = $state('');
   let loginError = $state('');
 
-  const pageTitle = $derived(PAGE_TITLES[currentPage] ?? 'Dashboard');
+  const pageTitle = $derived(PAGE_TITLES[currentPage] ?? 'Status');
 
   setUnauthorizedCallback(() => {
     authenticated = false;
@@ -170,8 +168,6 @@
           <Sessions />
         {:else if currentPage === 'session-detail'}
           <SessionDetail />
-        {:else if currentPage === 'jobs'}
-          <Jobs sseJobs={status?.jobs ?? null} />
         {:else if currentPage === 'birds'}
           <Birds />
         {:else if currentPage === 'browser'}
@@ -179,7 +175,7 @@
         {:else if currentPage === 'settings'}
           <Settings {status} />
         {:else}
-          <Dashboard {status} />
+          <Status {status} />
         {/if}
       </div>
     </main>

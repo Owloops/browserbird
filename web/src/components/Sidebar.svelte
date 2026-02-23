@@ -5,19 +5,14 @@
 
   const NAV_ITEMS = [
     {
-      page: 'dashboard',
-      label: 'Dashboard',
+      page: 'status',
+      label: 'Status',
       svg: `<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>`,
     },
     {
       page: 'sessions',
       label: 'Sessions',
       svg: `<path d="M16 10a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 14.286V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/><path d="M20 9a2 2 0 0 1 2 2v10.286a.71.71 0 0 1-1.212.502l-2.202-2.202A2 2 0 0 0 17.172 19H10a2 2 0 0 1-2-2v-1"/>`,
-    },
-    {
-      page: 'jobs',
-      label: 'Jobs',
-      svg: `<path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><rect x="3" y="4" width="6" height="6" rx="1"/>`,
     },
     {
       page: 'birds',
@@ -48,7 +43,7 @@
       <a
         class="nav-item"
         class:active={currentPage === item.page}
-        href="#/{item.page === 'dashboard' ? '' : item.page}"
+        href="#/{item.page === 'status' ? '' : item.page}"
       >
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{@html item.svg}</svg>
         <span class="nav-label">{item.label}</span>

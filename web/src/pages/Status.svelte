@@ -1,9 +1,8 @@
 <script lang="ts">
-  import type { StatusResponse, PaginatedResult, SessionRow, LogRow } from '../lib/types.ts';
+  import type { StatusResponse, PaginatedResult, SessionRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge } from '../lib/format.ts';
   import DataTable from '../components/DataTable.svelte';
-  import Badge from '../components/Badge.svelte';
 
   interface Props {
     status: StatusResponse | null;
@@ -13,7 +12,6 @@
 
   let initialStatus: StatusResponse | null = $state(null);
   let sessions: SessionRow[] = $state([]);
-  let logs: LogRow[] = $state([]);
   let loading = $state(true);
 
   const data = $derived(status ?? initialStatus);
@@ -23,13 +21,11 @@
     Promise.all([
       api<StatusResponse>('/api/status'),
       api<PaginatedResult<SessionRow>>('/api/sessions?perPage=5'),
-      api<PaginatedResult<LogRow>>('/api/logs?perPage=5'),
     ])
-      .then(([s, sess, l]) => {
+      .then(([s, sess]) => {
         if (ac.signal.aborted) return;
         initialStatus = s;
         sessions = sess.items;
-        logs = l.items;
       })
       .finally(() => {
         if (!ac.signal.aborted) loading = false;
@@ -50,7 +46,7 @@
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
-      <span class="stat-label">Jobs</span>
+      <span class="stat-label">Flights</span>
       <span class="stat-value">{data.jobs.pending + data.jobs.running}<span class="stat-dim">&nbsp;active</span></span>
       <span class="stat-sub">{data.jobs.completed} done / {data.jobs.failed} failed</span>
     </div>
@@ -72,52 +68,29 @@
     </div>
   </div>
 
-  <div class="sections">
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Recent Sessions</h2>
-        <a href="#/sessions" class="section-link">View all</a>
-      </div>
-      <DataTable
-        columns={['ID', 'Channel', 'Agent', 'Messages', 'Last Active']}
-        isEmpty={sessions.length === 0}
-        emptyMessage="No active sessions"
-      >
-        {#each sessions.slice(0, 5) as s (s.id)}
-          <tr
-            class="clickable-row"
-            onclick={() => { window.location.hash = `#/session-detail?id=${s.id}`; }}
-          >
-            <td class="mono">{s.id}</td>
-            <td class="mono">{s.slack_channel_id}</td>
-            <td>{s.agent_id}</td>
-            <td>{s.message_count}</td>
-            <td>{formatAge(s.last_active)}</td>
-          </tr>
-        {/each}
-      </DataTable>
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">Recent Sessions</h2>
+      <a href="#/sessions" class="section-link">View all</a>
     </div>
-
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">Recent Logs</h2>
-        <a href="#/logs" class="section-link">View all</a>
-      </div>
-      <DataTable
-        columns={['Level', 'Source', 'Message', 'Time']}
-        isEmpty={logs.length === 0}
-        emptyMessage="No logs recorded"
-      >
-        {#each logs as log (log.id)}
-          <tr>
-            <td><Badge status={log.level} /></td>
-            <td class="mono">{log.source}</td>
-            <td class="log-message">{log.message}</td>
-            <td>{formatAge(log.created_at)}</td>
-          </tr>
-        {/each}
-      </DataTable>
-    </div>
+    <DataTable
+      columns={['ID', 'Channel', 'Agent', 'Messages', 'Last Active']}
+      isEmpty={sessions.length === 0}
+      emptyMessage="No active sessions"
+    >
+      {#each sessions.slice(0, 5) as s (s.id)}
+        <tr
+          class="clickable-row"
+          onclick={() => { window.location.hash = `#/session-detail?id=${s.id}`; }}
+        >
+          <td class="mono">{s.id}</td>
+          <td class="mono">{s.slack_channel_id}</td>
+          <td>{s.agent_id}</td>
+          <td>{s.message_count}</td>
+          <td>{formatAge(s.last_active)}</td>
+        </tr>
+      {/each}
+    </DataTable>
   </div>
 {/if}
 
@@ -175,10 +148,7 @@
     color: var(--color-text-muted);
   }
 
-  .sections {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+  .section {
     margin-top: 1.25rem;
   }
 
@@ -210,13 +180,6 @@
 
   .clickable-row {
     cursor: pointer;
-  }
-
-  .log-message {
-    max-width: 400px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   @media (max-width: 768px) {

@@ -72,7 +72,7 @@ export async function verifyToken(): Promise<boolean> {
 export function getPageFromHash(): string {
   const hash = window.location.hash.slice(2);
   const qIndex = hash.indexOf('?');
-  return (qIndex === -1 ? hash : hash.slice(0, qIndex)) || 'dashboard';
+  return (qIndex === -1 ? hash : hash.slice(0, qIndex)) || 'status';
 }
 
 export function getHashParams(): URLSearchParams {
