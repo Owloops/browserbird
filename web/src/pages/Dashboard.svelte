@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { StatusResponse, PaginatedResult, SessionRow, LogRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
-  import { formatUptime, formatAge } from '../lib/format.ts';
+  import { formatAge } from '../lib/format.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
 
@@ -42,11 +42,6 @@
   <div class="loading">Loading...</div>
 {:else if data}
   <div class="stats">
-    <div class="stat">
-      <span class="stat-label">Uptime</span>
-      <span class="stat-value">{formatUptime(data.uptime)}</span>
-    </div>
-    <div class="stat-sep"></div>
     <div class="stat">
       <span class="stat-label">Sessions</span>
       <span class="stat-value"
