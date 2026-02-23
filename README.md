@@ -48,8 +48,8 @@ Run on a headless server with everything pre-wired: virtual display, VNC, noVNC,
 cp .env.example .env
 # Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, BROWSERBIRD_AUTH_TOKEN, CLAUDE_CODE_OAUTH_TOKEN
 
-docker compose up -d
-# or: podman-compose up -d
+docker compose -f oci/compose.yml up -d
+# or: podman-compose -f oci/compose.yml up -d
 ```
 
 Pre-built images are pulled from `ghcr.io/owloops/browserbird` automatically. No local build needed.
@@ -145,6 +145,7 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 | `maxTurns` | `50` | Max conversation turns per session |
 | `systemPrompt` | none | Instructions prepended to every session |
 | `channels` | `["*"]` | Channel IDs this agent handles, or `"*"` for all |
+| `processTimeoutMs` | inherits `sessions` value | Per-agent subprocess timeout override in milliseconds |
 
 </details>
 
@@ -167,6 +168,29 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 |---|---|---|
 | `enabled` | `false` | Enable Playwright MCP for the agent |
 | `mcpConfigPath` | `null` | Path to your MCP config (relative or absolute) |
+| `display` | `":1"` | X display identifier |
+| `resolution` | `"1280x800x24"` | Browser resolution |
+| `vncPort` | `5900` | VNC server port |
+| `novncPort` | `6080` | noVNC WebSocket proxy port |
+
+</details>
+
+<details>
+<summary><strong>cron</strong></summary>
+
+| Key | Default | Description |
+|---|---|---|
+| `maxFailures` | `3` | Max job attempts before a bird stops retrying |
+
+</details>
+
+<details>
+<summary><strong>database</strong></summary>
+
+| Key | Default | Description |
+|---|---|---|
+| `retentionDays` | `30` | How long to keep messages, flight logs, jobs, and logs |
+| `optimizeIntervalHours` | `24` | How often to run WAL checkpoint and `PRAGMA optimize` |
 
 </details>
 
@@ -246,6 +270,7 @@ browserbird database jobs
 browserbird database jobs stats
 browserbird database jobs retry <id>
 browserbird database jobs retry --all-failed
+browserbird database jobs delete <id>
 browserbird database jobs clear --completed
 browserbird database jobs clear --failed
 ```
