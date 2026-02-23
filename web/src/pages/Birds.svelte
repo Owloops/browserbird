@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { PaginatedResult, CronJobRow, CreateCronRequest, JobRow } from '../lib/types.ts';
+  import type { PaginatedResult, CronJobRow, CreateCronRequest, FlightRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
@@ -20,7 +20,7 @@
   let lastUpdated = $state(timeStamp());
 
   let expandedId: number | null = $state(null);
-  let flightHistory: Record<number, JobRow[]> = $state({});
+  let flightHistory: Record<number, FlightRow[]> = $state({});
   let flightLoading: Record<number, boolean> = $state({});
 
   async function toggleHistory(id: number): Promise<void> {
@@ -32,7 +32,7 @@
     if (flightHistory[id]) return;
     flightLoading = { ...flightLoading, [id]: true };
     try {
-      const result = await api<PaginatedResult<JobRow>>(`/api/jobs?cronJobId=${id}&perPage=10`);
+      const result = await api<PaginatedResult<FlightRow>>(`/api/birds/${id}/flights?perPage=10`);
       flightHistory = { ...flightHistory, [id]: result.items };
     } catch {
       flightHistory = { ...flightHistory, [id]: [] };
@@ -180,6 +180,14 @@
     }
   }
 
+  function flightDuration(startedAt: string, finishedAt: string | null): string {
+    if (!finishedAt) return '—';
+    const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+    if (ms < 0) return '—';
+    const secs = Math.round(ms / 1000);
+    return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
+  }
+
   async function deleteCron(id: number, name: string): Promise<void> {
     if (!(await showConfirm(`Delete bird "${name}"? This will also remove all flight history.`))) return;
     try {
@@ -308,9 +316,9 @@
                   <tr>
                     <th>#</th>
                     <th>Status</th>
-                    <th>Attempts</th>
-                    <th>Created</th>
-                    <th>Error</th>
+                    <th>Duration</th>
+                    <th>Started</th>
+                    <th>Error / Result</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -318,9 +326,9 @@
                     <tr>
                       <td class="mono">#{flight.id}</td>
                       <td><Badge status={flight.status} /></td>
-                      <td class="mono">{flight.attempts}/{flight.max_attempts}</td>
-                      <td>{formatAge(flight.created_at)}</td>
-                      <td class="flight-error">{flight.error ?? ''}</td>
+                      <td class="mono">{flightDuration(flight.started_at, flight.finished_at)}</td>
+                      <td>{formatAge(flight.started_at)}</td>
+                      <td class="flight-summary">{flight.error ?? flight.result ?? '—'}</td>
                     </tr>
                   {/each}
                 </tbody>
@@ -451,12 +459,12 @@
     border-bottom: none;
   }
 
-  .flight-error {
-    color: var(--color-error);
+  .flight-summary {
     max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--color-text-muted);
   }
 
   @media (max-width: 768px) {

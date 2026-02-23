@@ -6,6 +6,7 @@
     emptyMessage?: string;
     isEmpty: boolean;
     children: Snippet;
+    header?: Snippet;
     page?: number;
     totalPages?: number;
     totalItems?: number;
@@ -17,6 +18,7 @@
     emptyMessage = 'No data',
     isEmpty,
     children,
+    header,
     page,
     totalPages,
     totalItems,
@@ -29,11 +31,15 @@
 <div class="table-wrap">
   <table class="table">
     <thead>
-      <tr>
-        {#each columns as col}
-          <th>{col}</th>
-        {/each}
-      </tr>
+      {#if header}
+        {@render header()}
+      {:else}
+        <tr>
+          {#each columns as col}
+            <th>{col}</th>
+          {/each}
+        </tr>
+      {/if}
     </thead>
     <tbody>
       {#if isEmpty}
