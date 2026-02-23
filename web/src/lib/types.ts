@@ -10,7 +10,7 @@ export interface PaginatedResult<T> {
 
 export interface StatusResponse {
   uptime: number;
-  sessions: { active: number; maxConcurrent: number };
+  processes: { active: number; maxConcurrent: number };
   jobs: JobStats;
   messages: { totalMessages: number; totalTokensIn: number; totalTokensOut: number };
   web: { enabled: boolean; port: number };

@@ -43,9 +43,9 @@
 {:else}
   <div class="stats">
     <div class="stat">
-      <span class="stat-label">Sessions</span>
+      <span class="stat-label">Processes</span>
       <span class="stat-value"
-        >{status.sessions.active}<span class="stat-dim">/{status.sessions.maxConcurrent}</span
+        >{status.processes.active}<span class="stat-dim">/{status.processes.maxConcurrent}</span
         ></span
       >
     </div>

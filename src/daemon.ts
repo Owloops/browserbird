@@ -132,6 +132,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   if (config.web.enabled) {
     webServer = createWebServer(config, controller.signal, {
       slackConnected: () => slackApp.isConnected(),
+      activeProcessCount: () => slackApp.activeCount(),
     });
     await webServer.start();
   }

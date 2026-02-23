@@ -181,7 +181,7 @@ async function handleStatus(argv: string[]): Promise<void> {
 
   const data = JSON.parse(body) as {
     uptime: number;
-    sessions: { active: number; maxConcurrent: number };
+    processes: { active: number; maxConcurrent: number };
     jobs: { pending: number; running: number; completed: number; failed: number };
     slack: { connected: boolean };
     messages: { totalMessages: number; totalTokensIn: number; totalTokensOut: number };
@@ -201,7 +201,7 @@ async function handleStatus(argv: string[]): Promise<void> {
   console.log('------------------');
   console.log(`uptime:    ${uptimeStr}`);
   console.log(`slack:     ${data.slack.connected ? 'connected' : 'disconnected'}`);
-  console.log(`sessions:  ${data.sessions.active} / ${data.sessions.maxConcurrent} active`);
+  console.log(`processes: ${data.processes.active} / ${data.processes.maxConcurrent} active`);
   console.log(
     `jobs:      ${data.jobs.pending} pending  ${data.jobs.running} running  ${data.jobs.completed} done  ${data.jobs.failed} failed`,
   );

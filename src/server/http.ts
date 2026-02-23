@@ -32,6 +32,7 @@ export interface WebServerHandle {
 
 export interface WebServerDeps {
   slackConnected: () => boolean;
+  activeProcessCount: () => number;
 }
 
 export function pathToRegex(path: string): RegExp {

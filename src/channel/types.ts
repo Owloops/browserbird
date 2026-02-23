@@ -19,5 +19,6 @@ export interface ChannelHandle {
   start(): Promise<void>;
   stop(): Promise<void>;
   isConnected(): boolean;
+  activeCount(): number;
   postMessage(channel: string, text: string): Promise<void>;
 }

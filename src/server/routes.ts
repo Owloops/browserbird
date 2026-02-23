@@ -22,7 +22,6 @@ import {
   listCronJobs,
   listFlights,
   getMessageStats,
-  countActiveSessions,
   getRecentLogs,
   retryJob,
   retryAllFailedJobs,
@@ -74,10 +73,9 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const uptimeMs = Date.now() - startedAt;
         const jobs = getJobStats();
         const messages = getMessageStats();
-        const activeSessions = countActiveSessions(config.sessions.ttlHours);
         json(res, {
           uptime: uptimeMs,
-          sessions: { active: activeSessions, maxConcurrent: config.sessions.maxConcurrent },
+          processes: { active: deps.activeProcessCount(), maxConcurrent: config.sessions.maxConcurrent },
           jobs,
           messages,
           web: { enabled: config.web.enabled, port: config.web.port },

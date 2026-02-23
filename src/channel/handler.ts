@@ -252,6 +252,7 @@ export function createHandler(client: ChannelClient, config: Config, signal: Abo
         threadTs,
         'Handling too many conversations right now. Try again shortly.',
       );
+      logger.warn("Handling too many conversations right now. Try again shortly.");
       return;
     }
 

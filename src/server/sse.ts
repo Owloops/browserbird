@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Config } from '../core/types.ts';
 import type { WebServerDeps } from './http.ts';
 import { checkAuth } from './http.ts';
-import { getJobStats, getMessageStats, countActiveSessions } from '../db/index.ts';
+import { getJobStats, getMessageStats } from '../db/index.ts';
 
 const sseConnections = new Set<ServerResponse>();
 
@@ -29,10 +29,9 @@ export function handleSSE(
   const send = () => {
     const jobs = getJobStats();
     const messages = getMessageStats();
-    const activeSessions = countActiveSessions(config.sessions.ttlHours);
     const data = JSON.stringify({
       uptime: Date.now() - startedAt,
-      sessions: { active: activeSessions, maxConcurrent: config.sessions.maxConcurrent },
+      processes: { active: deps.activeProcessCount(), maxConcurrent: config.sessions.maxConcurrent },
       jobs,
       messages,
       web: { enabled: config.web.enabled, port: config.web.port },

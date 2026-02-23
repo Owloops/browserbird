@@ -258,7 +258,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     await app.client.chat.postMessage({ channel, text });
   }
 
-  return { start, stop, isConnected, postMessage };
+  return { start, stop, isConnected, activeCount: () => handler.activeCount(), postMessage };
 }
 
 function isChannelAllowed(channelId: string, permissions: SlackConfig['permissions']): boolean {
