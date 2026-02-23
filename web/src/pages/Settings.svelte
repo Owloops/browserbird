@@ -1,5 +1,13 @@
 <script lang="ts">
-  import type { StatusResponse, ConfigResponse, CleanupResponse, DoctorResponse, PaginatedResult, LogRow, JobStats } from '../lib/types.ts';
+  import type {
+    StatusResponse,
+    ConfigResponse,
+    CleanupResponse,
+    DoctorResponse,
+    PaginatedResult,
+    LogRow,
+    JobStats,
+  } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge, formatUptime } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
@@ -60,7 +68,9 @@
   async function clearCompleted(): Promise<void> {
     clearingCompleted = true;
     try {
-      const result = await api<{ count: number }>('/api/jobs/clear?status=completed', { method: 'DELETE' });
+      const result = await api<{ count: number }>('/api/jobs/clear?status=completed', {
+        method: 'DELETE',
+      });
       showToast(`${result.count} completed job(s) cleared`, 'success');
       jobStats = await api<JobStats>('/api/jobs/stats');
     } catch (err) {
@@ -73,7 +83,9 @@
   async function clearFailed(): Promise<void> {
     clearingFailed = true;
     try {
-      const result = await api<{ count: number }>('/api/jobs/clear?status=failed', { method: 'DELETE' });
+      const result = await api<{ count: number }>('/api/jobs/clear?status=failed', {
+        method: 'DELETE',
+      });
       showToast(`${result.count} failed job(s) cleared`, 'success');
       jobStats = await api<JobStats>('/api/jobs/stats');
     } catch (err) {
@@ -84,7 +96,12 @@
   }
 
   async function runCleanup(): Promise<void> {
-    if (!(await showConfirm(`Delete all records older than ${config?.database.retentionDays ?? 30}d?`))) return;
+    if (
+      !(await showConfirm(
+        `Delete all records older than ${config?.database.retentionDays ?? 30}d?`,
+      ))
+    )
+      return;
     cleaningUp = true;
     try {
       const result = await api<CleanupResponse>('/api/db/cleanup', {
@@ -108,8 +125,20 @@
   <div class="loading">Loading...</div>
 {:else if config}
   <div class="tabs">
-    <button class="tab" class:tab-active={activeTab === 'config'} onclick={() => { activeTab = 'config'; }}>Config</button>
-    <button class="tab" class:tab-active={activeTab === 'database'} onclick={() => { activeTab = 'database'; }}>Database</button>
+    <button
+      class="tab"
+      class:tab-active={activeTab === 'config'}
+      onclick={() => {
+        activeTab = 'config';
+      }}>Config</button
+    >
+    <button
+      class="tab"
+      class:tab-active={activeTab === 'database'}
+      onclick={() => {
+        activeTab = 'database';
+      }}>Database</button
+    >
   </div>
 
   {#if activeTab === 'config'}
@@ -194,7 +223,9 @@
         </div>
         <div class="field">
           <span class="field-label">Timeout</span>
-          <span class="field-value mono">{(config.sessions.processTimeoutMs / 1000).toFixed(0)}s</span>
+          <span class="field-value mono"
+            >{(config.sessions.processTimeoutMs / 1000).toFixed(0)}s</span
+          >
         </div>
         <div class="field">
           <span class="field-label">Long Response</span>
@@ -210,7 +241,11 @@
           <div class="field">
             <span class="field-label">Connected</span>
             <span class="field-value">
-              <span class="dot" class:dot-on={status.slack.connected} class:dot-off={!status.slack.connected}></span>
+              <span
+                class="dot"
+                class:dot-on={status.slack.connected}
+                class:dot-off={!status.slack.connected}
+              ></span>
               {status.slack.connected ? 'Yes' : 'No'}
             </span>
           </div>
@@ -229,7 +264,9 @@
         </div>
         <div class="field">
           <span class="field-label">Allow Channels</span>
-          <span class="field-value mono">{config.slack.permissions.allowChannels.join(', ') || '*'}</span>
+          <span class="field-value mono"
+            >{config.slack.permissions.allowChannels.join(', ') || '*'}</span
+          >
         </div>
         {#if config.slack.permissions.denyChannels.length > 0}
           <div class="field">
@@ -241,7 +278,8 @@
           <span class="field-label">Quiet Hours</span>
           <span class="field-value">
             {#if config.slack.quietHours.enabled}
-              <span class="mono">{config.slack.quietHours.start}-{config.slack.quietHours.end}</span>
+              <span class="mono">{config.slack.quietHours.start}-{config.slack.quietHours.end}</span
+              >
               ({config.slack.quietHours.timezone})
             {:else}
               Disabled
@@ -307,28 +345,44 @@
         {#if jobStats}
           <div class="field">
             <span class="field-label">Queue</span>
-            <span class="field-value mono">{jobStats.pending} pending  {jobStats.running} running  {jobStats.completed} done  {jobStats.failed} failed</span>
+            <span class="field-value mono"
+              >{jobStats.pending} pending {jobStats.running} running {jobStats.completed} done {jobStats.failed}
+              failed</span
+            >
           </div>
         {/if}
         <div class="field">
           <span class="field-label">Retry Failed</span>
           <span class="field-value">
             <span class="field-dim">Reset all failed jobs to pending</span>
-            <button class="btn btn-outline btn-sm" disabled={retryingFailed || (jobStats?.failed ?? 0) === 0} onclick={retryAllFailed}>{retryingFailed ? 'Retrying...' : 'Retry All Failed'}</button>
+            <button
+              class="btn btn-outline btn-sm"
+              disabled={retryingFailed || (jobStats?.failed ?? 0) === 0}
+              onclick={retryAllFailed}>{retryingFailed ? 'Retrying...' : 'Retry All Failed'}</button
+            >
           </span>
         </div>
         <div class="field">
           <span class="field-label">Clear Completed</span>
           <span class="field-value">
             <span class="field-dim">Delete completed job records</span>
-            <button class="btn btn-outline btn-sm" disabled={clearingCompleted || (jobStats?.completed ?? 0) === 0} onclick={clearCompleted}>{clearingCompleted ? 'Clearing...' : 'Clear Completed'}</button>
+            <button
+              class="btn btn-outline btn-sm"
+              disabled={clearingCompleted || (jobStats?.completed ?? 0) === 0}
+              onclick={clearCompleted}
+              >{clearingCompleted ? 'Clearing...' : 'Clear Completed'}</button
+            >
           </span>
         </div>
         <div class="field">
           <span class="field-label">Clear Failed</span>
           <span class="field-value">
             <span class="field-dim">Delete failed job records</span>
-            <button class="btn btn-outline btn-sm" disabled={clearingFailed || (jobStats?.failed ?? 0) === 0} onclick={clearFailed}>{clearingFailed ? 'Clearing...' : 'Clear Failed'}</button>
+            <button
+              class="btn btn-outline btn-sm"
+              disabled={clearingFailed || (jobStats?.failed ?? 0) === 0}
+              onclick={clearFailed}>{clearingFailed ? 'Clearing...' : 'Clear Failed'}</button
+            >
           </span>
         </div>
       </div>
@@ -340,8 +394,11 @@
         <div class="field">
           <span class="field-label">Run Cleanup</span>
           <span class="field-value">
-            <span class="field-dim">Delete records older than {config.database.retentionDays}d</span>
-            <button class="btn btn-outline btn-sm" disabled={cleaningUp} onclick={runCleanup}>{cleaningUp ? 'Running...' : 'Run Cleanup'}</button>
+            <span class="field-dim">Delete records older than {config.database.retentionDays}d</span
+            >
+            <button class="btn btn-outline btn-sm" disabled={cleaningUp} onclick={runCleanup}
+              >{cleaningUp ? 'Running...' : 'Run Cleanup'}</button
+            >
           </span>
         </div>
       </div>
@@ -389,7 +446,9 @@
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     cursor: pointer;
-    transition: color var(--transition-fast), border-color var(--transition-fast);
+    transition:
+      color var(--transition-fast),
+      border-color var(--transition-fast);
   }
 
   .tab:hover {

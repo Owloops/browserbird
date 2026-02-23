@@ -123,7 +123,12 @@ export function handleDatabase(argv: string[]): void {
           entry.source,
           entry.message,
         ]);
-        printTable(['time', 'level', 'source', 'message'], rows, [undefined, undefined, undefined, 80]);
+        printTable(['time', 'level', 'source', 'message'], rows, [
+          undefined,
+          undefined,
+          undefined,
+          80,
+        ]);
       } finally {
         closeDatabase();
       }
@@ -155,7 +160,14 @@ export function handleDatabase(argv: string[]): void {
               job.created_at.slice(0, 19),
               job.error ?? '',
             ]);
-            printTable(['id', 'status', 'name', 'attempts', 'created', 'error'], rows, [undefined, undefined, 30, undefined, undefined, 40]);
+            printTable(['id', 'status', 'name', 'attempts', 'created', 'error'], rows, [
+              undefined,
+              undefined,
+              30,
+              undefined,
+              undefined,
+              40,
+            ]);
             break;
           }
           case 'stats': {

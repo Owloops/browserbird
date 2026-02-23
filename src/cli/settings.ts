@@ -53,7 +53,9 @@ function printSettingsAll(configPath?: string): void {
   if (config.slack.permissions.denyChannels.length > 0) {
     console.log(`  deny channels:   ${config.slack.permissions.denyChannels.join(', ')}`);
   }
-  console.log(`  quiet hours:     ${config.slack.quietHours.enabled ? `${config.slack.quietHours.start}-${config.slack.quietHours.end} (${config.slack.quietHours.timezone})` : 'disabled'}`);
+  console.log(
+    `  quiet hours:     ${config.slack.quietHours.enabled ? `${config.slack.quietHours.start}-${config.slack.quietHours.end} (${config.slack.quietHours.timezone})` : 'disabled'}`,
+  );
 
   console.log('\nbirds:');
   console.log(`  max attempts: ${config.birds.maxAttempts}`);

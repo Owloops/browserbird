@@ -45,13 +45,16 @@
     <div class="stat">
       <span class="stat-label">Sessions</span>
       <span class="stat-value"
-        >{status.sessions.active}<span class="stat-dim">/{status.sessions.maxConcurrent}</span></span
+        >{status.sessions.active}<span class="stat-dim">/{status.sessions.maxConcurrent}</span
+        ></span
       >
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
       <span class="stat-label">Flights</span>
-      <span class="stat-value">{status.jobs.pending + status.jobs.running}<span class="stat-dim">&nbsp;active</span></span>
+      <span class="stat-value"
+        >{status.jobs.pending + status.jobs.running}<span class="stat-dim">&nbsp;active</span></span
+      >
       <span class="stat-sub">{status.jobs.completed} done / {status.jobs.failed} failed</span>
     </div>
     <div class="stat-sep"></div>
@@ -85,7 +88,9 @@
       {#each sessions.slice(0, 5) as s (s.id)}
         <tr
           class="clickable-row"
-          onclick={() => { window.location.hash = `#/session-detail?id=${s.id}`; }}
+          onclick={() => {
+            window.location.hash = `#/session-detail?id=${s.id}`;
+          }}
         >
           <td class="mono">{s.id}</td>
           <td class="mono">{s.slack_channel_id}</td>

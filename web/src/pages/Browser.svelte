@@ -104,16 +104,23 @@
 {:else if !browserEnabled}
   <div class="disabled-state">
     <div class="disabled-icon">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        width="48"
+        height="48"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <rect x="2" y="3" width="20" height="14" rx="2" />
         <line x1="8" y1="21" x2="16" y2="21" />
         <line x1="12" y1="17" x2="12" y2="21" />
       </svg>
     </div>
     <h2 class="disabled-title">Browser Not Enabled</h2>
-    <p class="disabled-text">
-      The visible browser requires Docker with Xvfb, x11vnc, and noVNC.
-    </p>
+    <p class="disabled-text">The visible browser requires Docker with Xvfb, x11vnc, and noVNC.</p>
     <div class="disabled-steps">
       <div class="step">
         <span class="step-num">1</span>
@@ -135,7 +142,9 @@
       <div class="toolbar-left">
         <button
           class="conn-status"
-          onclick={() => { connInfoOpen = !connInfoOpen; }}
+          onclick={() => {
+            connInfoOpen = !connInfoOpen;
+          }}
         >
           <span
             class="conn-dot"
@@ -175,7 +184,16 @@
             onclick={toggleClipboard}
             disabled={connState !== 'connected'}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <rect x="9" y="2" width="6" height="4" rx="1" />
               <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
             </svg>
@@ -183,7 +201,16 @@
           </button>
           {#if connState === 'connected'}
             <button class="toolbar-btn toolbar-btn-danger" onclick={disconnect}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
@@ -219,7 +246,11 @@
           <button class="btn btn-outline btn-sm" onclick={reconnect}>Reconnect</button>
         </div>
       {/if}
-      <div bind:this={viewerEl} class="vnc-canvas" class:vnc-hidden={connState !== 'connected'}></div>
+      <div
+        bind:this={viewerEl}
+        class="vnc-canvas"
+        class:vnc-hidden={connState !== 'connected'}
+      ></div>
     </div>
   </div>
 {/if}
@@ -381,7 +412,9 @@
     height: var(--dot-size);
     border-radius: 50%;
     flex-shrink: 0;
-    transition: background var(--transition-normal), box-shadow var(--transition-normal);
+    transition:
+      background var(--transition-normal),
+      box-shadow var(--transition-normal);
   }
 
   .conn-connecting {
@@ -401,8 +434,13 @@
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 
   .toolbar-label {
@@ -428,7 +466,9 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: color var(--transition-fast), border-color var(--transition-fast);
+    transition:
+      color var(--transition-fast),
+      border-color var(--transition-fast);
   }
 
   .toolbar-btn:hover:not(:disabled) {

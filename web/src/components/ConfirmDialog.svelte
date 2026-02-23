@@ -12,7 +12,12 @@
 
 {#if confirmStore.pending}
   <div class="overlay">
-    <button class="backdrop" type="button" onclick={() => confirmResolve(false)} aria-label="Close dialog"></button>
+    <button
+      class="backdrop"
+      type="button"
+      onclick={() => confirmResolve(false)}
+      aria-label="Close dialog"
+    ></button>
     <div class="dialog" role="alertdialog" aria-modal="true">
       <p class="message">{confirmStore.pending.message}</p>
       <div class="actions">

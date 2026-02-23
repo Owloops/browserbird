@@ -21,11 +21,7 @@
   let sortBy: SortKey = $state('id');
   let sortDir: SortDir = $state('desc');
 
-  async function fetchFlights(
-    p: number,
-    status: string,
-    signal: AbortSignal,
-  ): Promise<void> {
+  async function fetchFlights(p: number, status: string, signal: AbortSignal): Promise<void> {
     try {
       const params = new URLSearchParams();
       params.set('page', String(p));
@@ -76,9 +72,7 @@
     if (sortBy === 'duration') {
       items.sort((a, b) => {
         const durationMs = (f: FlightRow) =>
-          f.finished_at
-            ? new Date(f.finished_at).getTime() - new Date(f.started_at).getTime()
-            : -1;
+          f.finished_at ? new Date(f.finished_at).getTime() - new Date(f.started_at).getTime() : -1;
         const diff = durationMs(a) - durationMs(b);
         return sortDir === 'asc' ? diff : -diff;
       });
@@ -106,11 +100,7 @@
   <div class="loading">Loading...</div>
 {:else}
   <div class="filter-bar">
-    <select
-      class="filter-select"
-      bind:value={statusFilter}
-      onchange={resetPage}
-    >
+    <select class="filter-select" bind:value={statusFilter} onchange={resetPage}>
       <option value="">All statuses</option>
       <option value="success">Success</option>
       <option value="error">Error</option>
@@ -132,12 +122,14 @@
     {#snippet header()}
       <tr>
         <th>
-          <button class="sort-btn" onclick={() => toggleSort('id')}>#{ sortLabel('id')}</button>
+          <button class="sort-btn" onclick={() => toggleSort('id')}>#{sortLabel('id')}</button>
         </th>
         <th>Bird</th>
         <th>Status</th>
         <th>
-          <button class="sort-btn" onclick={() => toggleSort('duration')}>Duration{sortLabel('duration')}</button>
+          <button class="sort-btn" onclick={() => toggleSort('duration')}
+            >Duration{sortLabel('duration')}</button
+          >
         </th>
         <th>Started</th>
         <th>Error / Result</th>
@@ -147,15 +139,15 @@
       <tr
         class="flight-row"
         class:flight-expanded={expandedId === flight.id}
-        onclick={() => { expandedId = expandedId === flight.id ? null : flight.id; }}
+        onclick={() => {
+          expandedId = expandedId === flight.id ? null : flight.id;
+        }}
       >
         <td class="mono">#{flight.id}</td>
         <td>
-          <a
-            class="bird-link"
-            href="#/birds"
-            onclick={(e) => e.stopPropagation()}
-          >{flight.bird_name}</a>
+          <a class="bird-link" href="#/birds" onclick={(e) => e.stopPropagation()}
+            >{flight.bird_name}</a
+          >
         </td>
         <td><Badge status={flight.status} /></td>
         <td class="mono">{flightDuration(flight.started_at, flight.finished_at)}</td>

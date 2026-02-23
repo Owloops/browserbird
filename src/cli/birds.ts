@@ -82,7 +82,15 @@ export function handleBirds(argv: string[]): void {
           job.last_status ?? '-',
           job.prompt.slice(0, 50),
         ]);
-        printTable(['id', 'status', 'schedule', 'agent', 'channel', 'last', 'prompt'], rows, [undefined, undefined, undefined, undefined, undefined, undefined, 50]);
+        printTable(['id', 'status', 'schedule', 'agent', 'channel', 'last', 'prompt'], rows, [
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          50,
+        ]);
         break;
       }
 
@@ -90,11 +98,19 @@ export function handleBirds(argv: string[]): void {
         const schedule = positionals[0];
         const prompt = positionals.slice(1).join(' ') || (values.prompt as string | undefined);
         if (!schedule || !prompt) {
-          logger.error('usage: browserbird birds add <schedule> <prompt> [--channel <id>] [--agent <id>]');
+          logger.error(
+            'usage: browserbird birds add <schedule> <prompt> [--channel <id>] [--agent <id>]',
+          );
           process.exitCode = 1;
           return;
         }
-        const job = createCronJob(prompt.slice(0, 50), schedule, prompt, values.channel as string | undefined, values.agent as string | undefined);
+        const job = createCronJob(
+          prompt.slice(0, 50),
+          schedule,
+          prompt,
+          values.channel as string | undefined,
+          values.agent as string | undefined,
+        );
         logger.success(`bird #${job.id} created: "${schedule}"`);
         break;
       }
@@ -102,7 +118,9 @@ export function handleBirds(argv: string[]): void {
       case 'edit': {
         const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>]');
+          logger.error(
+            'usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>]',
+          );
           process.exitCode = 1;
           return;
         }
@@ -230,7 +248,13 @@ export function handleBirds(argv: string[]): void {
             flight.error ?? flight.result?.slice(0, 60) ?? '',
           ];
         });
-        printTable(['flight', 'status', 'duration', 'started', 'error / result'], rows, [undefined, undefined, undefined, undefined, 60]);
+        printTable(['flight', 'status', 'duration', 'started', 'error / result'], rows, [
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          60,
+        ]);
         break;
       }
 

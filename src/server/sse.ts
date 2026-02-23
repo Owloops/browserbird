@@ -4,11 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Config } from '../core/types.ts';
 import type { WebServerDeps } from './http.ts';
 import { checkAuth } from './http.ts';
-import {
-  getJobStats,
-  getMessageStats,
-  countActiveSessions,
-} from '../db/index.ts';
+import { getJobStats, getMessageStats, countActiveSessions } from '../db/index.ts';
 
 const sseConnections = new Set<ServerResponse>();
 

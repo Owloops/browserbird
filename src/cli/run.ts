@@ -88,23 +88,38 @@ export async function run(argv: string[]): Promise<void> {
       logger.info(`command "${command}" not yet implemented`);
       break;
     case COMMANDS.STATUS:
-      if (isHelp) { console.log(COMMAND_HELP.status); return; }
+      if (isHelp) {
+        console.log(COMMAND_HELP.status);
+        return;
+      }
       await handleStatus(rest);
       break;
     case COMMANDS.SESSIONS:
-      if (isHelp) { console.log(COMMAND_HELP.sessions); return; }
+      if (isHelp) {
+        console.log(COMMAND_HELP.sessions);
+        return;
+      }
       handleSessions(rest);
       break;
     case COMMANDS.BIRDS:
-      if (isHelp) { console.log(COMMAND_HELP.birds); return; }
+      if (isHelp) {
+        console.log(COMMAND_HELP.birds);
+        return;
+      }
       handleBirds(rest);
       break;
     case COMMANDS.SETTINGS:
-      if (isHelp) { console.log(COMMAND_HELP.settings); return; }
+      if (isHelp) {
+        console.log(COMMAND_HELP.settings);
+        return;
+      }
       handleSettings(rest);
       break;
     case COMMANDS.DATABASE:
-      if (isHelp) { console.log(COMMAND_HELP.database); return; }
+      if (isHelp) {
+        console.log(COMMAND_HELP.database);
+        return;
+      }
       handleDatabase(rest);
       break;
     case COMMANDS.DOCTOR:
@@ -128,7 +143,9 @@ function parseGlobalFlags(argv: string[]): { flags: { verbose: boolean; config?:
     strict: false,
   });
   if (values.verbose) logger.setLevel('debug');
-  return { flags: { verbose: values.verbose as boolean, config: values.config as string | undefined } };
+  return {
+    flags: { verbose: values.verbose as boolean, config: values.config as string | undefined },
+  };
 }
 
 async function handleStatus(argv: string[]): Promise<void> {
@@ -185,7 +202,11 @@ async function handleStatus(argv: string[]): Promise<void> {
   console.log(`uptime:    ${uptimeStr}`);
   console.log(`slack:     ${data.slack.connected ? 'connected' : 'disconnected'}`);
   console.log(`sessions:  ${data.sessions.active} / ${data.sessions.maxConcurrent} active`);
-  console.log(`jobs:      ${data.jobs.pending} pending  ${data.jobs.running} running  ${data.jobs.completed} done  ${data.jobs.failed} failed`);
+  console.log(
+    `jobs:      ${data.jobs.pending} pending  ${data.jobs.running} running  ${data.jobs.completed} done  ${data.jobs.failed} failed`,
+  );
   console.log(`messages:  ${data.messages.totalMessages} total`);
-  console.log(`tokens:    ${(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()} (${data.messages.totalTokensIn.toLocaleString()} in / ${data.messages.totalTokensOut.toLocaleString()} out)`);
+  console.log(
+    `tokens:    ${(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()} (${data.messages.totalTokensIn.toLocaleString()} in / ${data.messages.totalTokensOut.toLocaleString()} out)`,
+  );
 }

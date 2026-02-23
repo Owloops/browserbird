@@ -48,9 +48,9 @@ export function listSessions(page = 1, perPage = DEFAULT_PER_PAGE): PaginatedRes
 }
 
 export function getSession(id: number): SessionRow | undefined {
-  return getDb()
-    .prepare('SELECT * FROM sessions WHERE id = ?')
-    .get(id) as unknown as SessionRow | undefined;
+  return getDb().prepare('SELECT * FROM sessions WHERE id = ?').get(id) as unknown as
+    | SessionRow
+    | undefined;
 }
 
 export function getSessionMessages(

@@ -42,9 +42,15 @@ declare module '@novnc/novnc' {
     readonly capabilities: { power: boolean };
     readonly clippingViewport: boolean;
 
-    addEventListener<T extends NoVncEventType>(type: T, listener: (event: NoVncEvents[T]) => void): void;
+    addEventListener<T extends NoVncEventType>(
+      type: T,
+      listener: (event: NoVncEvents[T]) => void,
+    ): void;
     addEventListener(type: string, listener: (event: CustomEvent) => void): void;
-    removeEventListener<T extends NoVncEventType>(type: T, listener: (event: NoVncEvents[T]) => void): void;
+    removeEventListener<T extends NoVncEventType>(
+      type: T,
+      listener: (event: NoVncEvents[T]) => void,
+    ): void;
     removeEventListener(type: string, listener: (event: CustomEvent) => void): void;
 
     disconnect(): void;
