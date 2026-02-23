@@ -14,9 +14,10 @@
   import { dispatchInvalidate } from './lib/invalidate.ts';
   import Sidebar from './components/Sidebar.svelte';
   import Toast from './components/Toast.svelte';
+  import ConfirmDialog from './components/ConfirmDialog.svelte';
   import Status from './pages/Status.svelte';
   import Sessions from './pages/Sessions.svelte';
-  import Birds from './pages/Cron.svelte';
+  import Birds from './pages/Birds.svelte';
   import Browser from './pages/Browser.svelte';
   import Settings from './pages/Settings.svelte';
   import SessionDetail from './pages/SessionDetail.svelte';
@@ -124,6 +125,7 @@
 </script>
 
 <Toast />
+<ConfirmDialog />
 
 {#if authChecking}
   <div class="loading">Loading...</div>

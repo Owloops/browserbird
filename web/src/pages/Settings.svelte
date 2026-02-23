@@ -3,6 +3,7 @@
   import { api } from '../lib/api.ts';
   import { formatAge, formatUptime } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
+  import { showConfirm } from '../lib/confirm.svelte.ts';
 
   interface Props {
     status: StatusResponse | null;
@@ -83,6 +84,7 @@
   }
 
   async function runCleanup(): Promise<void> {
+    if (!(await showConfirm(`Delete all records older than ${config?.database.retentionDays ?? 30}d?`))) return;
     cleaningUp = true;
     try {
       const result = await api<CleanupResponse>('/api/db/cleanup', {

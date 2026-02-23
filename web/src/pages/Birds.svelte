@@ -3,6 +3,7 @@
   import { api } from '../lib/api.ts';
   import { formatAge, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
+  import { showConfirm } from '../lib/confirm.svelte.ts';
   import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
@@ -180,7 +181,7 @@
   }
 
   async function deleteCron(id: number, name: string): Promise<void> {
-    if (!confirm(`Delete bird "${name}"? This will also remove all flight history.`)) return;
+    if (!(await showConfirm(`Delete bird "${name}"? This will also remove all flight history.`))) return;
     try {
       await api(`/api/birds/${id}`, { method: 'DELETE' });
       showToast(`Bird #${id} deleted`, 'success');
