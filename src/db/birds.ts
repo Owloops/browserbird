@@ -1,7 +1,14 @@
 /** @fileoverview Bird (cron job) and flight (cron run) persistence. */
 
 import type { PaginatedResult } from './core.ts';
-import { getDb, paginate, DEFAULT_PER_PAGE, MAX_PER_PAGE } from './core.ts';
+import {
+  getDb,
+  paginate,
+  parseSort,
+  buildSearchClause,
+  DEFAULT_PER_PAGE,
+  MAX_PER_PAGE,
+} from './core.ts';
 
 export const SYSTEM_CRON_PREFIX = '__bb_';
 
@@ -57,13 +64,33 @@ export interface UpdateCronJobFields {
   agentId?: string;
 }
 
+const CRON_SORT_COLUMNS = new Set([
+  'id',
+  'name',
+  'schedule',
+  'agent_id',
+  'enabled',
+  'last_run',
+  'created_at',
+]);
+const CRON_SEARCH_COLUMNS = ['name', 'prompt', 'schedule'] as const;
+
 export function listCronJobs(
   page = 1,
   perPage = DEFAULT_PER_PAGE,
   includeSystem = false,
+  sort?: string,
+  search?: string,
 ): PaginatedResult<CronJobRow> {
   const where = includeSystem ? '' : `name NOT LIKE '${SYSTEM_CRON_PREFIX}%'`;
-  return paginate<CronJobRow>('cron_jobs', page, perPage, where, [], 'id ASC');
+  return paginate<CronJobRow>('cron_jobs', page, perPage, {
+    where,
+    defaultSort: 'id ASC',
+    sort,
+    search,
+    allowedSortColumns: CRON_SORT_COLUMNS,
+    searchColumns: CRON_SEARCH_COLUMNS,
+  });
 }
 
 export function getEnabledCronJobs(): CronJobRow[] {
@@ -161,10 +188,16 @@ export function deleteCronJob(jobId: number): boolean {
   }
 }
 
+const FLIGHT_SORT_COLUMNS = new Set(['id', 'started_at', 'finished_at', 'status', 'bird_name']);
+const FLIGHT_SORT_MAP: Record<string, string> = { bird_name: 'j.name' };
+const FLIGHT_SEARCH_COLUMNS = ['j.name', 'r.error', 'r.result'] as const;
+
 export function listFlights(
   page = 1,
   perPage = DEFAULT_PER_PAGE,
   filters: ListFlightsFilters = {},
+  sort?: string,
+  search?: string,
 ): PaginatedResult<FlightRow> {
   const pp = Math.min(Math.max(perPage, 1), MAX_PER_PAGE);
   const p = Math.max(page, 1);
@@ -182,10 +215,26 @@ export function listFlights(
     params.push(filters.status);
   }
 
+  if (search) {
+    const sc = buildSearchClause(search, FLIGHT_SEARCH_COLUMNS);
+    if (sc.sql) {
+      conditions.push(sc.sql);
+      params.push(...sc.params);
+    }
+  }
+
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+  let orderBy = parseSort(sort, FLIGHT_SORT_COLUMNS, 'id DESC');
+  for (const [key, qualified] of Object.entries(FLIGHT_SORT_MAP)) {
+    orderBy = orderBy.replaceAll(key, qualified);
+  }
+  orderBy = orderBy.replace(/\b(id|started_at|finished_at|status)\b/g, 'r.$1');
+
   const countRow = getDb()
-    .prepare(`SELECT COUNT(*) as count FROM cron_runs r ${where}`)
+    .prepare(
+      `SELECT COUNT(*) as count FROM cron_runs r JOIN cron_jobs j ON j.id = r.job_id ${where}`,
+    )
     .get(...params) as unknown as { count: number };
   const totalItems = countRow.count;
   const totalPages = Math.max(Math.ceil(totalItems / pp), 1);
@@ -197,7 +246,7 @@ export function listFlights(
        FROM cron_runs r
        JOIN cron_jobs j ON j.id = r.job_id
        ${where}
-       ORDER BY r.id DESC
+       ORDER BY ${orderBy}
        LIMIT ? OFFSET ?`,
     )
     .all(...params, pp, offset) as unknown as FlightRow[];

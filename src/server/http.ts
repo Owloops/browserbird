@@ -63,6 +63,14 @@ export function parseSystemFlag(url: URL): boolean {
   return url.searchParams.get('system') === 'true';
 }
 
+export function parseSortParam(url: URL): string | undefined {
+  return url.searchParams.get('sort') ?? undefined;
+}
+
+export function parseSearchParam(url: URL): string | undefined {
+  return url.searchParams.get('search') ?? undefined;
+}
+
 export async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];

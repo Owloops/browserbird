@@ -13,17 +13,97 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
-export const DEFAULT_PER_PAGE = 20;
+export interface PaginateOptions {
+  where?: string;
+  params?: (string | number)[];
+  defaultSort?: string;
+  sort?: string;
+  search?: string;
+  allowedSortColumns?: ReadonlySet<string>;
+  searchColumns?: readonly string[];
+}
+
+export const DEFAULT_PER_PAGE = 15;
 export const MAX_PER_PAGE = 100;
+
+/**
+ * Parses a motebase-style sort string into an SQL ORDER BY clause.
+ * Each token is a column name optionally prefixed with `-` for DESC.
+ * Only columns present in `allowedColumns` are included.
+ */
+export function parseSort(
+  raw: string | undefined,
+  allowedColumns: ReadonlySet<string>,
+  fallback: string,
+): string {
+  if (!raw) return fallback;
+  const parts: string[] = [];
+  for (const token of raw.split(',')) {
+    const trimmed = token.trim();
+    if (!trimmed) continue;
+    const desc = trimmed.startsWith('-');
+    const col = desc ? trimmed.slice(1) : trimmed;
+    if (allowedColumns.has(col)) {
+      parts.push(`${col} ${desc ? 'DESC' : 'ASC'}`);
+    }
+  }
+  return parts.length > 0 ? parts.join(', ') : fallback;
+}
+
+/**
+ * Builds a parenthesized OR clause for LIKE-based search across columns.
+ * Returns empty sql/params when the search term is empty.
+ */
+export function buildSearchClause(
+  term: string | undefined,
+  columns: readonly string[],
+): { sql: string; params: string[] } {
+  if (!term || columns.length === 0) return { sql: '', params: [] };
+  const like = `%${term}%`;
+  const sql = `(${columns.map((c) => `${c} LIKE ?`).join(' OR ')})`;
+  const params = columns.map(() => like);
+  return { sql, params };
+}
 
 export function paginate<T>(
   table: string,
   page: number,
   perPage: number,
-  where = '',
-  params: (string | number)[] = [],
-  orderBy = 'id DESC',
+  whereOrOptions?: string | PaginateOptions,
+  params?: (string | number)[],
+  orderBy?: string,
 ): PaginatedResult<T> {
+  let where: string;
+  let allParams: (string | number)[];
+  let resolvedOrderBy: string;
+
+  if (typeof whereOrOptions === 'object' && whereOrOptions !== null) {
+    const opts = whereOrOptions;
+    const conditions: string[] = [];
+    allParams = [...(opts.params ?? [])];
+
+    if (opts.where) conditions.push(opts.where);
+
+    if (opts.search && opts.searchColumns && opts.searchColumns.length > 0) {
+      const sc = buildSearchClause(opts.search, opts.searchColumns);
+      if (sc.sql) {
+        conditions.push(sc.sql);
+        allParams.push(...sc.params);
+      }
+    }
+
+    where = conditions.join(' AND ');
+    resolvedOrderBy = parseSort(
+      opts.sort,
+      opts.allowedSortColumns ?? new Set<string>(),
+      opts.defaultSort ?? 'id DESC',
+    );
+  } else {
+    where = whereOrOptions ?? '';
+    allParams = params ?? [];
+    resolvedOrderBy = orderBy ?? 'id DESC';
+  }
+
   const pp = Math.min(Math.max(perPage, 1), MAX_PER_PAGE);
   const p = Math.max(page, 1);
   const offset = (p - 1) * pp;
@@ -31,14 +111,14 @@ export function paginate<T>(
   const countSql = `SELECT COUNT(*) as count FROM ${table}${where ? ` WHERE ${where}` : ''}`;
   const countRow = getDb()
     .prepare(countSql)
-    .get(...params) as unknown as { count: number };
+    .get(...allParams) as unknown as { count: number };
   const totalItems = countRow.count;
   const totalPages = Math.max(Math.ceil(totalItems / pp), 1);
 
-  const dataSql = `SELECT * FROM ${table}${where ? ` WHERE ${where}` : ''} ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
+  const dataSql = `SELECT * FROM ${table}${where ? ` WHERE ${where}` : ''} ORDER BY ${resolvedOrderBy} LIMIT ? OFFSET ?`;
   const items = getDb()
     .prepare(dataSql)
-    .all(...params, pp, offset) as unknown as T[];
+    .all(...allParams, pp, offset) as unknown as T[];
 
   return { items, page: p, perPage: pp, totalItems, totalPages };
 }

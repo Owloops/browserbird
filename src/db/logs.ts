@@ -25,11 +25,16 @@ export function insertLog(
     .run(level, source, message, channelId ?? null);
 }
 
+const LOG_SORT_COLUMNS = new Set(['id', 'level', 'source', 'created_at']);
+const LOG_SEARCH_COLUMNS = ['message', 'source'] as const;
+
 export function getRecentLogs(
   page = 1,
   perPage = DEFAULT_PER_PAGE,
   level?: string,
   source?: string,
+  sort?: string,
+  search?: string,
 ): PaginatedResult<LogRow> {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -42,7 +47,15 @@ export function getRecentLogs(
     params.push(source);
   }
   const where = conditions.join(' AND ');
-  return paginate<LogRow>('logs', page, perPage, where, params, 'created_at DESC');
+  return paginate<LogRow>('logs', page, perPage, {
+    where,
+    params,
+    defaultSort: 'created_at DESC',
+    sort,
+    search,
+    allowedSortColumns: LOG_SORT_COLUMNS,
+    searchColumns: LOG_SEARCH_COLUMNS,
+  });
 }
 
 export function deleteOldLogs(retentionDays: number): number {

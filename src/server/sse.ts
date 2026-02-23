@@ -31,7 +31,10 @@ export function handleSSE(
     const messages = getMessageStats();
     const data = JSON.stringify({
       uptime: Date.now() - startedAt,
-      processes: { active: deps.activeProcessCount(), maxConcurrent: config.sessions.maxConcurrent },
+      processes: {
+        active: deps.activeProcessCount(),
+        maxConcurrent: config.sessions.maxConcurrent,
+      },
       jobs,
       messages,
       web: { enabled: config.web.enabled, port: config.web.port },

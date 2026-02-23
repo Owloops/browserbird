@@ -172,10 +172,15 @@ export function countPendingJobs(): number {
   return row.count;
 }
 
+const JOB_SORT_COLUMNS = new Set(['id', 'name', 'status', 'priority', 'created_at', 'started_at']);
+const JOB_SEARCH_COLUMNS = ['name', 'error'] as const;
+
 export function listJobs(
   page = 1,
   perPage = DEFAULT_PER_PAGE,
   filters: ListJobsFilters = {},
+  sort?: string,
+  search?: string,
 ): PaginatedResult<JobRow> {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -194,7 +199,15 @@ export function listJobs(
   }
 
   const where = conditions.join(' AND ');
-  return paginate<JobRow>('jobs', page, perPage, where, params, 'created_at DESC');
+  return paginate<JobRow>('jobs', page, perPage, {
+    where,
+    params,
+    defaultSort: 'created_at DESC',
+    sort,
+    search,
+    allowedSortColumns: JOB_SORT_COLUMNS,
+    searchColumns: JOB_SEARCH_COLUMNS,
+  });
 }
 
 export function getJobStats(): JobStats {

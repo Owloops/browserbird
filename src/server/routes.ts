@@ -8,6 +8,8 @@ import {
   jsonError,
   parsePagination,
   parseSystemFlag,
+  parseSortParam,
+  parseSearchParam,
   readJsonBody,
 } from './http.ts';
 import { broadcastSSE } from './sse.ts';
@@ -75,7 +77,10 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const messages = getMessageStats();
         json(res, {
           uptime: uptimeMs,
-          processes: { active: deps.activeProcessCount(), maxConcurrent: config.sessions.maxConcurrent },
+          processes: {
+            active: deps.activeProcessCount(),
+            maxConcurrent: config.sessions.maxConcurrent,
+          },
           jobs,
           messages,
           web: { enabled: config.web.enabled, port: config.web.port },
@@ -122,7 +127,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       handler(req, res) {
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
-        json(res, listSessions(page, perPage));
+        json(res, listSessions(page, perPage, parseSortParam(url), parseSearchParam(url)));
       },
     },
     {
@@ -141,7 +146,14 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         }
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
-        const messages = getSessionMessages(session.channel_id, session.thread_id, page, perPage);
+        const messages = getSessionMessages(
+          session.channel_id,
+          session.thread_id,
+          page,
+          perPage,
+          parseSortParam(url),
+          parseSearchParam(url),
+        );
         const stats = getSessionTokenStats(session.channel_id, session.thread_id);
         json(res, { session, messages, stats });
       },
@@ -185,7 +197,16 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const cronJobIdParam = url.searchParams.get('cronJobId');
         const cronJobId = cronJobIdParam ? Number(cronJobIdParam) : undefined;
         const name = url.searchParams.get('name') ?? undefined;
-        json(res, listJobs(page, perPage, { status, cronJobId, name }));
+        json(
+          res,
+          listJobs(
+            page,
+            perPage,
+            { status, cronJobId, name },
+            parseSortParam(url),
+            parseSearchParam(url),
+          ),
+        );
       },
     },
     {
@@ -226,7 +247,16 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       handler(req, res) {
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
-        json(res, listCronJobs(page, perPage, parseSystemFlag(url)));
+        json(
+          res,
+          listCronJobs(
+            page,
+            perPage,
+            parseSystemFlag(url),
+            parseSortParam(url),
+            parseSearchParam(url),
+          ),
+        );
       },
     },
     {
@@ -385,7 +415,16 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const status = url.searchParams.get('status') ?? undefined;
         const birdIdParam = url.searchParams.get('birdId');
         const birdId = birdIdParam ? Number(birdIdParam) : undefined;
-        json(res, listFlights(page, perPage, { status, birdId }));
+        json(
+          res,
+          listFlights(
+            page,
+            perPage,
+            { status, birdId },
+            parseSortParam(url),
+            parseSearchParam(url),
+          ),
+        );
       },
     },
     {
@@ -399,7 +438,10 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         }
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
-        json(res, listFlights(page, perPage, { birdId: id }));
+        json(
+          res,
+          listFlights(page, perPage, { birdId: id }, parseSortParam(url), parseSearchParam(url)),
+        );
       },
     },
     {
@@ -447,7 +489,10 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const { page, perPage } = parsePagination(url);
         const level = url.searchParams.get('level') ?? undefined;
         const source = url.searchParams.get('source') ?? undefined;
-        json(res, getRecentLogs(page, perPage, level, source));
+        json(
+          res,
+          getRecentLogs(page, perPage, level, source, parseSortParam(url), parseSearchParam(url)),
+        );
       },
     },
   ];
