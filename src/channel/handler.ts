@@ -7,10 +7,10 @@ import type { ChannelClient } from './types.ts';
 
 import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
-import * as db from '../db.ts';
+import * as db from '../db/index.ts';
 import { logger } from '../core/logger.ts';
 import { recordError } from '../core/metrics.ts';
-import { broadcastSSE } from '../server.ts';
+import { broadcastSSE } from '../server/index.ts';
 
 interface SessionLock {
   processing: boolean;

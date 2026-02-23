@@ -12,10 +12,10 @@ import {
   deleteOldCronRuns,
   deleteOldLogs,
   optimizeDatabase,
-} from '../db.ts';
+} from '../db/index.ts';
 import { expireStaleSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
-import { broadcastSSE } from '../server.ts';
+import { broadcastSSE } from '../server/index.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import { parseCron, matchesCron } from './parse.ts';
 import type { CronSchedule } from './parse.ts';

@@ -10,12 +10,12 @@ import {
   deleteOldCronRuns,
   deleteOldLogs,
   optimizeDatabase,
-} from './db.ts';
+} from './db/index.ts';
 import { expireStaleSessions } from './provider/session.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
-import { createWebServer } from './server.ts';
+import { createWebServer } from './server/index.ts';
 import { resolve } from 'node:path';
 
 const controller = new AbortController();

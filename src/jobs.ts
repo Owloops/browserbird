@@ -1,6 +1,6 @@
 /** @fileoverview Background job queue with handler registry, polling worker, and retry logic. */
 
-import type { CreateJobOptions, JobRow, JobPriority } from './db.ts';
+import type { CreateJobOptions, JobRow, JobPriority } from './db/index.ts';
 import {
   createJob,
   claimNextJob,
@@ -13,10 +13,10 @@ import {
   getCronJob,
   createCronRun,
   completeCronRun,
-} from './db.ts';
+} from './db/index.ts';
 import { logger } from './core/logger.ts';
 import { recordError } from './core/metrics.ts';
-import { broadcastSSE } from './server.ts';
+import { broadcastSSE } from './server/index.ts';
 
 type JobHandler = (payload: unknown) => Promise<string | void> | string | void;
 
