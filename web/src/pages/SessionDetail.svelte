@@ -70,11 +70,11 @@
   <div class="meta-grid">
     <div class="meta-item">
       <span class="meta-label">Channel</span>
-      <span class="meta-value mono">{detail.session.slack_channel_id}</span>
+      <span class="meta-value mono">{detail.session.channel_id}</span>
     </div>
     <div class="meta-item">
       <span class="meta-label">Thread</span>
-      <span class="meta-value mono">{detail.session.slack_thread_ts ?? '—'}</span>
+      <span class="meta-value mono">{detail.session.thread_id ?? '—'}</span>
     </div>
     <div class="meta-item">
       <span class="meta-label">Agent</span>
@@ -118,7 +118,7 @@
     {#each detail.messages.items as m (m.id)}
       <tr>
         <td><Badge status={m.direction === 'in' ? 'info' : 'success'} /></td>
-        <td class="mono">{m.slack_user_id}</td>
+        <td class="mono">{m.user_id}</td>
         <td class="content-cell">{m.content ?? '—'}</td>
         <td class="mono">{m.tokens_in ?? '—'}</td>
         <td class="mono">{m.tokens_out ?? '—'}</td>

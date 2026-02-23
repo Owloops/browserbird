@@ -60,14 +60,14 @@ const MIGRATIONS: Migration[] = [
       d.exec(`
         CREATE TABLE IF NOT EXISTS sessions (
           id INTEGER PRIMARY KEY,
-          slack_channel_id TEXT NOT NULL,
-          slack_thread_ts TEXT,
+          channel_id TEXT NOT NULL,
+          thread_id TEXT,
           agent_id TEXT NOT NULL DEFAULT 'default',
           provider_session_id TEXT NOT NULL,
           created_at TEXT NOT NULL DEFAULT (datetime('now')),
           last_active TEXT NOT NULL DEFAULT (datetime('now')),
           message_count INTEGER NOT NULL DEFAULT 0,
-          UNIQUE(slack_channel_id, slack_thread_ts)
+          UNIQUE(channel_id, thread_id)
         );
 
         CREATE TABLE IF NOT EXISTS cron_jobs (
@@ -99,9 +99,9 @@ const MIGRATIONS: Migration[] = [
 
         CREATE TABLE IF NOT EXISTS messages (
           id INTEGER PRIMARY KEY,
-          slack_channel_id TEXT NOT NULL,
-          slack_thread_ts TEXT,
-          slack_user_id TEXT NOT NULL,
+          channel_id TEXT NOT NULL,
+          thread_id TEXT,
+          user_id TEXT NOT NULL,
           direction TEXT NOT NULL CHECK(direction IN ('in', 'out')),
           content TEXT,
           tokens_in INTEGER,
@@ -118,6 +118,7 @@ const MIGRATIONS: Migration[] = [
           attempts INTEGER NOT NULL DEFAULT 0,
           max_attempts INTEGER NOT NULL DEFAULT 1,
           timeout INTEGER NOT NULL DEFAULT 1800,
+          cron_job_id INTEGER REFERENCES cron_jobs(id),
           run_at TEXT,
           started_at TEXT,
           completed_at TEXT,
@@ -136,11 +137,11 @@ const MIGRATIONS: Migration[] = [
         );
 
         CREATE INDEX IF NOT EXISTS idx_sessions_channel_thread
-          ON sessions(slack_channel_id, slack_thread_ts);
+          ON sessions(channel_id, thread_id);
         CREATE INDEX IF NOT EXISTS idx_sessions_last_active
           ON sessions(last_active);
         CREATE INDEX IF NOT EXISTS idx_messages_channel_thread
-          ON messages(slack_channel_id, slack_thread_ts);
+          ON messages(channel_id, thread_id);
         CREATE INDEX IF NOT EXISTS idx_messages_created_at
           ON messages(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_cron_runs_job_id
@@ -149,21 +150,14 @@ const MIGRATIONS: Migration[] = [
           ON cron_jobs(enabled);
         CREATE INDEX IF NOT EXISTS idx_jobs_poll
           ON jobs(status, priority, run_at, created_at);
+        CREATE INDEX IF NOT EXISTS idx_jobs_cron_job_id
+          ON jobs(cron_job_id);
         CREATE INDEX IF NOT EXISTS idx_jobs_stale
           ON jobs(status, started_at);
         CREATE INDEX IF NOT EXISTS idx_logs_created_at
           ON logs(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_logs_level_source
           ON logs(level, source, created_at DESC);
-      `);
-    },
-  },
-  {
-    name: 'add cron_job_id to jobs',
-    up(d) {
-      d.exec(`
-        ALTER TABLE jobs ADD COLUMN cron_job_id INTEGER REFERENCES cron_jobs(id);
-        CREATE INDEX IF NOT EXISTS idx_jobs_cron_job_id ON jobs(cron_job_id);
       `);
     },
   },

@@ -143,13 +143,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         }
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
-        const messages = getSessionMessages(
-          session.slack_channel_id,
-          session.slack_thread_ts,
-          page,
-          perPage,
-        );
-        const stats = getSessionTokenStats(session.slack_channel_id, session.slack_thread_ts);
+        const messages = getSessionMessages(session.channel_id, session.thread_id, page, perPage);
+        const stats = getSessionTokenStats(session.channel_id, session.thread_id);
         json(res, { session, messages, stats });
       },
     },

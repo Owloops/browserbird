@@ -53,8 +53,8 @@ export interface ConfigResponse {
 
 export interface SessionRow {
   id: number;
-  slack_channel_id: string;
-  slack_thread_ts: string | null;
+  channel_id: string;
+  thread_id: string | null;
   agent_id: string;
   provider_session_id: string;
   created_at: string;
@@ -64,9 +64,9 @@ export interface SessionRow {
 
 export interface MessageRow {
   id: number;
-  slack_channel_id: string;
-  slack_thread_ts: string | null;
-  slack_user_id: string;
+  channel_id: string;
+  thread_id: string | null;
+  user_id: string;
   direction: 'in' | 'out';
   content: string | null;
   tokens_in: number | null;

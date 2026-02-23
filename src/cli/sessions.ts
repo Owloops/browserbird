@@ -46,7 +46,7 @@ export function handleSessions(argv: string[]): void {
       console.log('');
       const rows = items.map((s) => [
         String(s.id),
-        s.slack_channel_id,
+        s.channel_id,
         s.agent_id,
         String(s.message_count),
         s.last_active.slice(0, 19),
@@ -87,12 +87,12 @@ export function handleSessions(argv: string[]): void {
       return;
     }
 
-    const tokenStats = getSessionTokenStats(session.slack_channel_id, session.slack_thread_ts);
+    const tokenStats = getSessionTokenStats(session.channel_id, session.thread_id);
 
     console.log(`session #${id}`);
     console.log('------------------');
-    console.log(`channel:      ${session.slack_channel_id}`);
-    console.log(`thread:       ${session.slack_thread_ts ?? '(none)'}`);
+    console.log(`channel:      ${session.channel_id}`);
+    console.log(`thread:       ${session.thread_id ?? '(none)'}`);
     console.log(`agent:        ${session.agent_id}`);
     console.log(`provider id:  ${session.provider_session_id}`);
     console.log(`created:      ${session.created_at}`);
@@ -101,7 +101,7 @@ export function handleSessions(argv: string[]): void {
     console.log(`tokens:       ${tokenStats.totalTokensIn} in / ${tokenStats.totalTokensOut} out`);
     console.log('');
 
-    const result = getSessionMessages(session.slack_channel_id, session.slack_thread_ts, 1, 50);
+    const result = getSessionMessages(session.channel_id, session.thread_id, 1, 50);
 
     if (result.items.length === 0) {
       console.log('no messages recorded.');
@@ -119,7 +119,7 @@ export function handleSessions(argv: string[]): void {
           : '';
       const preview = (msg.content ?? '').slice(0, 120);
       const truncated = (msg.content?.length ?? 0) > 120 ? '...' : '';
-      console.log(`${dir} ${msg.slack_user_id}  ${msg.created_at}${tokens}`);
+      console.log(`${dir} ${msg.user_id}  ${msg.created_at}${tokens}`);
       if (preview) console.log(`   ${preview}${truncated}`);
     }
   } finally {

@@ -1,12 +1,12 @@
-/** @fileoverview Message logging — Slack message audit trail and token tracking. */
+/** @fileoverview Message logging — message audit trail and token tracking. */
 
 import { getDb } from './core.ts';
 
 export interface MessageRow {
   id: number;
-  slack_channel_id: string;
-  slack_thread_ts: string | null;
-  slack_user_id: string;
+  channel_id: string;
+  thread_id: string | null;
+  user_id: string;
   direction: 'in' | 'out';
   content: string | null;
   tokens_in: number | null;
@@ -16,7 +16,7 @@ export interface MessageRow {
 
 export function logMessage(
   channelId: string,
-  threadTs: string | null,
+  threadId: string | null,
   userId: string,
   direction: 'in' | 'out',
   content?: string,
@@ -24,12 +24,12 @@ export function logMessage(
   tokensOut?: number,
 ): void {
   const stmt = getDb().prepare(
-    `INSERT INTO messages (slack_channel_id, slack_thread_ts, slack_user_id, direction, content, tokens_in, tokens_out)
+    `INSERT INTO messages (channel_id, thread_id, user_id, direction, content, tokens_in, tokens_out)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
   stmt.run(
     channelId,
-    threadTs ?? null,
+    threadId ?? null,
     userId,
     direction,
     content ?? null,

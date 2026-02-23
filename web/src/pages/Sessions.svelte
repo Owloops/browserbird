@@ -64,8 +64,8 @@
         }}
       >
         <td class="mono">{s.id}</td>
-        <td class="mono">{s.slack_channel_id}</td>
-        <td class="mono">{s.slack_thread_ts ?? '—'}</td>
+        <td class="mono">{s.channel_id}</td>
+        <td class="mono">{s.thread_id ?? '—'}</td>
         <td>{s.agent_id}</td>
         <td>{s.message_count}</td>
         <td>{formatAge(s.last_active)}</td>
