@@ -4,6 +4,7 @@
   import { formatAge, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
+  import Badge from '../components/Badge.svelte';
   import Toggle from '../components/Toggle.svelte';
 
   const PER_PAGE = 20;
@@ -241,9 +242,12 @@
         <td>
           <Toggle active={!!j.enabled} onToggle={() => toggleCron(j.id, !!j.enabled)} />
         </td>
-        <td>
+        <td class="last-run-cell">
           {#if j.last_run}
-            {formatAge(j.last_run)} ({j.last_status ?? '—'})
+            <span class="last-run-age">{formatAge(j.last_run)}</span>
+            {#if j.last_status}
+              <Badge status={j.last_status} />
+            {/if}
           {:else}
             —
           {/if}
@@ -318,6 +322,16 @@
     display: flex;
     gap: 0.375rem;
     justify-content: flex-end;
+  }
+
+  .last-run-cell {
+    white-space: nowrap;
+  }
+
+  .last-run-age {
+    font-size: 0.769rem;
+    color: var(--color-text-muted);
+    margin-right: 0.375rem;
   }
 
   .actions-cell {
