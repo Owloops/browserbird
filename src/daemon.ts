@@ -1,6 +1,6 @@
 /** @fileoverview Main orchestrator process — starts all subsystems and handles graceful shutdown. */
 
-import type { CliOptions, Config } from './core/types.ts';
+import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
 import { loadConfig } from './config.ts';
 import {
@@ -78,7 +78,11 @@ function startCleanupTask(config: Config, retentionDays: number): void {
   });
 }
 
-export async function startDaemon(options: CliOptions): Promise<void> {
+interface DaemonOptions {
+  flags: { verbose: boolean; config?: string };
+}
+
+export async function startDaemon(options: DaemonOptions): Promise<void> {
   setupShutdown();
 
   if (options.flags.verbose) {

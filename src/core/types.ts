@@ -91,27 +91,3 @@ export const COMMANDS = {
 } as const;
 
 export type Command = (typeof COMMANDS)[keyof typeof COMMANDS];
-
-export interface CliOptions {
-  command: Command | undefined;
-  subcommand: string | undefined;
-  args: string[];
-  flags: {
-    help: boolean;
-    version: boolean;
-    follow: boolean;
-    verbose: boolean;
-    channel?: string;
-    agent?: string;
-    schedule?: string;
-    prompt?: string;
-    days?: string;
-    status?: string;
-    level?: string;
-    limit?: string;
-    allFailed: boolean;
-    completed: boolean;
-    failed: boolean;
-    config?: string;
-  };
-}

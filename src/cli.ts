@@ -2,7 +2,7 @@
 
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
-import type { CliOptions, Command } from './core/types.ts';
+import type { Command } from './core/types.ts';
 import { COMMANDS } from './core/types.ts';
 import { logger } from './core/logger.ts';
 import { loadConfig } from './config.ts';
@@ -32,162 +32,189 @@ import {
 } from './db.ts';
 import { execFileSync } from 'node:child_process';
 import { enqueue } from './jobs.ts';
+import { printTable, unknownSubcommand } from './core/table.ts';
 
 const VERSION = '0.0.0';
 
-const HELP = `
-Usage: browserbird [command] [options]
+const MAIN_HELP = `
+usage: browserbird [command] [options]
 
-Commands:
-  (none)              Start orchestrator (foreground)
-  start               Start as background daemon
-  stop                Graceful shutdown
-  status              Show running sessions, uptime, stats
-  logs [--level <lvl>] [--limit <n>]  Show recent errors from database
+commands:
 
-  sessions                    List active Claude sessions
-  sessions inspect <id>       Show session detail and message history
-  sessions kill <id>          Terminate a session
+  birds       manage scheduled birds
+  sessions    manage claude sessions
+  jobs        manage background jobs
+  logs        show recent log entries
+  status      show daemon status
+  db          database maintenance
+  doctor      check system dependencies
 
-  birds list           List scheduled birds
-  birds add <schedule> <prompt> [--channel <id>] [--agent <id>]
-  birds edit <id>      Edit a bird [--schedule] [--prompt] [--channel] [--agent]
-  birds remove <id>    Remove a bird
-  birds enable <id>    Enable a bird
-  birds disable <id>   Disable a bird
-  birds fly <id>       Trigger a bird manually
+options:
 
-  agents              List configured agents
-  config              Show current config
-  config set <k> <v>  Update config value
+  -h, --help     show this help
+  -v, --version  show version
+  --verbose      enable debug logging
+  --config       config file path
 
-  doctor              Check system dependencies (Claude CLI, etc.)
-
-  db cleanup [--days]  Delete old entries, optimize database
-
-  jobs                List all jobs
-  jobs stats          Show job queue statistics
-  jobs retry <id>     Retry a failed job
-  jobs retry --all-failed  Retry all failed jobs
-  jobs delete <id>    Delete a job
-  jobs clear          Clear completed or failed jobs
-
-Options:
-  -h, --help          Show this help
-  -v, --version       Show version
-  -f, --follow        Follow log output
-  --verbose           Enable debug logging
-  --no-color          Disable colored output
-  --channel <id>      Target channel for birds
-  --agent <id>        Target agent for birds
-  --schedule <expr>   Cron schedule expression (for birds edit)
-  --prompt <text>     Prompt text (for birds edit)
-  --days <n>          Retention days for db cleanup (overrides config)
-  --level <lvl>       Filter logs by level: debug, info, warn, error
-  --limit <n>         Number of log entries to show (default: 20)
-  --config <path>     Config file path (default: ./browserbird.json)
-
-Environment:
-  SLACK_BOT_TOKEN     Bot user OAuth token (or set in browserbird.json)
-  SLACK_APP_TOKEN     App-level token for Socket Mode (or set in browserbird.json)
-  BROWSERBIRD_RETENTION_DAYS  Override database.retentionDays
-  BROWSERBIRD_MCP_CONFIG_PATH Override browser.mcpConfigPath
-  NO_COLOR            Disable colored output (any value)
+run 'browserbird <command> --help' for command-specific options.
 `.trim();
 
-export function parseCli(argv: string[]): CliOptions {
-  const { values, positionals } = parseArgs({
-    args: argv,
-    options: {
-      help: { type: 'boolean', short: 'h', default: false },
-      version: { type: 'boolean', short: 'v', default: false },
-      follow: { type: 'boolean', short: 'f', default: false },
-      verbose: { type: 'boolean', default: false },
-      channel: { type: 'string' },
-      agent: { type: 'string' },
-      schedule: { type: 'string' },
-      prompt: { type: 'string' },
-      days: { type: 'string' },
-      status: { type: 'string' },
-      level: { type: 'string' },
-      limit: { type: 'string' },
-      'all-failed': { type: 'boolean', default: false },
-      completed: { type: 'boolean', default: false },
-      failed: { type: 'boolean', default: false },
-      config: { type: 'string' },
-    },
-    allowPositionals: true,
-    strict: false,
-  });
+const COMMAND_HELP: Record<string, string> = {
+  birds: `
+usage: browserbird birds <subcommand> [options]
 
-  const command = (positionals[0] as Command | undefined) ?? undefined;
-  const subcommand = positionals[1] ?? undefined;
-  const args = positionals.slice(2);
+manage scheduled birds.
 
-  return {
-    command,
-    subcommand,
-    args,
-    flags: {
-      help: values.help as boolean,
-      version: values.version as boolean,
-      follow: values.follow as boolean,
-      verbose: values.verbose as boolean,
-      channel: values.channel as string | undefined,
-      agent: values.agent as string | undefined,
-      schedule: values.schedule as string | undefined,
-      prompt: values.prompt as string | undefined,
-      days: values.days as string | undefined,
-      status: values.status as string | undefined,
-      level: values.level as string | undefined,
-      limit: values.limit as string | undefined,
-      allFailed: values['all-failed'] as boolean,
-      completed: values.completed as boolean,
-      failed: values.failed as boolean,
-      config: values.config as string | undefined,
-    },
-  };
-}
+subcommands:
+
+  list                         list all birds
+  add <schedule> <prompt>      add a new bird
+  edit <id>                    edit a bird
+  remove <id>                  remove a bird
+  enable <id>                  enable a bird
+  disable <id>                 disable a bird
+  fly <id>                     trigger a bird manually
+
+options:
+
+  --channel <id>    target slack channel
+  --agent <id>      target agent id
+  --schedule <expr> cron schedule expression
+  --prompt <text>   prompt text
+  -h, --help        show this help
+`.trim(),
+
+  sessions: `
+usage: browserbird sessions <subcommand> [options]
+
+manage claude sessions.
+
+subcommands:
+
+  inspect <id>   show session detail and message history
+
+options:
+
+  -h, --help   show this help
+`.trim(),
+
+  jobs: `
+usage: browserbird jobs <subcommand> [options]
+
+manage background jobs.
+
+subcommands:
+
+  list              list all jobs
+  stats             show job queue statistics
+  retry <id>        retry a failed job
+  delete <id>       delete a job
+  clear             clear completed or failed jobs
+
+options:
+
+  --status <s>     filter by status: pending, running, completed, failed
+  --all-failed     retry all failed jobs (with retry)
+  --completed      clear completed jobs (with clear)
+  --failed         clear failed jobs (with clear)
+  -h, --help       show this help
+`.trim(),
+
+  logs: `
+usage: browserbird logs [options]
+
+show recent log entries from the database.
+
+options:
+
+  --level <lvl>   filter by level: debug, info, warn, error
+  --limit <n>     number of entries to show (default: 20)
+  -h, --help      show this help
+`.trim(),
+
+  status: `
+usage: browserbird status [options]
+
+show daemon status (requires daemon to be running).
+
+options:
+
+  --config <path>   config file path
+  -h, --help        show this help
+`.trim(),
+
+  db: `
+usage: browserbird db <subcommand> [options]
+
+database maintenance.
+
+subcommands:
+
+  cleanup   delete old records and optimize
+
+options:
+
+  --days <n>      retention days (overrides config)
+  --config <path> config file path
+  -h, --help      show this help
+`.trim(),
+
+  doctor: `
+usage: browserbird doctor
+
+check system dependencies (claude cli, node.js).
+
+options:
+
+  -h, --help   show this help
+`.trim(),
+};
+
 
 export async function run(argv: string[]): Promise<void> {
-  const options = parseCli(argv);
+  const command = argv[0];
 
-  if (options.flags.help) {
-    console.log(HELP);
+  if (!command || command === '--help' || command === '-h') {
+    console.log(MAIN_HELP);
     return;
   }
 
-  if (options.flags.version) {
+  if (command === '--version' || command === '-v') {
     console.log(VERSION);
     return;
   }
 
-  if (options.flags.verbose) {
+  if (command === '--verbose') {
     logger.setLevel('debug');
   }
 
-  const { command } = options;
+  const rest = argv.slice(1);
+  const isHelp = rest.includes('--help') || rest.includes('-h');
 
-  if (!command) {
-    await startDaemon(options);
+  if (command === '--verbose' || command === '--config' || command === '--no-color') {
+    await startDaemon(parseGlobalFlags(argv));
     return;
   }
 
-  switch (command) {
+  switch (command as Command) {
     case COMMANDS.DOCTOR:
+      if (isHelp) { console.log(COMMAND_HELP.doctor); return; }
       handleDoctor();
       break;
     case COMMANDS.DB:
-      handleDb(options);
+      if (isHelp) { console.log(COMMAND_HELP.db); return; }
+      handleDb(rest);
       break;
     case COMMANDS.JOBS:
-      handleJobs(options);
+      if (isHelp) { console.log(COMMAND_HELP.jobs); return; }
+      handleJobs(rest);
       break;
     case COMMANDS.BIRDS:
-      handleCron(options);
+      if (isHelp) { console.log(COMMAND_HELP.birds); return; }
+      handleCron(rest);
       break;
     case COMMANDS.START:
-      await startDaemon(options);
+      await startDaemon(parseGlobalFlags(argv));
       break;
     case COMMANDS.STOP:
     case COMMANDS.AGENTS:
@@ -195,43 +222,70 @@ export async function run(argv: string[]): Promise<void> {
       logger.info(`command "${command}" not yet implemented`);
       break;
     case COMMANDS.LOGS:
-      handleLogs(options);
+      if (isHelp) { console.log(COMMAND_HELP.logs); return; }
+      handleLogs(rest);
       break;
     case COMMANDS.STATUS:
-      await handleStatus(options);
+      if (isHelp) { console.log(COMMAND_HELP.status); return; }
+      await handleStatus(rest);
       break;
     case COMMANDS.SESSIONS:
-      handleSessions(options);
+      if (isHelp) { console.log(COMMAND_HELP.sessions); return; }
+      handleSessions(rest);
       break;
     default:
       logger.error(`unknown command: ${command}`);
-      console.log(HELP);
+      process.stderr.write(`run 'browserbird --help' for usage\n`);
       process.exitCode = 1;
   }
 }
 
-function handleSessions(options: CliOptions): void {
+function parseGlobalFlags(argv: string[]): { flags: { verbose: boolean; config?: string } } {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      verbose: { type: 'boolean', default: false },
+      config: { type: 'string' },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+  if (values.verbose) logger.setLevel('debug');
+  return { flags: { verbose: values.verbose as boolean, config: values.config as string | undefined } };
+}
+
+function handleSessions(argv: string[]): void {
+  const subcommand = argv[0];
+  const args = argv.slice(1);
+
+  if (subcommand !== 'inspect') {
+    if (subcommand) {
+      unknownSubcommand(subcommand, 'sessions');
+    } else {
+      console.log(COMMAND_HELP.sessions);
+    }
+    return;
+  }
+
+  const { values, positionals } = parseArgs({
+    args,
+    options: {},
+    allowPositionals: true,
+    strict: false,
+  });
+  void values;
+
+  const id = Number(positionals[0]);
+  if (!Number.isFinite(id)) {
+    logger.error('usage: browserbird sessions inspect <id>');
+    process.exitCode = 1;
+    return;
+  }
+
   const dbPath = resolve('.browserbird', 'browserbird.db');
   openDatabase(dbPath);
 
   try {
-    const { subcommand, args } = options;
-
-    if (subcommand !== 'inspect') {
-      logger.error(
-        `unknown sessions subcommand: ${subcommand ?? '(none)'}. Try: sessions inspect <id>`,
-      );
-      process.exitCode = 1;
-      return;
-    }
-
-    const id = Number(args[0]);
-    if (!Number.isFinite(id)) {
-      logger.error('usage: browserbird sessions inspect <id>');
-      process.exitCode = 1;
-      return;
-    }
-
     const session = getSession(id);
     if (!session) {
       logger.error(`session #${id} not found`);
@@ -241,31 +295,27 @@ function handleSessions(options: CliOptions): void {
 
     const tokenStats = getSessionTokenStats(session.slack_channel_id, session.slack_thread_ts);
 
-    console.log('Session Detail');
-    console.log('──────────────────');
-    console.log(`ID:            ${session.id}`);
-    console.log(`Channel:       ${session.slack_channel_id}`);
-    console.log(`Thread:        ${session.slack_thread_ts ?? '(none)'}`);
-    console.log(`Agent:         ${session.agent_id}`);
-    console.log(`Provider ID:   ${session.provider_session_id}`);
-    console.log(`Created:       ${session.created_at}`);
-    console.log(`Last Active:   ${session.last_active}`);
-    console.log(`Messages:      ${session.message_count}`);
-    console.log(`Tokens In:     ${tokenStats.totalTokensIn}`);
-    console.log(`Tokens Out:    ${tokenStats.totalTokensOut}`);
+    console.log(`session #${id}`);
+    console.log('------------------');
+    console.log(`channel:      ${session.slack_channel_id}`);
+    console.log(`thread:       ${session.slack_thread_ts ?? '(none)'}`);
+    console.log(`agent:        ${session.agent_id}`);
+    console.log(`provider id:  ${session.provider_session_id}`);
+    console.log(`created:      ${session.created_at}`);
+    console.log(`last active:  ${session.last_active}`);
+    console.log(`messages:     ${session.message_count}`);
+    console.log(`tokens:       ${tokenStats.totalTokensIn} in / ${tokenStats.totalTokensOut} out`);
     console.log('');
 
     const result = getSessionMessages(session.slack_channel_id, session.slack_thread_ts, 1, 50);
 
     if (result.items.length === 0) {
-      console.log('No messages recorded.');
+      console.log('no messages recorded.');
       return;
     }
 
-    console.log(
-      `Messages (${result.totalItems} total, showing page 1 of ${result.totalPages}):`,
-    );
-    console.log('──────────────────');
+    console.log(`messages (${result.totalItems} total, showing page 1 of ${result.totalPages}):`);
+    console.log('------------------');
 
     for (const msg of result.items) {
       const dir = msg.direction === 'in' ? '->' : '<-';
@@ -305,22 +355,32 @@ export function checkDoctor(): DoctorResult {
 function handleDoctor(): void {
   const result = checkDoctor();
 
-  console.log('BrowserBird Doctor');
-  console.log('──────────────────');
+  console.log('browserbird doctor');
+  console.log('------------------');
 
   if (result.claude.available) {
-    logger.success(`Claude CLI: ${result.claude.version}`);
+    logger.success(`claude cli: ${result.claude.version}`);
   } else {
-    logger.error('Claude CLI: not found');
-    console.log('  Install: npm install -g @anthropic-ai/claude-code');
+    logger.error('claude cli: not found');
+    process.stderr.write('  install: npm install -g @anthropic-ai/claude-code\n');
   }
 
-  logger.success(`Node.js: ${result.node}`);
+  logger.success(`node.js: ${result.node}`);
 }
 
-function handleLogs(options: CliOptions): void {
-  const { level, limit } = options.flags;
-  const perPage = limit != null ? Number(limit) : 20;
+function handleLogs(argv: string[]): void {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      level: { type: 'string' },
+      limit: { type: 'string' },
+    },
+    allowPositionals: false,
+    strict: false,
+  });
+
+  const level = values.level as string | undefined;
+  const perPage = values.limit != null ? Number(values.limit) : 20;
 
   if (!Number.isFinite(perPage) || perPage < 1) {
     logger.error('--limit must be a positive number');
@@ -333,23 +393,36 @@ function handleLogs(options: CliOptions): void {
 
   try {
     const result = getRecentLogs(1, perPage, level);
+
     if (result.items.length === 0) {
       logger.info('no log entries found');
       return;
     }
 
-    for (const entry of result.items) {
-      const time = entry.created_at.slice(11, 19);
-      const src = entry.source.padEnd(10);
-      console.log(`${time}  [${entry.level.padEnd(5)}]  ${src}  ${entry.message}`);
-    }
+    console.log(`logs (${result.totalItems} total, showing ${result.items.length}):`);
+    console.log('');
+
+    const rows = result.items.map((entry) => [
+      entry.created_at.slice(11, 19),
+      entry.level,
+      entry.source,
+      entry.message,
+    ]);
+    printTable(['time', 'level', 'source', 'message'], rows, [undefined, undefined, undefined, 80]);
   } finally {
     closeDatabase();
   }
 }
 
-async function handleStatus(options: CliOptions): Promise<void> {
-  const config = loadConfig(options.flags.config);
+async function handleStatus(argv: string[]): Promise<void> {
+  const { values } = parseArgs({
+    args: argv,
+    options: { config: { type: 'string' } },
+    allowPositionals: false,
+    strict: false,
+  });
+
+  const config = loadConfig(values.config as string | undefined);
   const url = `http://${config.web.host}:${config.web.port}/api/status`;
 
   const headers: Record<string, string> = {};
@@ -367,7 +440,7 @@ async function handleStatus(options: CliOptions): Promise<void> {
     }
     body = await res.text();
   } catch {
-    logger.error(`daemon not reachable at ${url} — is it running?`);
+    logger.error(`daemon not reachable at ${url} - is it running?`);
     process.exitCode = 1;
     return;
   }
@@ -390,32 +463,44 @@ async function handleStatus(options: CliOptions): Promise<void> {
         ? `${uptimeMins}m ${uptimeSecs}s`
         : `${uptimeSecs}s`;
 
-  console.log('BrowserBird Status');
-  console.log('──────────────────');
-  console.log(`Uptime:        ${uptimeStr}`);
-  console.log(`Slack:         ${data.slack.connected ? 'connected' : 'disconnected'}`);
-  console.log(`Sessions:      ${data.sessions.active} / ${data.sessions.maxConcurrent} active`);
-  console.log(
-    `Jobs:          ${data.jobs.pending} pending, ${data.jobs.running} running, ${data.jobs.completed} done, ${data.jobs.failed} failed`,
-  );
-  console.log(`Messages:      ${data.messages.totalMessages} total`);
-  console.log(
-    `Tokens:        ${(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()} (${data.messages.totalTokensIn.toLocaleString()} in / ${data.messages.totalTokensOut.toLocaleString()} out)`,
-  );
+  console.log('browserbird status');
+  console.log('------------------');
+  console.log(`uptime:    ${uptimeStr}`);
+  console.log(`slack:     ${data.slack.connected ? 'connected' : 'disconnected'}`);
+  console.log(`sessions:  ${data.sessions.active} / ${data.sessions.maxConcurrent} active`);
+  console.log(`jobs:      ${data.jobs.pending} pending  ${data.jobs.running} running  ${data.jobs.completed} done  ${data.jobs.failed} failed`);
+  console.log(`messages:  ${data.messages.totalMessages} total`);
+  console.log(`tokens:    ${(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()} (${data.messages.totalTokensIn.toLocaleString()} in / ${data.messages.totalTokensOut.toLocaleString()} out)`);
 }
 
-function handleDb(options: CliOptions): void {
-  if (options.subcommand !== 'cleanup') {
-    logger.error('usage: browserbird db cleanup [--days <n>]');
-    process.exitCode = 1;
+function handleDb(argv: string[]): void {
+  const subcommand = argv[0];
+  const rest = argv.slice(1);
+
+  if (subcommand !== 'cleanup') {
+    if (subcommand) {
+      unknownSubcommand(subcommand, 'db');
+    } else {
+      console.log(COMMAND_HELP.db);
+    }
     return;
   }
 
-  const config = loadConfig(options.flags.config);
+  const { values } = parseArgs({
+    args: rest,
+    options: {
+      days: { type: 'string' },
+      config: { type: 'string' },
+    },
+    allowPositionals: false,
+    strict: false,
+  });
+
+  const config = loadConfig(values.config as string | undefined);
   const envDays = process.env['BROWSERBIRD_RETENTION_DAYS'];
   const days =
-    options.flags.days != null
-      ? Number(options.flags.days)
+    values.days != null
+      ? Number(values.days)
       : envDays != null
         ? Number(envDays)
         : config.database.retentionDays;
@@ -436,48 +521,67 @@ function handleDb(options: CliOptions): void {
   logger.success(`cleaned up: ${msgs} messages, ${runs} flight logs older than ${days}d`);
 }
 
-function handleJobs(options: CliOptions): void {
+function handleJobs(argv: string[]): void {
+  const subcommand = argv[0] ?? 'list';
+  const rest = argv.slice(1);
+
+  const { values, positionals } = parseArgs({
+    args: rest,
+    options: {
+      status: { type: 'string' },
+      'all-failed': { type: 'boolean', default: false },
+      completed: { type: 'boolean', default: false },
+      failed: { type: 'boolean', default: false },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+
   const dbPath = resolve('.browserbird', 'browserbird.db');
   openDatabase(dbPath);
 
   try {
-    const { subcommand, args, flags } = options;
-
     switch (subcommand) {
-      case undefined:
       case 'list': {
-        const result = listJobs(1, 100, { status: flags.status });
+        const result = listJobs(1, 100, { status: values.status as string | undefined });
+        console.log(`jobs (${result.totalItems} total):`);
         if (result.items.length === 0) {
-          logger.info('no jobs found');
+          console.log('\n  no jobs found');
           return;
         }
-        for (const job of result.items) {
-          const age = job.created_at;
-          const err = job.error ? ` error="${job.error}"` : '';
-          console.log(
-            `#${job.id}  ${job.status.padEnd(9)}  ${job.name}  attempts=${job.attempts}/${job.max_attempts}  ${age}${err}`,
-          );
-        }
+        console.log('');
+        const rows = result.items.map((job) => [
+          String(job.id),
+          job.status,
+          job.name,
+          `${job.attempts}/${job.max_attempts}`,
+          job.created_at.slice(0, 19),
+          job.error ?? '',
+        ]);
+        printTable(['id', 'status', 'name', 'attempts', 'created', 'error'], rows, [undefined, undefined, 30, undefined, undefined, 40]);
         break;
       }
 
       case 'stats': {
         const stats = getJobStats();
-        console.log(`pending:   ${stats.pending}`);
-        console.log(`running:   ${stats.running}`);
-        console.log(`completed: ${stats.completed}`);
-        console.log(`failed:    ${stats.failed}`);
-        console.log(`total:     ${stats.total}`);
+        console.log('job queue statistics');
+        console.log('');
+        console.log(`  pending:    ${stats.pending}`);
+        console.log(`  running:    ${stats.running}`);
+        console.log(`  completed:  ${stats.completed}`);
+        console.log(`  failed:     ${stats.failed}`);
+        console.log('              --');
+        console.log(`  total:      ${stats.total}`);
         break;
       }
 
       case 'retry': {
-        if (flags.allFailed) {
+        if (values['all-failed']) {
           const count = retryAllFailedJobs();
           logger.success(`reset ${count} failed job(s) to pending`);
           return;
         }
-        const id = Number(args[0]);
+        const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
           logger.error('usage: browserbird jobs retry <id> | --all-failed');
           process.exitCode = 1;
@@ -493,7 +597,7 @@ function handleJobs(options: CliOptions): void {
       }
 
       case 'delete': {
-        const id = Number(args[0]);
+        const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
           logger.error('usage: browserbird jobs delete <id>');
           process.exitCode = 1;
@@ -509,90 +613,103 @@ function handleJobs(options: CliOptions): void {
       }
 
       case 'clear': {
-        if (!flags.completed && !flags.failed) {
+        if (!values.completed && !values.failed) {
           logger.error('usage: browserbird jobs clear --completed | --failed');
           process.exitCode = 1;
           return;
         }
         let total = 0;
-        if (flags.completed) total += clearJobs('completed');
-        if (flags.failed) total += clearJobs('failed');
+        if (values.completed) total += clearJobs('completed');
+        if (values.failed) total += clearJobs('failed');
         logger.success(`cleared ${total} job(s)`);
         break;
       }
 
       default:
-        logger.error(`unknown jobs subcommand: ${subcommand}`);
-        process.exitCode = 1;
+        unknownSubcommand(subcommand, 'jobs');
     }
   } finally {
     closeDatabase();
   }
 }
 
-function handleCron(options: CliOptions): void {
+function handleCron(argv: string[]): void {
+  const subcommand = argv[0] ?? 'list';
+  const rest = argv.slice(1);
+
+  const { values, positionals } = parseArgs({
+    args: rest,
+    options: {
+      channel: { type: 'string' },
+      agent: { type: 'string' },
+      schedule: { type: 'string' },
+      prompt: { type: 'string' },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+
   const dbPath = resolve('.browserbird', 'browserbird.db');
   openDatabase(dbPath);
 
   try {
-    const { subcommand, args, flags } = options;
-
     switch (subcommand) {
-      case undefined:
       case 'list': {
         const result = listCronJobs(1, 100);
+        console.log(`birds (${result.totalItems} total):`);
         if (result.items.length === 0) {
-          logger.info('no birds configured');
+          console.log('\n  no birds configured');
           return;
         }
-        for (const job of result.items) {
-          const status = job.enabled ? 'enabled' : 'disabled';
-          const last = job.last_run ? `  last=${job.last_run} (${job.last_status})` : '';
-          const channel = job.target_channel_id ? `  channel=${job.target_channel_id}` : '';
-          console.log(
-            `#${job.id}  [${status}]  "${job.schedule}"  agent=${job.agent_id}${channel}${last}`,
-          );
-          console.log(`    ${job.prompt}`);
-        }
+        console.log('');
+        const rows = result.items.map((job) => [
+          String(job.id),
+          job.enabled ? 'enabled' : 'disabled',
+          job.schedule,
+          job.agent_id,
+          job.target_channel_id ?? '-',
+          job.last_status ?? '-',
+          job.prompt.slice(0, 50),
+        ]);
+        printTable(['id', 'status', 'schedule', 'agent', 'channel', 'last', 'prompt'], rows, [undefined, undefined, undefined, undefined, undefined, undefined, 50]);
         break;
       }
 
       case 'add': {
-        const schedule = args[0];
-        const prompt = args.slice(1).join(' ');
+        const schedule = positionals[0];
+        const prompt = positionals.slice(1).join(' ') || (values.prompt as string | undefined);
         if (!schedule || !prompt) {
-          logger.error(
-            'usage: browserbird birds add <schedule> <prompt> [--channel <id>] [--agent <id>]',
-          );
+          logger.error('usage: browserbird birds add <schedule> <prompt> [--channel <id>] [--agent <id>]');
           process.exitCode = 1;
           return;
         }
-        const name = prompt.slice(0, 50);
-        const job = createCronJob(name, schedule, prompt, flags.channel, flags.agent);
+        const job = createCronJob(prompt.slice(0, 50), schedule, prompt, values.channel as string | undefined, values.agent as string | undefined);
         logger.success(`bird #${job.id} created: "${schedule}"`);
         break;
       }
 
       case 'edit': {
-        const id = Number(args[0]);
+        const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
-          logger.error(
-            'usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>]',
-          );
+          logger.error('usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>]');
           process.exitCode = 1;
           return;
         }
-        if (!flags.schedule && !flags.prompt && !flags.channel && !flags.agent) {
+        const channel = values.channel as string | undefined;
+        const agent = values.agent as string | undefined;
+        const schedule = values.schedule as string | undefined;
+        const prompt = values.prompt as string | undefined;
+        if (!schedule && !prompt && !channel && !agent) {
           logger.error('provide at least one of: --schedule, --prompt, --channel, --agent');
           process.exitCode = 1;
           return;
         }
         const updated = updateCronJob(id, {
-          schedule: flags.schedule,
-          prompt: flags.prompt,
-          name: flags.prompt ? flags.prompt.slice(0, 50) : undefined,
-          targetChannelId: flags.channel !== undefined ? flags.channel || null : undefined,
-          agentId: flags.agent,
+          schedule,
+          prompt,
+          name: prompt ? prompt.slice(0, 50) : undefined,
+          targetChannelId: channel !== undefined ? channel || null : undefined,
+          agentId: agent,
         });
         if (updated) {
           logger.success(`bird #${id} updated`);
@@ -604,7 +721,7 @@ function handleCron(options: CliOptions): void {
       }
 
       case 'remove': {
-        const id = Number(args[0]);
+        const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
           logger.error('usage: browserbird birds remove <id>');
           process.exitCode = 1;
@@ -621,7 +738,7 @@ function handleCron(options: CliOptions): void {
 
       case 'enable':
       case 'disable': {
-        const id = Number(args[0]);
+        const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
           logger.error(`usage: browserbird birds ${subcommand} <id>`);
           process.exitCode = 1;
@@ -638,7 +755,7 @@ function handleCron(options: CliOptions): void {
       }
 
       case 'fly': {
-        const id = Number(args[0]);
+        const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
           logger.error('usage: browserbird birds fly <id>');
           process.exitCode = 1;
@@ -665,8 +782,7 @@ function handleCron(options: CliOptions): void {
       }
 
       default:
-        logger.error(`unknown birds subcommand: ${subcommand}`);
-        process.exitCode = 1;
+        unknownSubcommand(subcommand, 'birds');
     }
   } finally {
     closeDatabase();
