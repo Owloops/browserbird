@@ -1,62 +1,44 @@
 <script lang="ts">
-  import type { PaginatedResult, SessionRow } from '../lib/types.ts';
-  import { api } from '../lib/api.ts';
+  import type { ColumnDef, SessionRow } from '../lib/types.ts';
+  import { createDataTable } from '../lib/data-table.svelte.ts';
   import { formatAge } from '../lib/format.ts';
-  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
 
-  const PER_PAGE = 20;
+  const columns: ColumnDef[] = [
+    { key: 'id', label: 'ID', sortable: true },
+    { key: 'channel_id', label: 'Channel', sortable: true },
+    { key: 'thread_id', label: 'Thread' },
+    { key: 'agent_id', label: 'Agent', sortable: true },
+    { key: 'message_count', label: 'Messages', sortable: true },
+    { key: 'last_active', label: 'Last Active', sortable: true },
+  ];
 
-  let sessions: SessionRow[] = $state([]);
-  let totalPages = $state(1);
-  let totalItems = $state(0);
-  let page = $state(1);
-  let loading = $state(true);
-
-  async function fetchSessions(p: number, signal: AbortSignal): Promise<void> {
-    try {
-      const data = await api<PaginatedResult<SessionRow>>(
-        `/api/sessions?page=${p}&perPage=${PER_PAGE}`,
-      );
-      if (signal.aborted) return;
-      sessions = data.items;
-      totalPages = data.totalPages;
-      totalItems = data.totalItems;
-    } catch {
-    } finally {
-      if (!signal.aborted) loading = false;
-    }
-  }
-
-  $effect(() => {
-    const p = page;
-    const ac = new AbortController();
-    fetchSessions(p, ac.signal);
-    const unsub = onInvalidate((e) => {
-      if (e.resource === 'sessions') fetchSessions(p, ac.signal);
-    });
-    return () => {
-      ac.abort();
-      unsub();
-    };
+  const table = createDataTable<SessionRow>({
+    endpoint: '/api/sessions',
+    columns,
+    defaultSort: '-last_active',
+    invalidateOn: 'sessions',
   });
 </script>
 
-{#if loading}
+{#if table.loading}
   <div class="loading">Loading...</div>
 {:else}
   <DataTable
-    columns={['ID', 'Channel', 'Thread', 'Agent', 'Messages', 'Last Active']}
-    isEmpty={sessions.length === 0}
+    {columns}
+    isEmpty={table.items.length === 0}
     emptyMessage="No active sessions"
-    {page}
-    {totalPages}
-    {totalItems}
-    onPageChange={(p) => {
-      page = p;
-    }}
+    page={table.page}
+    totalPages={table.totalPages}
+    totalItems={table.totalItems}
+    sort={table.sort}
+    search={table.search}
+    searchPlaceholder="Search sessions..."
+    onPageChange={table.setPage}
+    onSortChange={table.setSort}
+    onSearchChange={table.setSearch}
   >
-    {#each sessions as s (s.id)}
+    {#each table.items as s (s.id)}
       <tr
         class="clickable-row"
         onclick={() => {

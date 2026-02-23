@@ -1,16 +1,22 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import type { ColumnDef } from '../lib/types.ts';
 
   interface Props {
-    columns: string[];
+    columns: ColumnDef[];
     emptyMessage?: string;
     isEmpty: boolean;
     children: Snippet;
-    header?: Snippet;
+    toolbar?: Snippet;
     page?: number;
     totalPages?: number;
     totalItems?: number;
+    sort?: string;
+    search?: string;
+    searchPlaceholder?: string;
     onPageChange?: (page: number) => void;
+    onSortChange?: (key: string) => void;
+    onSearchChange?: (search: string) => void;
   }
 
   let {
@@ -18,28 +24,69 @@
     emptyMessage = 'No data',
     isEmpty,
     children,
-    header,
+    toolbar,
     page,
     totalPages,
     totalItems,
+    sort,
+    search,
+    searchPlaceholder = 'Search...',
     onPageChange,
+    onSortChange,
+    onSearchChange,
   }: Props = $props();
 
   const hasPagination = $derived(page != null && totalPages != null && onPageChange != null);
+
+  function sortIndicator(key: string): string {
+    if (!sort) return '';
+    if (sort === `-${key}`) return ' \u2193';
+    if (sort === key) return ' \u2191';
+    return '';
+  }
+
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function handleSearchInput(e: Event): void {
+    const value = (e.target as HTMLInputElement).value;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => onSearchChange?.(value), 300);
+  }
 </script>
+
+{#if toolbar || onSearchChange}
+  <div class="table-toolbar">
+    {#if toolbar}
+      {@render toolbar()}
+    {/if}
+    {#if onSearchChange}
+      <input
+        type="search"
+        class="search-input"
+        placeholder={searchPlaceholder}
+        value={search ?? ''}
+        oninput={handleSearchInput}
+      />
+    {/if}
+  </div>
+{/if}
 
 <div class="table-wrap">
   <table class="table">
     <thead>
-      {#if header}
-        {@render header()}
-      {:else}
-        <tr>
-          {#each columns as col}
-            <th>{col}</th>
-          {/each}
-        </tr>
-      {/if}
+      <tr>
+        {#each columns as col (col.key)}
+          <th class={col.class ?? ''}>
+            {#if col.sortable && onSortChange}
+              <button class="sort-btn" onclick={() => onSortChange(col.key)}
+                >{col.label}{sortIndicator(col.key)}</button
+              >
+            {:else}
+              {col.label}
+            {/if}
+          </th>
+        {/each}
+      </tr>
     </thead>
     <tbody>
       {#if isEmpty}
@@ -67,6 +114,36 @@
 </div>
 
 <style>
+  .table-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    align-items: center;
+  }
+
+  .search-input {
+    margin-left: auto;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-secondary);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    padding: var(--space-1) var(--space-2);
+    min-width: 180px;
+    transition: border-color var(--transition-fast);
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--color-accent-dim);
+  }
+
+  .search-input::placeholder {
+    color: var(--color-text-muted);
+  }
+
   .table-wrap {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -109,6 +186,23 @@
     background: var(--color-bg-hover);
   }
 
+  .sort-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0;
+    white-space: nowrap;
+  }
+
+  .sort-btn:hover {
+    color: var(--color-text-primary);
+  }
+
   .pagination {
     display: flex;
     align-items: center;
@@ -146,5 +240,11 @@
     font-size: var(--text-xs);
     color: var(--color-text-muted);
     font-family: var(--font-mono);
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: var(--space-6) var(--space-4);
   }
 </style>

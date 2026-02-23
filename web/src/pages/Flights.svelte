@@ -1,85 +1,33 @@
 <script lang="ts">
-  import type { PaginatedResult, FlightRow } from '../lib/types.ts';
-  import { api } from '../lib/api.ts';
+  import type { ColumnDef, FlightRow } from '../lib/types.ts';
+  import { createDataTable } from '../lib/data-table.svelte.ts';
   import { formatAge } from '../lib/format.ts';
-  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
 
-  const PER_PAGE = 20;
+  const columns: ColumnDef[] = [
+    { key: 'id', label: '#', sortable: true },
+    { key: 'bird_name', label: 'Bird', sortable: true },
+    { key: 'status', label: 'Status', sortable: true },
+    { key: 'started_at', label: 'Duration', sortable: false },
+    { key: 'started_at_time', label: 'Started', sortable: true },
+    { key: 'error', label: 'Error / Result' },
+  ];
 
-  let flights: FlightRow[] = $state([]);
-  let totalPages = $state(1);
-  let totalItems = $state(0);
-  let page = $state(1);
-  let loading = $state(true);
   let statusFilter = $state('');
   let expandedId: number | null = $state(null);
 
-  type SortKey = 'id' | 'duration';
-  type SortDir = 'asc' | 'desc';
-  let sortBy: SortKey = $state('id');
-  let sortDir: SortDir = $state('desc');
-
-  async function fetchFlights(p: number, status: string, signal: AbortSignal): Promise<void> {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', String(p));
-      params.set('perPage', String(PER_PAGE));
-      if (status) params.set('status', status);
-      const data = await api<PaginatedResult<FlightRow>>(`/api/flights?${params.toString()}`);
-      if (signal.aborted) return;
-      flights = data.items;
-      totalPages = data.totalPages;
-      totalItems = data.totalItems;
-    } catch {
-      /* connection check handles display */
-    } finally {
-      if (!signal.aborted) loading = false;
-    }
-  }
-
-  $effect(() => {
-    const p = page;
-    const status = statusFilter;
-    const ac = new AbortController();
-    loading = true;
-    fetchFlights(p, status, ac.signal);
-    const unsub = onInvalidate((e) => {
-      if (e.resource === 'birds') fetchFlights(p, status, ac.signal);
-    });
-    return () => {
-      ac.abort();
-      unsub();
-    };
-  });
-
-  function resetPage(): void {
-    page = 1;
-  }
-
-  function toggleSort(key: SortKey): void {
-    if (sortBy === key) {
-      sortDir = sortDir === 'desc' ? 'asc' : 'desc';
-    } else {
-      sortBy = key;
-      sortDir = 'desc';
-    }
-  }
-
-  const sortedFlights = $derived.by(() => {
-    const items = [...flights];
-    if (sortBy === 'duration') {
-      items.sort((a, b) => {
-        const durationMs = (f: FlightRow) =>
-          f.finished_at ? new Date(f.finished_at).getTime() - new Date(f.started_at).getTime() : -1;
-        const diff = durationMs(a) - durationMs(b);
-        return sortDir === 'asc' ? diff : -diff;
-      });
-    } else {
-      items.sort((a, b) => (sortDir === 'asc' ? a.id - b.id : b.id - a.id));
-    }
-    return items;
+  const table = createDataTable<FlightRow>({
+    endpoint: '/api/flights',
+    columns,
+    defaultSort: '-id',
+    invalidateOn: 'birds',
+    buildParams: () => {
+      const p: Record<string, string> = {};
+      if (statusFilter) p['status'] = statusFilter;
+      return p;
+    },
+    watchExtras: () => statusFilter,
   });
 
   function flightDuration(startedAt: string, finishedAt: string | null): string {
@@ -90,52 +38,37 @@
     return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
   }
 
-  function sortLabel(key: SortKey): string {
-    if (sortBy !== key) return '';
-    return sortDir === 'desc' ? ' ↓' : ' ↑';
+  function resetPage(): void {
+    table.setPage(1);
   }
 </script>
 
-{#if loading}
+{#if table.loading}
   <div class="loading">Loading...</div>
 {:else}
-  <div class="filter-bar">
-    <select class="filter-select" bind:value={statusFilter} onchange={resetPage}>
-      <option value="">All statuses</option>
-      <option value="success">Success</option>
-      <option value="error">Error</option>
-      <option value="running">Running</option>
-    </select>
-  </div>
-
   <DataTable
-    columns={['#', 'Bird', 'Status', 'Duration', 'Started', 'Error / Result']}
-    isEmpty={sortedFlights.length === 0}
+    {columns}
+    isEmpty={table.items.length === 0}
     emptyMessage="No flights recorded"
-    {page}
-    {totalPages}
-    {totalItems}
-    onPageChange={(p) => {
-      page = p;
-    }}
+    page={table.page}
+    totalPages={table.totalPages}
+    totalItems={table.totalItems}
+    sort={table.sort}
+    search={table.search}
+    searchPlaceholder="Search flights..."
+    onPageChange={table.setPage}
+    onSortChange={table.setSort}
+    onSearchChange={table.setSearch}
   >
-    {#snippet header()}
-      <tr>
-        <th>
-          <button class="sort-btn" onclick={() => toggleSort('id')}>#{sortLabel('id')}</button>
-        </th>
-        <th>Bird</th>
-        <th>Status</th>
-        <th>
-          <button class="sort-btn" onclick={() => toggleSort('duration')}
-            >Duration{sortLabel('duration')}</button
-          >
-        </th>
-        <th>Started</th>
-        <th>Error / Result</th>
-      </tr>
+    {#snippet toolbar()}
+      <select class="filter-select" bind:value={statusFilter} onchange={resetPage}>
+        <option value="">All statuses</option>
+        <option value="success">Success</option>
+        <option value="error">Error</option>
+        <option value="running">Running</option>
+      </select>
     {/snippet}
-    {#each sortedFlights as flight (flight.id)}
+    {#each table.items as flight (flight.id)}
       <tr
         class="flight-row"
         class:flight-expanded={expandedId === flight.id}
@@ -175,13 +108,6 @@
 {/if}
 
 <style>
-  .filter-bar {
-    display: flex;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-    align-items: center;
-  }
-
   .filter-select {
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
@@ -191,23 +117,6 @@
     font-size: var(--text-sm);
     padding: var(--space-1) var(--space-2);
     cursor: pointer;
-  }
-
-  .sort-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0;
-    white-space: nowrap;
-  }
-
-  .sort-btn:hover {
-    color: var(--color-text-primary);
   }
 
   .flight-row {

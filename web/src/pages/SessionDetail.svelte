@@ -1,121 +1,105 @@
 <script lang="ts">
-  import type { SessionDetail } from '../lib/types.ts';
-  import { api, getHashParams } from '../lib/api.ts';
+  import type { ColumnDef, SessionDetail, SessionRow, MessageRow } from '../lib/types.ts';
+  import { getHashParams } from '../lib/api.ts';
+  import { createDataTable } from '../lib/data-table.svelte.ts';
   import { formatAge } from '../lib/format.ts';
-  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import StatCard from '../components/StatCard.svelte';
 
-  const PER_PAGE = 20;
-
   const sessionId = Number(getHashParams().get('id'));
 
-  let detail: SessionDetail | null = $state(null);
-  let loading = $state(true);
+  const columns: ColumnDef[] = [
+    { key: 'direction', label: 'Dir' },
+    { key: 'user_id', label: 'User', sortable: true },
+    { key: 'content', label: 'Content' },
+    { key: 'tokens_in', label: 'Tokens In' },
+    { key: 'tokens_out', label: 'Tokens Out' },
+    { key: 'created_at', label: 'Time', sortable: true },
+  ];
+
+  let session: SessionRow | null = $state(null);
+  let stats: { totalTokensIn: number; totalTokensOut: number } | null = $state(null);
   let error = $state('');
-  let page = $state(1);
 
-  async function fetchDetail(p: number, signal: AbortSignal): Promise<void> {
-    if (!Number.isFinite(sessionId)) {
-      error = 'Invalid session ID';
-      loading = false;
-      return;
-    }
-    try {
-      const data = await api<SessionDetail>(
-        `/api/sessions/${sessionId}?page=${p}&perPage=${PER_PAGE}`,
-      );
-      if (signal.aborted) return;
-      detail = data;
-    } catch (err) {
-      if (!signal.aborted) error = (err as Error).message;
-    } finally {
-      if (!signal.aborted) loading = false;
-    }
-  }
+  const table = Number.isFinite(sessionId)
+    ? createDataTable<MessageRow, SessionDetail>({
+        endpoint: `/api/sessions/${sessionId}`,
+        columns,
+        defaultSort: 'created_at',
+        invalidateOn: 'sessions',
+        transformResponse: (raw) => raw.messages,
+        onResponse: (raw) => {
+          session = raw.session;
+          stats = raw.stats;
+        },
+      })
+    : null;
 
-  $effect(() => {
-    const p = page;
-    const ac = new AbortController();
-    loading = true;
-    fetchDetail(p, ac.signal);
-    const unsub = onInvalidate((e) => {
-      if (e.resource === 'sessions') fetchDetail(p, ac.signal);
-    });
-    return () => {
-      ac.abort();
-      unsub();
-    };
-  });
+  if (!table) error = 'Invalid session ID';
 
   function navigateBack(): void {
     window.location.hash = '#/sessions';
   }
 </script>
 
-{#if loading}
-  <div class="loading">Loading...</div>
-{:else if error}
+{#if error}
   <div class="error-state">
     <p>{error}</p>
     <button class="btn btn-outline btn-sm" onclick={navigateBack}>Back to Sessions</button>
   </div>
-{:else if detail}
+{:else if table?.loading}
+  <div class="loading">Loading...</div>
+{:else if session && stats && table}
   <div class="detail-header">
     <button class="btn btn-outline btn-sm" onclick={navigateBack}>← Sessions</button>
-    <h2 class="session-title">Session #{detail.session.id}</h2>
+    <h2 class="session-title">Session #{session.id}</h2>
   </div>
 
   <div class="meta-grid">
     <div class="meta-item">
       <span class="meta-label">Channel</span>
-      <span class="meta-value mono">{detail.session.channel_id}</span>
+      <span class="meta-value mono">{session.channel_id}</span>
     </div>
     <div class="meta-item">
       <span class="meta-label">Thread</span>
-      <span class="meta-value mono">{detail.session.thread_id ?? '—'}</span>
+      <span class="meta-value mono">{session.thread_id ?? '—'}</span>
     </div>
     <div class="meta-item">
       <span class="meta-label">Agent</span>
-      <span class="meta-value">{detail.session.agent_id}</span>
+      <span class="meta-value">{session.agent_id}</span>
     </div>
     <div class="meta-item">
       <span class="meta-label">Created</span>
-      <span class="meta-value">{formatAge(detail.session.created_at)}</span>
+      <span class="meta-value">{formatAge(session.created_at)}</span>
     </div>
     <div class="meta-item">
       <span class="meta-label">Last Active</span>
-      <span class="meta-value">{formatAge(detail.session.last_active)}</span>
+      <span class="meta-value">{formatAge(session.last_active)}</span>
     </div>
   </div>
 
   <div class="stat-cards">
-    <StatCard label="Messages" value={detail.session.message_count} />
-    <StatCard
-      label="Tokens In"
-      value={detail.stats.totalTokensIn.toLocaleString()}
-      variant="info"
-    />
-    <StatCard
-      label="Tokens Out"
-      value={detail.stats.totalTokensOut.toLocaleString()}
-      variant="info"
-    />
+    <StatCard label="Messages" value={session.message_count} />
+    <StatCard label="Tokens In" value={stats.totalTokensIn.toLocaleString()} variant="info" />
+    <StatCard label="Tokens Out" value={stats.totalTokensOut.toLocaleString()} variant="info" />
   </div>
 
   <DataTable
-    columns={['Dir', 'User', 'Content', 'Tokens In', 'Tokens Out', 'Time']}
-    isEmpty={detail.messages.items.length === 0}
+    {columns}
+    isEmpty={table.items.length === 0}
     emptyMessage="No messages recorded for this session"
-    {page}
-    totalPages={detail.messages.totalPages}
-    totalItems={detail.messages.totalItems}
-    onPageChange={(p) => {
-      page = p;
-    }}
+    page={table.page}
+    totalPages={table.totalPages}
+    totalItems={table.totalItems}
+    sort={table.sort}
+    search={table.search}
+    searchPlaceholder="Search messages..."
+    onPageChange={table.setPage}
+    onSortChange={table.setSort}
+    onSearchChange={table.setSearch}
   >
-    {#each detail.messages.items as m (m.id)}
+    {#each table.items as m (m.id)}
       <tr>
         <td><Badge status={m.direction === 'in' ? 'info' : 'success'} /></td>
         <td class="mono">{m.user_id}</td>

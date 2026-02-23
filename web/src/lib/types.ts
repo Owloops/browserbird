@@ -1,5 +1,12 @@
 /** @fileoverview Shared API response types for the web UI. */
 
+export interface ColumnDef {
+  key: string;
+  label: string;
+  sortable?: boolean;
+  class?: string;
+}
+
 export interface PaginatedResult<T> {
   items: T[];
   page: number;

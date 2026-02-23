@@ -1,27 +1,52 @@
 <script lang="ts">
-  import type { PaginatedResult, CronJobRow, CreateCronRequest, FlightRow } from '../lib/types.ts';
+  import type {
+    PaginatedResult,
+    ColumnDef,
+    CronJobRow,
+    CreateCronRequest,
+    FlightRow,
+  } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
+  import { createDataTable } from '../lib/data-table.svelte.ts';
   import { formatAge, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import { showConfirm } from '../lib/confirm.svelte.ts';
-  import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import Toggle from '../components/Toggle.svelte';
 
-  const PER_PAGE = 20;
+  const columns: ColumnDef[] = [
+    { key: 'id', label: 'ID', sortable: true },
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'schedule', label: 'Schedule', sortable: true },
+    { key: 'prompt', label: 'Prompt' },
+    { key: 'agent_id', label: 'Agent', sortable: true },
+    { key: 'enabled', label: 'Enabled', sortable: true },
+    { key: 'last_run', label: 'Last Run', sortable: true },
+    { key: 'actions', label: 'Actions' },
+  ];
 
-  let cronJobs: CronJobRow[] = $state([]);
-  let totalPages = $state(1);
-  let totalItems = $state(0);
-  let page = $state(1);
-  let loading = $state(true);
   let showSystem = $state(false);
   let lastUpdated = $state(timeStamp());
-
   let expandedId: number | null = $state(null);
   let flightHistory: Record<number, FlightRow[]> = $state({});
   let flightLoading: Record<number, boolean> = $state({});
+
+  const table = createDataTable<CronJobRow>({
+    endpoint: '/api/birds',
+    columns,
+    defaultSort: 'id',
+    invalidateOn: 'birds',
+    buildParams: () => {
+      const p: Record<string, string> = {};
+      if (showSystem) p['system'] = 'true';
+      return p;
+    },
+    watchExtras: () => showSystem,
+    onResponse: () => {
+      lastUpdated = timeStamp();
+    },
+  });
 
   async function toggleHistory(id: number): Promise<void> {
     if (expandedId === id) {
@@ -49,55 +74,11 @@
   let formAgent = $state('');
   let submitting = $state(false);
 
-  async function fetchCron(p: number, system: boolean, signal: AbortSignal): Promise<void> {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', String(p));
-      params.set('perPage', String(PER_PAGE));
-      if (system) params.set('system', 'true');
-      const data = await api<PaginatedResult<CronJobRow>>(`/api/birds?${params.toString()}`);
-      if (signal.aborted) return;
-      cronJobs = data.items;
-      totalPages = data.totalPages;
-      totalItems = data.totalItems;
-      lastUpdated = timeStamp();
-    } catch {
-      /* connection check handles display */
-    } finally {
-      if (!signal.aborted) loading = false;
-    }
-  }
-
-  $effect(() => {
-    const p = page;
-    const system = showSystem;
-    const ac = new AbortController();
-    fetchCron(p, system, ac.signal);
-    const unsub = onInvalidate((e) => {
-      if (e.resource !== 'birds') return;
-      fetchCron(p, system, ac.signal);
-      if (e.cronJobId != null && expandedId === e.cronJobId) {
-        const { [e.cronJobId]: _, ...rest } = flightHistory;
-        flightHistory = rest;
-      }
-    });
-    return () => {
-      ac.abort();
-      unsub();
-    };
-  });
-
-  function refresh(): Promise<void> {
-    flightHistory = {};
-    return fetchCron(page, showSystem, new AbortController().signal);
-  }
-
   async function toggleCron(id: number, currentlyEnabled: boolean): Promise<void> {
     const action = currentlyEnabled ? 'disable' : 'enable';
     try {
       await api(`/api/birds/${id}/${action}`, { method: 'PATCH' });
       showToast(`Bird #${id} ${action}d`, 'success');
-      await refresh();
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
@@ -159,7 +140,6 @@
         showToast('Bird created', 'success');
       }
       closeForm();
-      await refresh();
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
     } finally {
@@ -200,31 +180,9 @@
   }
 </script>
 
-{#if loading}
+{#if table.loading}
   <div class="loading">Loading...</div>
 {:else}
-  <div class="filter-bar">
-    <button
-      class="btn btn-primary btn-sm"
-      onclick={() => {
-        if (showForm) closeForm();
-        else openCreate();
-      }}>{showForm && editingId == null ? 'Cancel' : 'Add Bird'}</button
-    >
-    <div class="system-toggle">
-      <Toggle
-        active={showSystem}
-        onToggle={() => {
-          showSystem = !showSystem;
-          page = 1;
-        }}
-      />
-      <span>System birds</span>
-    </div>
-    <div class="filter-spacer"></div>
-    <span class="last-updated">Updated {lastUpdated}</span>
-  </div>
-
   {#if showForm}
     <div class="create-form">
       <div class="form-title">{editingId != null ? `Edit Bird #${editingId}` : 'New Bird'}</div>
@@ -265,17 +223,41 @@
   {/if}
 
   <DataTable
-    columns={['ID', 'Name', 'Schedule', 'Prompt', 'Agent', 'Enabled', 'Last Run', 'Actions']}
-    isEmpty={cronJobs.length === 0}
+    {columns}
+    isEmpty={table.items.length === 0}
     emptyMessage="No birds configured"
-    {page}
-    {totalPages}
-    {totalItems}
-    onPageChange={(p) => {
-      page = p;
-    }}
+    page={table.page}
+    totalPages={table.totalPages}
+    totalItems={table.totalItems}
+    sort={table.sort}
+    search={table.search}
+    searchPlaceholder="Search birds..."
+    onPageChange={table.setPage}
+    onSortChange={table.setSort}
+    onSearchChange={table.setSearch}
   >
-    {#each cronJobs as j (j.id)}
+    {#snippet toolbar()}
+      <button
+        class="btn btn-primary btn-sm"
+        onclick={() => {
+          if (showForm) closeForm();
+          else openCreate();
+        }}>{showForm && editingId == null ? 'Cancel' : 'Add Bird'}</button
+      >
+      <div class="system-toggle">
+        <Toggle
+          active={showSystem}
+          onToggle={() => {
+            showSystem = !showSystem;
+            table.setPage(1);
+          }}
+        />
+        <span>System birds</span>
+      </div>
+      <div class="filter-spacer"></div>
+      <span class="last-updated">Updated {lastUpdated}</span>
+    {/snippet}
+    {#each table.items as j (j.id)}
       <tr>
         <td class="mono">{j.id}</td>
         <td>{j.name}</td>
@@ -349,14 +331,6 @@
 {/if}
 
 <style>
-  .filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-    align-items: center;
-  }
-
   .system-toggle {
     display: flex;
     align-items: center;

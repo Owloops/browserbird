@@ -1,9 +1,17 @@
 <script lang="ts">
-  import type { StatusResponse, PaginatedResult, SessionRow } from '../lib/types.ts';
+  import type { StatusResponse, ColumnDef, PaginatedResult, SessionRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge } from '../lib/format.ts';
   import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
+
+  const statusColumns: ColumnDef[] = [
+    { key: 'id', label: 'ID' },
+    { key: 'channel_id', label: 'Channel' },
+    { key: 'agent_id', label: 'Agent' },
+    { key: 'message_count', label: 'Messages' },
+    { key: 'last_active', label: 'Last Active' },
+  ];
 
   interface Props {
     status: StatusResponse | null;
@@ -81,7 +89,7 @@
       <a href="#/sessions" class="section-link">View all</a>
     </div>
     <DataTable
-      columns={['ID', 'Channel', 'Agent', 'Messages', 'Last Active']}
+      columns={statusColumns}
       isEmpty={sessions.length === 0}
       emptyMessage="No active sessions"
     >
