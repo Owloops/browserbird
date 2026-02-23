@@ -1,16 +1,31 @@
 <script lang="ts">
-  import type { StatusResponse, ColumnDef, PaginatedResult, SessionRow } from '../lib/types.ts';
+  import type {
+    StatusResponse,
+    ColumnDef,
+    PaginatedResult,
+    SessionRow,
+    FlightRow,
+  } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge } from '../lib/format.ts';
   import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
+  import Badge from '../components/Badge.svelte';
 
-  const statusColumns: ColumnDef[] = [
+  const sessionColumns: ColumnDef[] = [
     { key: 'id', label: 'ID' },
     { key: 'channel_id', label: 'Channel' },
     { key: 'agent_id', label: 'Agent' },
     { key: 'message_count', label: 'Messages' },
     { key: 'last_active', label: 'Last Active' },
+  ];
+
+  const flightColumns: ColumnDef[] = [
+    { key: 'id', label: '#' },
+    { key: 'bird_name', label: 'Bird' },
+    { key: 'status', label: 'Status' },
+    { key: 'duration', label: 'Duration' },
+    { key: 'started_at', label: 'Started' },
   ];
 
   interface Props {
@@ -21,6 +36,8 @@
 
   let sessions: SessionRow[] = $state([]);
   let sessionsLoading = $state(true);
+  let flights: FlightRow[] = $state([]);
+  let flightsLoading = $state(true);
 
   async function fetchSessions(signal: AbortSignal): Promise<void> {
     try {
@@ -33,11 +50,32 @@
     }
   }
 
+  async function fetchFlights(signal: AbortSignal): Promise<void> {
+    try {
+      const data = await api<PaginatedResult<FlightRow>>('/api/flights?perPage=5');
+      if (signal.aborted) return;
+      flights = data.items;
+    } catch {
+    } finally {
+      if (!signal.aborted) flightsLoading = false;
+    }
+  }
+
+  function flightDuration(startedAt: string, finishedAt: string | null): string {
+    if (!finishedAt) return '-';
+    const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+    if (ms < 0) return '-';
+    const secs = Math.round(ms / 1000);
+    return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
+  }
+
   $effect(() => {
     const ac = new AbortController();
     fetchSessions(ac.signal);
+    fetchFlights(ac.signal);
     const unsub = onInvalidate((e) => {
       if (e.resource === 'sessions') fetchSessions(ac.signal);
+      if (e.resource === 'birds') fetchFlights(ac.signal);
     });
     return () => {
       ac.abort();
@@ -89,7 +127,7 @@
       <a href="#/sessions" class="section-link">View all</a>
     </div>
     <DataTable
-      columns={statusColumns}
+      columns={sessionColumns}
       isEmpty={sessions.length === 0}
       emptyMessage="No active sessions"
     >
@@ -105,6 +143,33 @@
           <td>{s.agent_id}</td>
           <td>{s.message_count}</td>
           <td>{formatAge(s.last_active)}</td>
+        </tr>
+      {/each}
+    </DataTable>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">Recent Flights</h2>
+      <a href="#/flights" class="section-link">View all</a>
+    </div>
+    <DataTable
+      columns={flightColumns}
+      isEmpty={flights.length === 0}
+      emptyMessage="No flights recorded"
+    >
+      {#each flights.slice(0, 5) as f (f.id)}
+        <tr
+          class="clickable-row"
+          onclick={() => {
+            window.location.hash = `#/flights?search=${encodeURIComponent(f.bird_name)}`;
+          }}
+        >
+          <td class="mono">#{f.id}</td>
+          <td>{f.bird_name}</td>
+          <td><Badge status={f.status} /></td>
+          <td class="mono">{flightDuration(f.started_at, f.finished_at)}</td>
+          <td>{formatAge(f.started_at)}</td>
         </tr>
       {/each}
     </DataTable>
@@ -208,5 +273,6 @@
       width: auto;
       height: 1px;
     }
+
   }
 </style>
