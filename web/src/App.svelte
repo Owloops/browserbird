@@ -38,11 +38,17 @@
   let authChecking = $state(true);
   let status: StatusResponse | null = $state(null);
   let connectionState: 'connected' | 'disconnected' | 'connecting' = $state('connecting');
+  let sidebarCollapsed = $state(localStorage.getItem('sidebar-collapsed') === 'true');
 
   let loginToken = $state('');
   let loginError = $state('');
 
   const pageTitle = $derived(PAGE_TITLES[currentPage] ?? 'Status');
+
+  function toggleSidebar(): void {
+    sidebarCollapsed = !sidebarCollapsed;
+    localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed));
+  }
 
   setUnauthorizedCallback(() => {
     authenticated = false;
@@ -157,7 +163,7 @@
   </div>
 {:else}
   <div class="app">
-    <Sidebar {currentPage} />
+    <Sidebar {currentPage} collapsed={sidebarCollapsed} ontoggle={toggleSidebar} />
     <main class="content">
       <div class="content-header">
         <h1 class="page-title">{pageTitle}</h1>
