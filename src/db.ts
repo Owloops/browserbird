@@ -515,6 +515,67 @@ export function deleteCronJob(jobId: number): boolean {
   }
 }
 
+export interface FlightRow {
+  id: number;
+  job_id: number;
+  cron_job_id: number;
+  bird_name: string;
+  started_at: string;
+  finished_at: string | null;
+  status: 'running' | 'success' | 'error';
+  result: string | null;
+  error: string | null;
+}
+
+export interface ListFlightsFilters {
+  birdId?: number;
+  status?: string;
+}
+
+export function listFlights(
+  page = 1,
+  perPage = DEFAULT_PER_PAGE,
+  filters: ListFlightsFilters = {},
+): PaginatedResult<FlightRow> {
+  const pp = Math.min(Math.max(perPage, 1), MAX_PER_PAGE);
+  const p = Math.max(page, 1);
+  const offset = (p - 1) * pp;
+
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (filters.birdId != null) {
+    conditions.push('r.job_id = ?');
+    params.push(filters.birdId);
+  }
+  if (filters.status) {
+    conditions.push('r.status = ?');
+    params.push(filters.status);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countRow = getDb()
+    .prepare(`SELECT COUNT(*) as count FROM cron_runs r ${where}`)
+    .get(...params) as unknown as { count: number };
+  const totalItems = countRow.count;
+  const totalPages = Math.max(Math.ceil(totalItems / pp), 1);
+
+  const items = getDb()
+    .prepare(
+      `SELECT r.id, r.job_id, j.id as cron_job_id, j.name as bird_name,
+              r.started_at, r.finished_at, r.status, r.result, r.error
+       FROM cron_runs r
+       JOIN cron_jobs j ON j.id = r.job_id
+       ${where}
+       ORDER BY r.id DESC
+       LIMIT ? OFFSET ?`,
+    )
+    .all(...params, pp, offset) as unknown as FlightRow[];
+
+  return { items, page: p, perPage: pp, totalItems, totalPages };
+}
+
 export function createCronRun(jobId: number): CronRunRow {
   const stmt = getDb().prepare('INSERT INTO cron_runs (job_id) VALUES (?) RETURNING *');
   return stmt.get(jobId) as unknown as CronRunRow;

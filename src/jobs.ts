@@ -11,6 +11,8 @@ import {
   insertLog,
   updateCronJobStatus,
   getCronJob,
+  createCronRun,
+  completeCronRun,
 } from './db.ts';
 import { logger } from './core/logger.ts';
 import { recordError } from './core/metrics.ts';
@@ -58,21 +60,35 @@ async function processJob(job: JobRow): Promise<void> {
     return;
   }
 
+  const isCronRun = job.name === 'cron_run' && job.cron_job_id != null;
+  const cronRun = isCronRun ? createCronRun(job.cron_job_id!) : null;
+
   let finalStatus = 'completed';
+  let resultText: string | undefined;
+  let errorText: string | undefined;
   try {
     const payload = job.payload ? (JSON.parse(job.payload) as unknown) : undefined;
     const result = await handler(payload);
-    completeJob(job.id, typeof result === 'string' ? result : undefined);
+    resultText = typeof result === 'string' ? result : undefined;
+    completeJob(job.id, resultText);
     logger.debug(`job ${job.id} completed: ${job.name}`);
   } catch (err) {
     finalStatus = 'failed';
-    const message = err instanceof Error ? err.message : String(err);
-    failJob(job.id, message);
-    logger.warn(`job ${job.id} failed (attempt ${job.attempts}/${job.max_attempts}): ${message}`);
+    errorText = err instanceof Error ? err.message : String(err);
+    failJob(job.id, errorText);
+    logger.warn(`job ${job.id} failed (attempt ${job.attempts}/${job.max_attempts}): ${errorText}`);
     recordError('cron');
-    insertLog('error', 'cron', message);
+    insertLog('error', 'cron', errorText);
   } finally {
-    if (job.cron_job_id != null && job.name === 'cron_run') {
+    if (cronRun != null) {
+      completeCronRun(
+        cronRun.id,
+        finalStatus === 'completed' ? 'success' : 'error',
+        resultText,
+        errorText,
+      );
+    }
+    if (isCronRun && job.cron_job_id != null) {
       const cronJob = getCronJob(job.cron_job_id);
       if (cronJob != null) {
         const newFailureCount =
