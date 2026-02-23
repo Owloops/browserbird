@@ -161,9 +161,9 @@
   }
 
   function flightDuration(startedAt: string, finishedAt: string | null): string {
-    if (!finishedAt) return '—';
+    if (!finishedAt) return '-';
     const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-    if (ms < 0) return '—';
+    if (ms < 0) return '-';
     const secs = Math.round(ms / 1000);
     return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
   }
@@ -274,7 +274,7 @@
               <Badge status={j.last_status} />
             {/if}
           {:else}
-            —
+            -
           {/if}
         </td>
         <td>
@@ -317,7 +317,7 @@
                       <td><Badge status={flight.status} /></td>
                       <td class="mono">{flightDuration(flight.started_at, flight.finished_at)}</td>
                       <td>{formatAge(flight.started_at)}</td>
-                      <td class="flight-summary">{flight.error ?? flight.result ?? '—'}</td>
+                      <td class="flight-summary">{flight.error ?? flight.result ?? '-'}</td>
                     </tr>
                   {/each}
                 </tbody>

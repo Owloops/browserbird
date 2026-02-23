@@ -236,7 +236,7 @@ export function handleBirds(argv: string[]): void {
             : null;
           const duration =
             durationMs == null
-              ? '—'
+              ? '-'
               : durationMs >= 60_000
                 ? `${Math.floor(durationMs / 60_000)}m ${Math.floor((durationMs % 60_000) / 1000)}s`
                 : `${Math.round(durationMs / 1000)}s`;

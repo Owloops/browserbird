@@ -226,12 +226,12 @@
     <div class="vnc-container">
       {#if clipboardOpen}
         <div class="clipboard-popover">
-          <p class="clipboard-label">Type or paste — then use Ctrl+V inside the desktop</p>
+          <p class="clipboard-label">Type or paste, then use Ctrl+V inside the desktop</p>
           <textarea
             class="clipboard-textarea"
             bind:value={clipboardText}
             oninput={onClipboardInput}
-            placeholder="Paste text here…"
+            placeholder="Paste text here..."
             rows={4}
           ></textarea>
         </div>

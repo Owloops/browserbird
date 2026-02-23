@@ -38,11 +38,11 @@
 
   const hasPagination = $derived(page != null && totalPages != null && onPageChange != null);
 
-  function sortIndicator(key: string): string {
-    if (!sort) return '';
-    if (sort === `-${key}`) return ' \u2193';
-    if (sort === key) return ' \u2191';
-    return '';
+  function sortDirection(key: string): 'asc' | 'desc' | null {
+    if (!sort) return null;
+    if (sort === `-${key}`) return 'desc';
+    if (sort === key) return 'asc';
+    return null;
   }
 
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -78,9 +78,19 @@
         {#each columns as col (col.key)}
           <th class={col.class ?? ''}>
             {#if col.sortable && onSortChange}
-              <button class="sort-btn" onclick={() => onSortChange(col.key)}
-                >{col.label}{sortIndicator(col.key)}</button
-              >
+              {@const dir = sortDirection(col.key)}
+              <button class="sort-btn" onclick={() => onSortChange(col.key)}>
+                {col.label}
+                {#if dir === 'asc'}
+                  <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                    <path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                {:else if dir === 'desc'}
+                  <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                {/if}
+              </button>
             {:else}
               {col.label}
             {/if}
@@ -100,15 +110,21 @@
   </table>
   {#if hasPagination && totalPages! > 1}
     <div class="pagination">
-      <button class="pg-btn" disabled={page === 1} onclick={() => onPageChange!(page! - 1)}
-        >← Prev</button
-      >
+      <button class="pg-btn" disabled={page === 1} onclick={() => onPageChange!(page! - 1)}>
+        <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
+          <path d="M5 1L1 5L5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Prev
+      </button>
       <span class="pg-info">
         Page {page} of {totalPages}{totalItems != null ? ` · ${totalItems} total` : ''}
       </span>
-      <button class="pg-btn" disabled={page === totalPages} onclick={() => onPageChange!(page! + 1)}
-        >Next →</button
-      >
+      <button class="pg-btn" disabled={page === totalPages} onclick={() => onPageChange!(page! + 1)}>
+        Next
+        <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
+          <path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
   {/if}
 </div>
@@ -203,6 +219,13 @@
     color: var(--color-text-primary);
   }
 
+  .sort-icon {
+    width: 10px;
+    height: 6px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
   .pagination {
     display: flex;
     align-items: center;
@@ -234,6 +257,12 @@
   .pg-btn:disabled {
     opacity: 0.3;
     cursor: default;
+  }
+
+  .pg-icon {
+    width: 6px;
+    height: 10px;
+    vertical-align: middle;
   }
 
   .pg-info {

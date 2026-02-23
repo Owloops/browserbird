@@ -27,7 +27,7 @@ export const DEFAULT_PER_PAGE = 15;
 export const MAX_PER_PAGE = 100;
 
 /**
- * Parses a motebase-style sort string into an SQL ORDER BY clause.
+ * Parses a sort string into an SQL ORDER BY clause.
  * Each token is a column name optionally prefixed with `-` for DESC.
  * Only columns present in `allowedColumns` are included.
  */

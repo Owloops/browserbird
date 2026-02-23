@@ -52,7 +52,12 @@
   <div class="loading">Loading...</div>
 {:else if session && stats && table}
   <div class="detail-header">
-    <button class="btn btn-outline btn-sm" onclick={navigateBack}>← Sessions</button>
+    <button class="btn btn-outline btn-sm" onclick={navigateBack}>
+      <svg class="back-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
+        <path d="M5 1L1 5L5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Sessions
+    </button>
     <h2 class="session-title">Session #{session.id}</h2>
   </div>
 
@@ -63,7 +68,7 @@
     </div>
     <div class="meta-item">
       <span class="meta-label">Thread</span>
-      <span class="meta-value mono">{session.thread_id ?? '—'}</span>
+      <span class="meta-value mono">{session.thread_id ?? '-'}</span>
     </div>
     <div class="meta-item">
       <span class="meta-label">Agent</span>
@@ -103,9 +108,9 @@
       <tr>
         <td><Badge status={m.direction === 'in' ? 'info' : 'success'} /></td>
         <td class="mono">{m.user_id}</td>
-        <td class="content-cell">{m.content ?? '—'}</td>
-        <td class="mono">{m.tokens_in ?? '—'}</td>
-        <td class="mono">{m.tokens_out ?? '—'}</td>
+        <td class="content-cell">{m.content ?? '-'}</td>
+        <td class="mono">{m.tokens_in ?? '-'}</td>
+        <td class="mono">{m.tokens_out ?? '-'}</td>
         <td>{formatAge(m.created_at)}</td>
       </tr>
     {/each}
@@ -118,6 +123,12 @@
     align-items: center;
     gap: var(--space-3);
     margin-bottom: var(--space-4);
+  }
+
+  .back-icon {
+    width: 6px;
+    height: 10px;
+    vertical-align: middle;
   }
 
   .session-title {
