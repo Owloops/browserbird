@@ -17,7 +17,6 @@
   import Sessions from './pages/Sessions.svelte';
   import Jobs from './pages/Jobs.svelte';
   import Birds from './pages/Cron.svelte';
-  import Logs from './pages/Logs.svelte';
   import Browser from './pages/Browser.svelte';
   import Settings from './pages/Settings.svelte';
   import SessionDetail from './pages/SessionDetail.svelte';
@@ -28,7 +27,6 @@
     'session-detail': 'Session Detail',
     jobs: 'Jobs',
     birds: 'Birds',
-    logs: 'Logs',
     browser: 'Browser',
     settings: 'Settings',
   };
@@ -176,8 +174,6 @@
           <Jobs sseJobs={status?.jobs ?? null} />
         {:else if currentPage === 'birds'}
           <Birds />
-        {:else if currentPage === 'logs'}
-          <Logs />
         {:else if currentPage === 'browser'}
           <Browser {status} />
         {:else if currentPage === 'settings'}

@@ -107,6 +107,8 @@ export interface CliOptions {
     prompt?: string;
     days?: string;
     status?: string;
+    level?: string;
+    limit?: string;
     allFailed: boolean;
     completed: boolean;
     failed: boolean;

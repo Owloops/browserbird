@@ -28,6 +28,7 @@ import {
   getSession,
   getSessionMessages,
   getSessionTokenStats,
+  getRecentLogs,
 } from './db.ts';
 import { execFileSync } from 'node:child_process';
 import { enqueue } from './jobs.ts';
@@ -42,7 +43,7 @@ Commands:
   start               Start as background daemon
   stop                Graceful shutdown
   status              Show running sessions, uptime, stats
-  logs [--follow]     Tail orchestrator logs
+  logs [--level <lvl>] [--limit <n>]  Show recent errors from database
 
   sessions                    List active Claude sessions
   sessions inspect <id>       Show session detail and message history
@@ -82,6 +83,8 @@ Options:
   --schedule <expr>   Cron schedule expression (for birds edit)
   --prompt <text>     Prompt text (for birds edit)
   --days <n>          Retention days for db cleanup (overrides config)
+  --level <lvl>       Filter logs by level: debug, info, warn, error
+  --limit <n>         Number of log entries to show (default: 20)
   --config <path>     Config file path (default: ./browserbird.json)
 
 Environment:
@@ -106,6 +109,8 @@ export function parseCli(argv: string[]): CliOptions {
       prompt: { type: 'string' },
       days: { type: 'string' },
       status: { type: 'string' },
+      level: { type: 'string' },
+      limit: { type: 'string' },
       'all-failed': { type: 'boolean', default: false },
       completed: { type: 'boolean', default: false },
       failed: { type: 'boolean', default: false },
@@ -134,6 +139,8 @@ export function parseCli(argv: string[]): CliOptions {
       prompt: values.prompt as string | undefined,
       days: values.days as string | undefined,
       status: values.status as string | undefined,
+      level: values.level as string | undefined,
+      limit: values.limit as string | undefined,
       allFailed: values['all-failed'] as boolean,
       completed: values.completed as boolean,
       failed: values.failed as boolean,
@@ -183,11 +190,15 @@ export async function run(argv: string[]): Promise<void> {
       await startDaemon(options);
       break;
     case COMMANDS.STOP:
-    case COMMANDS.STATUS:
-    case COMMANDS.LOGS:
     case COMMANDS.AGENTS:
     case COMMANDS.CONFIG:
       logger.info(`command "${command}" not yet implemented`);
+      break;
+    case COMMANDS.LOGS:
+      handleLogs(options);
+      break;
+    case COMMANDS.STATUS:
+      await handleStatus(options);
       break;
     case COMMANDS.SESSIONS:
       handleSessions(options);
@@ -305,6 +316,92 @@ function handleDoctor(): void {
   }
 
   logger.success(`Node.js: ${result.node}`);
+}
+
+function handleLogs(options: CliOptions): void {
+  const { level, limit } = options.flags;
+  const perPage = limit != null ? Number(limit) : 20;
+
+  if (!Number.isFinite(perPage) || perPage < 1) {
+    logger.error('--limit must be a positive number');
+    process.exitCode = 1;
+    return;
+  }
+
+  const dbPath = resolve('.browserbird', 'browserbird.db');
+  openDatabase(dbPath);
+
+  try {
+    const result = getRecentLogs(1, perPage, level);
+    if (result.items.length === 0) {
+      logger.info('no log entries found');
+      return;
+    }
+
+    for (const entry of result.items) {
+      const time = entry.created_at.slice(11, 19);
+      const src = entry.source.padEnd(10);
+      console.log(`${time}  [${entry.level.padEnd(5)}]  ${src}  ${entry.message}`);
+    }
+  } finally {
+    closeDatabase();
+  }
+}
+
+async function handleStatus(options: CliOptions): Promise<void> {
+  const config = loadConfig(options.flags.config);
+  const url = `http://${config.web.host}:${config.web.port}/api/status`;
+
+  const headers: Record<string, string> = {};
+  if (config.web.authToken) {
+    headers['Authorization'] = `Bearer ${config.web.authToken}`;
+  }
+
+  let body: string;
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      logger.error(`daemon returned HTTP ${res.status}`);
+      process.exitCode = 1;
+      return;
+    }
+    body = await res.text();
+  } catch {
+    logger.error(`daemon not reachable at ${url} — is it running?`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const data = JSON.parse(body) as {
+    uptime: number;
+    sessions: { active: number; maxConcurrent: number };
+    jobs: { pending: number; running: number; completed: number; failed: number };
+    slack: { connected: boolean };
+    messages: { totalMessages: number; totalTokensIn: number; totalTokensOut: number };
+  };
+
+  const uptimeHours = Math.floor(data.uptime / 3600);
+  const uptimeMins = Math.floor((data.uptime % 3600) / 60);
+  const uptimeSecs = data.uptime % 60;
+  const uptimeStr =
+    uptimeHours > 0
+      ? `${uptimeHours}h ${uptimeMins}m`
+      : uptimeMins > 0
+        ? `${uptimeMins}m ${uptimeSecs}s`
+        : `${uptimeSecs}s`;
+
+  console.log('BrowserBird Status');
+  console.log('──────────────────');
+  console.log(`Uptime:        ${uptimeStr}`);
+  console.log(`Slack:         ${data.slack.connected ? 'connected' : 'disconnected'}`);
+  console.log(`Sessions:      ${data.sessions.active} / ${data.sessions.maxConcurrent} active`);
+  console.log(
+    `Jobs:          ${data.jobs.pending} pending, ${data.jobs.running} running, ${data.jobs.completed} done, ${data.jobs.failed} failed`,
+  );
+  console.log(`Messages:      ${data.messages.totalMessages} total`);
+  console.log(
+    `Tokens:        ${(data.messages.totalTokensIn + data.messages.totalTokensOut).toLocaleString()} (${data.messages.totalTokensIn.toLocaleString()} in / ${data.messages.totalTokensOut.toLocaleString()} out)`,
+  );
 }
 
 function handleDb(options: CliOptions): void {

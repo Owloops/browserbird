@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { StatusResponse, ConfigResponse, CleanupResponse, DoctorResponse } from '../lib/types.ts';
+  import type { StatusResponse, ConfigResponse, CleanupResponse, DoctorResponse, PaginatedResult, LogRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
-  import { formatUptime } from '../lib/format.ts';
+  import { formatUptime, formatAge } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
 
   interface Props {
@@ -12,6 +12,7 @@
 
   let config: ConfigResponse | null = $state(null);
   let doctor: DoctorResponse | null = $state(null);
+  let recentErrors: LogRow[] = $state([]);
   let loading = $state(true);
 
   $effect(() => {
@@ -19,11 +20,13 @@
     Promise.all([
       api<ConfigResponse>('/api/config'),
       api<DoctorResponse>('/api/doctor'),
+      api<PaginatedResult<LogRow>>('/api/logs?level=error&perPage=10'),
     ])
-      .then(([c, d]) => {
+      .then(([c, d, logs]) => {
         if (ac.signal.aborted) return;
         config = c;
         doctor = d;
+        recentErrors = logs.items;
       })
       .finally(() => {
         if (!ac.signal.aborted) loading = false;
@@ -257,6 +260,27 @@
       </div>
     </div>
   </div>
+
+  <div class="group">
+    <h2 class="group-title">Recent Errors</h2>
+    {#if recentErrors.length === 0}
+      <div class="fields">
+        <div class="field">
+          <span class="field-dim">No errors recorded</span>
+        </div>
+      </div>
+    {:else}
+      <div class="error-list">
+        {#each recentErrors as error (error.id)}
+          <div class="error-row">
+            <span class="error-source mono">{error.source}</span>
+            <span class="error-message">{error.message}</span>
+            <span class="error-time">{formatAge(error.created_at)}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
 {/if}
 
 <style>
@@ -342,6 +366,47 @@
   .agent-id {
     font-size: 0.8rem;
     color: var(--color-text-muted);
+  }
+
+  .error-list {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .error-row {
+    display: grid;
+    grid-template-columns: 6rem 1fr auto;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.8rem;
+  }
+
+  .error-row:last-child {
+    border-bottom: none;
+  }
+
+  .error-source {
+    color: var(--color-error);
+    font-size: 0.733rem;
+    flex-shrink: 0;
+  }
+
+  .error-message {
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .error-time {
+    color: var(--color-text-muted);
+    font-size: 0.692rem;
+    font-family: var(--font-mono);
+    flex-shrink: 0;
   }
 
   .dot {
