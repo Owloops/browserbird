@@ -128,6 +128,15 @@ export function loadConfig(configPath?: string): Config {
 
   const merged = deepMerge(DEFAULTS as unknown as Record<string, unknown>, parsed);
   const resolved = resolveEnvValues(merged);
+  const config = resolved as unknown as Config;
 
-  return resolved as unknown as Config;
+  for (const agent of config.agents) {
+    if (agent.fallbackModel && agent.fallbackModel === agent.model) {
+      throw new Error(
+        `agent "${agent.id}": fallbackModel cannot be the same as model ("${agent.model}")`,
+      );
+    }
+  }
+
+  return config;
 }
