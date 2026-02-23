@@ -54,7 +54,12 @@
     }}
   >
     {#each sessions as s (s.id)}
-      <tr>
+      <tr
+        class="clickable-row"
+        onclick={() => {
+          window.location.hash = `#/session-detail?id=${s.id}`;
+        }}
+      >
         <td class="mono">{s.id}</td>
         <td class="mono">{s.slack_channel_id}</td>
         <td class="mono">{s.slack_thread_ts ?? '—'}</td>
@@ -65,3 +70,9 @@
     {/each}
   </DataTable>
 {/if}
+
+<style>
+  .clickable-row {
+    cursor: pointer;
+  }
+</style>

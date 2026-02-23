@@ -62,6 +62,24 @@ export interface SessionRow {
   message_count: number;
 }
 
+export interface MessageRow {
+  id: number;
+  slack_channel_id: string;
+  slack_thread_ts: string | null;
+  slack_user_id: string;
+  direction: 'in' | 'out';
+  content: string | null;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  created_at: string;
+}
+
+export interface SessionDetail {
+  session: SessionRow;
+  messages: PaginatedResult<MessageRow>;
+  stats: { totalTokensIn: number; totalTokensOut: number };
+}
+
 export type JobStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 export interface JobRow {

@@ -25,6 +25,9 @@ import {
   updateCronJob,
   setCronJobEnabled,
   deleteCronJob,
+  getSession,
+  getSessionMessages,
+  getSessionTokenStats,
 } from './db.ts';
 import { execFileSync } from 'node:child_process';
 import { enqueue } from './jobs.ts';
@@ -41,8 +44,9 @@ Commands:
   status              Show running sessions, uptime, stats
   logs [--follow]     Tail orchestrator logs
 
-  sessions            List active Claude sessions
-  sessions kill <id>  Terminate a session
+  sessions                    List active Claude sessions
+  sessions inspect <id>       Show session detail and message history
+  sessions kill <id>          Terminate a session
 
   birds list           List scheduled birds
   birds add <schedule> <prompt> [--channel <id>] [--agent <id>]
@@ -181,15 +185,90 @@ export async function run(argv: string[]): Promise<void> {
     case COMMANDS.STOP:
     case COMMANDS.STATUS:
     case COMMANDS.LOGS:
-    case COMMANDS.SESSIONS:
     case COMMANDS.AGENTS:
     case COMMANDS.CONFIG:
       logger.info(`command "${command}" not yet implemented`);
+      break;
+    case COMMANDS.SESSIONS:
+      handleSessions(options);
       break;
     default:
       logger.error(`unknown command: ${command}`);
       console.log(HELP);
       process.exitCode = 1;
+  }
+}
+
+function handleSessions(options: CliOptions): void {
+  const dbPath = resolve('.browserbird', 'browserbird.db');
+  openDatabase(dbPath);
+
+  try {
+    const { subcommand, args } = options;
+
+    if (subcommand !== 'inspect') {
+      logger.error(
+        `unknown sessions subcommand: ${subcommand ?? '(none)'}. Try: sessions inspect <id>`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+
+    const id = Number(args[0]);
+    if (!Number.isFinite(id)) {
+      logger.error('usage: browserbird sessions inspect <id>');
+      process.exitCode = 1;
+      return;
+    }
+
+    const session = getSession(id);
+    if (!session) {
+      logger.error(`session #${id} not found`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const tokenStats = getSessionTokenStats(session.slack_channel_id, session.slack_thread_ts);
+
+    console.log('Session Detail');
+    console.log('──────────────────');
+    console.log(`ID:            ${session.id}`);
+    console.log(`Channel:       ${session.slack_channel_id}`);
+    console.log(`Thread:        ${session.slack_thread_ts ?? '(none)'}`);
+    console.log(`Agent:         ${session.agent_id}`);
+    console.log(`Provider ID:   ${session.provider_session_id}`);
+    console.log(`Created:       ${session.created_at}`);
+    console.log(`Last Active:   ${session.last_active}`);
+    console.log(`Messages:      ${session.message_count}`);
+    console.log(`Tokens In:     ${tokenStats.totalTokensIn}`);
+    console.log(`Tokens Out:    ${tokenStats.totalTokensOut}`);
+    console.log('');
+
+    const result = getSessionMessages(session.slack_channel_id, session.slack_thread_ts, 1, 50);
+
+    if (result.items.length === 0) {
+      console.log('No messages recorded.');
+      return;
+    }
+
+    console.log(
+      `Messages (${result.totalItems} total, showing page 1 of ${result.totalPages}):`,
+    );
+    console.log('──────────────────');
+
+    for (const msg of result.items) {
+      const dir = msg.direction === 'in' ? '->' : '<-';
+      const tokens =
+        msg.tokens_in != null || msg.tokens_out != null
+          ? `  [in:${msg.tokens_in ?? 0} out:${msg.tokens_out ?? 0}]`
+          : '';
+      const preview = (msg.content ?? '').slice(0, 120);
+      const truncated = (msg.content?.length ?? 0) > 120 ? '...' : '';
+      console.log(`${dir} ${msg.slack_user_id}  ${msg.created_at}${tokens}`);
+      if (preview) console.log(`   ${preview}${truncated}`);
+    }
+  } finally {
+    closeDatabase();
   }
 }
 

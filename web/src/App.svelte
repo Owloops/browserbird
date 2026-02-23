@@ -20,10 +20,12 @@
   import Logs from './pages/Logs.svelte';
   import Browser from './pages/Browser.svelte';
   import Settings from './pages/Settings.svelte';
+  import SessionDetail from './pages/SessionDetail.svelte';
 
   const PAGE_TITLES: Record<string, string> = {
     dashboard: 'Dashboard',
     sessions: 'Sessions',
+    'session-detail': 'Session Detail',
     jobs: 'Jobs',
     birds: 'Birds',
     logs: 'Logs',
@@ -168,6 +170,8 @@
       <div class="content-body">
         {#if currentPage === 'sessions'}
           <Sessions />
+        {:else if currentPage === 'session-detail'}
+          <SessionDetail />
         {:else if currentPage === 'jobs'}
           <Jobs sseJobs={status?.jobs ?? null} />
         {:else if currentPage === 'birds'}

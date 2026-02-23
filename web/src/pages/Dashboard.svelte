@@ -99,7 +99,10 @@
         emptyMessage="No active sessions"
       >
         {#each sessions.slice(0, 5) as s (s.id)}
-          <tr>
+          <tr
+            class="clickable-row"
+            onclick={() => { window.location.hash = `#/session-detail?id=${s.id}`; }}
+          >
             <td class="mono">{s.id}</td>
             <td class="mono">{s.slack_channel_id}</td>
             <td>{s.agent_id}</td>
@@ -239,6 +242,10 @@
 
   .section-link:hover {
     color: var(--color-accent-glow);
+  }
+
+  .clickable-row {
+    cursor: pointer;
   }
 
   .log-message {

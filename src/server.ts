@@ -10,6 +10,9 @@ import { logger } from './core/logger.ts';
 import {
   SYSTEM_CRON_PREFIX,
   listSessions,
+  getSession,
+  getSessionMessages,
+  getSessionTokenStats,
   listJobs,
   getJobStats,
   listCronJobs,
@@ -206,6 +209,32 @@ function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Ro
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
         json(res, listSessions(page, perPage));
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/sessions/:id'),
+      handler(req, res, params) {
+        const id = Number(params['id']);
+        if (!Number.isFinite(id)) {
+          jsonError(res, 'Invalid session ID', 400);
+          return;
+        }
+        const session = getSession(id);
+        if (!session) {
+          jsonError(res, `Session #${id} not found`, 404);
+          return;
+        }
+        const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+        const { page, perPage } = parsePagination(url);
+        const messages = getSessionMessages(
+          session.slack_channel_id,
+          session.slack_thread_ts,
+          page,
+          perPage,
+        );
+        const stats = getSessionTokenStats(session.slack_channel_id, session.slack_thread_ts);
+        json(res, { session, messages, stats });
       },
     },
     {

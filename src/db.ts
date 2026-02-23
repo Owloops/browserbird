@@ -344,6 +344,57 @@ export function listSessions(page = 1, perPage = DEFAULT_PER_PAGE): PaginatedRes
   return paginate<SessionRow>('sessions', page, perPage, '', [], 'last_active DESC');
 }
 
+export function getSession(id: number): SessionRow | undefined {
+  return getDb()
+    .prepare('SELECT * FROM sessions WHERE id = ?')
+    .get(id) as unknown as SessionRow | undefined;
+}
+
+export function getSessionMessages(
+  channelId: string,
+  threadTs: string | null,
+  page = 1,
+  perPage = DEFAULT_PER_PAGE,
+): PaginatedResult<MessageRow> {
+  const pp = Math.min(Math.max(perPage, 1), MAX_PER_PAGE);
+  const p = Math.max(page, 1);
+  const offset = (p - 1) * pp;
+
+  const countRow = getDb()
+    .prepare(
+      'SELECT COUNT(*) as count FROM messages WHERE slack_channel_id = ? AND slack_thread_ts IS ?',
+    )
+    .get(channelId, threadTs) as unknown as { count: number };
+
+  const totalItems = countRow.count;
+  const totalPages = Math.max(Math.ceil(totalItems / pp), 1);
+
+  const items = getDb()
+    .prepare(
+      `SELECT * FROM messages
+       WHERE slack_channel_id = ? AND slack_thread_ts IS ?
+       ORDER BY created_at ASC, id ASC
+       LIMIT ? OFFSET ?`,
+    )
+    .all(channelId, threadTs, pp, offset) as unknown as MessageRow[];
+
+  return { items, page: p, perPage: pp, totalItems, totalPages };
+}
+
+export function getSessionTokenStats(
+  channelId: string,
+  threadTs: string | null,
+): { totalTokensIn: number; totalTokensOut: number } {
+  return getDb()
+    .prepare(
+      `SELECT COALESCE(SUM(tokens_in), 0) as totalTokensIn,
+              COALESCE(SUM(tokens_out), 0) as totalTokensOut
+       FROM messages
+       WHERE slack_channel_id = ? AND slack_thread_ts IS ?`,
+    )
+    .get(channelId, threadTs) as unknown as { totalTokensIn: number; totalTokensOut: number };
+}
+
 export function deleteStaleSessions(ttlHours: number): number {
   const stmt = getDb().prepare(
     `DELETE FROM sessions WHERE last_active < datetime('now', ? || ' hours')`,
