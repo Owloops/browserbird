@@ -54,18 +54,16 @@ docker compose up -d
 
 Pre-built images are pulled from `ghcr.io/owloops/browserbird` automatically. No local build needed.
 
-The stack runs two containers sharing an X11 socket:
+The stack runs two containers:
 
 ```
-+---------------------+     +------------------------------+
-|    vnc container    |     |    browserbird container     |
-|                     |     |                              |
-|  Xvfb  :1           |<----|  DISPLAY=:1                  |
-|  mutter             |     |  Agent CLI                   |
-|  x11vnc  :5900      |     |  Playwright MCP              |
-|  noVNC   :6080      |     |  BrowserBird  :18800         |
-+---------------------+     +------------------------------+
-         shared x11-socket volume
++------------------------------+     +------------------------------+
+|       vm container           |     |    browserbird container     |
+|                              |     |                              |
+|  cage + sway (Wayland)       |     |  Agent CLI                   |
+|  wayvnc  :5900               |     |  Playwright MCP (over SSE)   |
+|  noVNC   :6080               |     |  BrowserBird  :18800         |
++------------------------------+     +------------------------------+
 ```
 
 > [!NOTE]
@@ -218,26 +216,38 @@ browserbird birds enable <id>
 browserbird birds disable <id>
 browserbird birds remove <id>
 browserbird birds fly <id>
+browserbird birds logs <id>
 ```
 
 Supported formats: standard 5-field cron (`* * * * *`) and macros (`@daily`, `@hourly`, `@weekly`, `@monthly`).
 
-### Jobs
+### Sessions
 
 ```bash
-browserbird jobs
-browserbird jobs stats
-browserbird jobs retry <id>
-browserbird jobs retry --all-failed
-browserbird jobs clear --completed
-browserbird jobs clear --failed
+browserbird sessions list
+browserbird sessions logs <id>
+```
+
+### Settings
+
+```bash
+browserbird settings
+browserbird settings --config ./my.json
 ```
 
 ### Database
 
 ```bash
-browserbird db cleanup
-browserbird db cleanup --days 7
+browserbird database cleanup
+browserbird database cleanup --days 7
+browserbird database logs
+browserbird database logs --level warn --limit 50
+browserbird database jobs
+browserbird database jobs stats
+browserbird database jobs retry <id>
+browserbird database jobs retry --all-failed
+browserbird database jobs clear --completed
+browserbird database jobs clear --failed
 ```
 
 ## Web Dashboard
@@ -246,13 +256,11 @@ Runs at `http://localhost:18800` by default. Real-time updates via SSE.
 
 | Page | Description |
 |---|---|
-| **Dashboard** | System status, uptime, active sessions, job queue overview |
-| **Sessions** | Active agent sessions with message counts and agent info |
-| **Jobs** | Job queue, filter, retry, delete |
-| **Birds** | Scheduled birds, create, edit, enable/disable, trigger manually |
-| **Logs** | Application logs with level and source filters |
+| **Status** | System stats, active sessions overview |
+| **Sessions** | Agent sessions with message counts, clickable to inspect full history |
+| **Birds** | Scheduled birds — create, edit, enable/disable, trigger, inline flight history |
 | **Browser** | Live noVNC viewer (Docker only) |
-| **Settings** | Current config and auth status |
+| **Settings** | Config (agents, sessions, slack, browser) + Database tab (job queue, cleanup, logs) |
 
 ## License
 
