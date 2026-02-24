@@ -18,5 +18,5 @@ export interface SpawnOptions {
 
 export interface ProviderModule {
   buildCommand: (options: SpawnOptions) => ProviderCommand;
-  parseStreamLine: (line: string) => StreamEvent | null;
+  parseStreamLine: (line: string) => StreamEvent[];
 }

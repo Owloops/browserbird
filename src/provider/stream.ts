@@ -11,21 +11,9 @@ interface StreamEventTextDelta {
   delta: string;
 }
 
-interface StreamEventToolUse {
-  type: 'tool_use';
-  name: string;
-  input: unknown;
-}
-
 export interface ToolImage {
   mediaType: string;
   data: string;
-}
-
-interface StreamEventToolResult {
-  type: 'tool_result';
-  name: string;
-  output: string;
 }
 
 interface StreamEventToolImages {
@@ -33,10 +21,12 @@ interface StreamEventToolImages {
   images: ToolImage[];
 }
 
-interface StreamEventCompletion {
+export interface StreamEventCompletion {
   type: 'completion';
+  subtype: string;
   result: string;
   sessionId: string;
+  isError: boolean;
   tokensIn: number;
   tokensOut: number;
   cacheCreationTokens: number;
@@ -44,6 +34,12 @@ interface StreamEventCompletion {
   costUsd: number;
   durationMs: number;
   numTurns: number;
+}
+
+interface StreamEventRateLimit {
+  type: 'rate_limit';
+  resetsAt: number;
+  status: string;
 }
 
 interface StreamEventError {
@@ -54,10 +50,9 @@ interface StreamEventError {
 export type StreamEvent =
   | StreamEventInit
   | StreamEventTextDelta
-  | StreamEventToolUse
-  | StreamEventToolResult
   | StreamEventToolImages
   | StreamEventCompletion
+  | StreamEventRateLimit
   | StreamEventError;
 
 /**

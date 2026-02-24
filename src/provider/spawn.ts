@@ -72,8 +72,7 @@ export function spawnProvider(
       });
 
       if (buffer.trim()) {
-        const event = mod.parseStreamLine(buffer);
-        if (event) yield event;
+        yield* mod.parseStreamLine(buffer);
       }
     } finally {
       clearTimeout(timeout);
@@ -134,8 +133,7 @@ async function* parseStdout(
       setBuffer(buffer);
 
       for (const line of lines) {
-        const event = mod.parseStreamLine(line);
-        if (event) yield event;
+        yield* mod.parseStreamLine(line);
       }
     }
   }
