@@ -65,6 +65,7 @@ export interface WebConfig {
   host: string;
   port: number;
   authToken: string;
+  corsOrigin: string;
 }
 
 export interface Config {

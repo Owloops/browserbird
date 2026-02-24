@@ -45,7 +45,7 @@ const DEFAULTS: Config = {
     novncHost: 'localhost',
   },
   birds: { maxAttempts: 3 },
-  web: { enabled: true, host: '127.0.0.1', port: 18800, authToken: '' },
+  web: { enabled: true, host: '127.0.0.1', port: 18800, authToken: '', corsOrigin: '' },
 };
 
 /**

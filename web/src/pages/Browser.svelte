@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { StatusResponse, ConfigResponse } from '../lib/types.ts';
-  import { api, getAuthToken } from '../lib/api.ts';
+  import { api, apiBase, getAuthToken } from '../lib/api.ts';
   import RFB from '@novnc/novnc';
 
   interface Props {
@@ -43,9 +43,14 @@
 
   const wsUrl = $derived.by(() => {
     if (!config?.browser) return '';
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const token = getAuthToken();
     const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    if (apiBase) {
+      const base = new URL(apiBase);
+      const proto = base.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${proto}//${base.host}/vnc${query}`;
+    }
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}/vnc${query}`;
   });
 

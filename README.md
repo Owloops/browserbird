@@ -118,7 +118,8 @@ cp browserbird.example.json browserbird.json
     "enabled": true,
     "host": "127.0.0.1",
     "port": 18800,
-    "authToken": "env:BROWSERBIRD_AUTH_TOKEN"
+    "authToken": "env:BROWSERBIRD_AUTH_TOKEN",
+    "corsOrigin": ""
   }
 }
 ```
@@ -216,6 +217,7 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 | `host`      | `"127.0.0.1"` | Bind address (`0.0.0.0` for Docker/remote)           |
 | `port`      | `18800`       | Web UI and REST API port                             |
 | `authToken` | none          | Bearer token for API auth (optional but recommended) |
+| `corsOrigin` | none         | Allowed origin for CORS headers (for cross-origin SPA hosting) |
 
 </details>
 

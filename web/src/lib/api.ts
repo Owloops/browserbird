@@ -1,6 +1,9 @@
 /** @fileoverview Typed fetch wrapper and auth helpers. */
 
 const AUTH_KEY = 'browserbird_auth_token';
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+
+export { API_BASE as apiBase };
 
 let unauthorizedCallback: (() => void) | null = null;
 
@@ -33,7 +36,7 @@ export async function api<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: options?.method ?? 'GET',
     headers,
     body: options?.body !== undefined ? JSON.stringify(options.body) : undefined,
@@ -54,7 +57,7 @@ export async function api<T>(
 }
 
 export async function checkAuthRequired(): Promise<boolean> {
-  const res = await fetch('/api/auth/check');
+  const res = await fetch(`${API_BASE}/api/auth/check`);
   const data = (await res.json()) as { authRequired: boolean };
   return data.authRequired;
 }

@@ -1,7 +1,7 @@
 /** @fileoverview SSE connection manager for real-time status updates and invalidation events. */
 
 import type { StatusResponse, InvalidateEvent } from './types.ts';
-import { getAuthToken } from './api.ts';
+import { apiBase, getAuthToken } from './api.ts';
 
 let eventSource: EventSource | null = null;
 let statusCallback: ((data: StatusResponse) => void) | null = null;
@@ -21,7 +21,9 @@ export function connectSSE(
   connectionCallback = onConnection ?? null;
 
   const token = getAuthToken();
-  const url = token ? `/api/events?token=${encodeURIComponent(token)}` : '/api/events';
+  const url = token
+    ? `${apiBase}/api/events?token=${encodeURIComponent(token)}`
+    : `${apiBase}/api/events`;
   eventSource = new EventSource(url);
 
   statusListener = (e: MessageEvent) => {

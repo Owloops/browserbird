@@ -12,6 +12,15 @@ import { handleSSE, closeAllSSE } from './sse.ts';
 import { serveStatic } from './static.ts';
 import { handleVncUpgrade } from './vnc-proxy.ts';
 
+function setCorsHeaders(config: Config, res: ServerResponse): void {
+  const origin = config.web.corsOrigin;
+  if (!origin) return;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400');
+}
+
 export function createWebServer(
   config: Config,
   signal: AbortSignal,
@@ -27,6 +36,14 @@ export function createWebServer(
 
     const qIndex = urlPath.indexOf('?');
     const pathOnly = qIndex !== -1 ? urlPath.slice(0, qIndex) : urlPath;
+
+    setCorsHeaders(config, res);
+
+    if (method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
 
     if (method === 'GET' && pathOnly === '/api/events') {
       handleSSE(config, startedAt, deps, req, res);
