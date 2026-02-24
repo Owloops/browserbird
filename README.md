@@ -1,33 +1,29 @@
 <div align="center">
 
-<img src="web/public/logo.svg" alt="BrowserBird" width="280"/>
+<img src="web/public/logo-icon.svg" alt="BrowserBird" width="80"/>
 
-**AI agents in your Slack. Persistent sessions, scheduled birds, and a live browser.**
+**A self-hosted AI assistant in Slack, with a real browser and a scheduler.**
 
 [![License: FSL-1.1-MIT](https://img.shields.io/badge/license-FSL--1.1--MIT-blue?style=flat-square)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/@owloops/browserbird?style=flat-square)](https://www.npmjs.com/package/@owloops/browserbird)
-[![npm downloads](https://img.shields.io/npm/dm/@owloops/browserbird?style=flat-square)](https://www.npmjs.com/package/@owloops/browserbird)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D24-brightgreen?style=flat-square)](https://nodejs.org)
 [![Install size](https://packagephobia.com/badge?p=@owloops/browserbird)](https://packagephobia.com/result?p=@owloops/browserbird)
 
 </div>
 
-BrowserBird connects your Slack workspace to AI agent CLI sessions. Send a message, get a real agent response with persistent context, scheduled tasks, browser automation, and a web dashboard.
+Owloops has been building browser automation tools since 2020. [Hand-written CSS selectors](https://github.com/Owloops/flybird) required technical knowledge and broke on every layout change. [Automating selector discovery with Chrome Recorder](https://github.com/Owloops/owloops-chrome-recorder) helped with setup but not with breakage. [A Chrome extension with an LLM agent loop](https://github.com/Owloops/owloops-extension) solved that by understanding the task rather than memorizing steps, but the loop ran inside the extension driving an open tab with no server, no scheduling, and no persistence. GPT-3.5 was not reliable enough for complex pages either.
 
-```
-Slack -> BrowserBird -> agent -> streaming response back to Slack
-```
+BrowserBird runs as a server process with a Chromium browser it controls via Playwright MCP. Send a message in Slack, watch the browser work live via the built-in VNC viewer, get the result back in the thread. Sessions persist across conversations, tasks run on a schedule, and everything stays on your own infrastructure.
 
-BrowserBird handles the thin layer: Slack adapter, session routing, bird scheduler, browser access, CLI, and web UI. The agent handles reasoning, memory, tools, MCP servers, and sub-agents.
+BrowserBird handles the thin layer: Slack adapter, session routing, scheduler, browser access, CLI, and web dashboard. The agent handles reasoning, memory, tools, and sub-agents.
 
 ## Features
 
-- **Persistent sessions.** Each Slack thread maps to an agent session. Conversations continue where you left off.
-- **Birds.** Schedule prompts that fly on a cron schedule and post results to Slack. Stop after a configurable error count.
-- **Browser automation.** The agent controls a real Chromium browser via Playwright MCP, visible live via noVNC.
-- **Multi-agent routing.** Different agents per channel, each with their own model and system prompt.
-- **Job queue.** All agent invocations go through a retry-capable queue with exponential backoff.
-- **Web dashboard.** Monitor sessions, flight logs, birds, and the live browser.
+- **Browse and act.** Ask it to open a page, fill a form, extract information, draft a reply, or complete a multi-step workflow. It controls a real Chromium browser and you can watch it work live.
+- **Scheduled tasks.** Set up birds: prompts that run on a cron schedule and post results back to Slack. Daily briefings, monitoring checks, report generation.
+- **Persistent sessions.** Each Slack thread maps to a session. Context carries across conversations, pick up where you left off.
+- **Multi-agent routing.** Assign different agents to different channels, each with their own model and system prompt.
+- **Job queue.** All tasks go through a retry-capable queue with exponential backoff.
+- **Web dashboard.** Sessions, flight logs, scheduled birds, live browser view, and config all in one place.
 
 ## Installation
 
@@ -54,17 +50,7 @@ docker compose -f oci/compose.yml up -d
 
 Pre-built images are pulled from `ghcr.io/owloops/browserbird` automatically. No local build needed.
 
-The stack runs two containers:
-
-```
-+------------------------------+     +------------------------------+
-|       vm container           |     |    browserbird container     |
-|                              |     |                              |
-|  cage + sway (Wayland)       |     |  Agent CLI                   |
-|  wayvnc  :5900               |     |  Playwright MCP (over SSE)   |
-|  noVNC   :6080               |     |  BrowserBird  :18800         |
-+------------------------------+     +------------------------------+
-```
+The stack runs two containers: a `vm` container with the Wayland compositor, VNC server, and noVNC; and a `browserbird` container with the agent CLI, Playwright MCP, and BrowserBird itself.
 
 > [!NOTE]
 > `shm_size: 2g` is required for Chromium stability inside containers.
@@ -165,12 +151,12 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 <details>
 <summary><strong>sessions</strong></summary>
 
-| Key                | Default     | Description                                                                                      |
-| ------------------ | ----------- | ------------------------------------------------------------------------------------------------ |
-| `ttlHours`         | `24`        | Session lifetime in hours (resets on each message)                                               |
-| `maxConcurrent`    | `5`         | Max simultaneous agent processes                                                                 |
-| `processTimeoutMs` | `300000`    | Per-request timeout in milliseconds                                                              |
-| `longResponseMode` | `"snippet"` | How to handle responses over 3900 bytes: `snippet` (file upload) or `thread` (split into chunks) |
+| Key                | Default     | Description                                                                                       |
+| ------------------ | ----------- | ------------------------------------------------------------------------------------------------- |
+| `ttlHours`         | `24`        | Session lifetime in hours (resets on each message)                                                |
+| `maxConcurrent`    | `5`         | Max simultaneous agent processes                                                                  |
+| `processTimeoutMs` | `300000`    | Per-request timeout in milliseconds                                                               |
+| `longResponseMode` | `"snippet"` | How to handle responses over 3900 bytes: `snippet` (file upload) or `thread` (split into chunks)  |
 
 </details>
 
@@ -192,8 +178,8 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 <details>
 <summary><strong>birds</strong></summary>
 
-| Key           | Default | Description                                  |
-| ------------- | ------- | -------------------------------------------- |
+| Key           | Default | Description                                   |
+| ------------- | ------- | --------------------------------------------- |
 | `maxAttempts` | `3`     | Max job attempts before a bird stops retrying |
 
 </details>
@@ -211,13 +197,13 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 <details>
 <summary><strong>web</strong></summary>
 
-| Key         | Default       | Description                                          |
-| ----------- | ------------- | ---------------------------------------------------- |
-| `enabled`   | `true`        | Enable the web dashboard and API                     |
-| `host`      | `"127.0.0.1"` | Bind address (`0.0.0.0` for Docker/remote)           |
-| `port`      | `18800`       | Web UI and REST API port                             |
-| `authToken` | none          | Bearer token for API auth (optional but recommended) |
-| `corsOrigin` | none         | Allowed origin for CORS headers (for cross-origin SPA hosting) |
+| Key          | Default       | Description                                                    |
+| ------------ | ------------- | -------------------------------------------------------------- |
+| `enabled`    | `true`        | Enable the web dashboard and API                               |
+| `host`       | `"127.0.0.1"` | Bind address (`0.0.0.0` for Docker/remote)                     |
+| `port`       | `18800`       | Web UI and REST API port                                       |
+| `authToken`  | none          | Bearer token for API auth (optional but recommended)           |
+| `corsOrigin` | none          | Allowed origin for CORS headers (for cross-origin SPA hosting) |
 
 </details>
 
@@ -225,16 +211,16 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 
 Values in config can reference environment variables using `"env:VAR_NAME"`. Additionally:
 
-| Variable                      | Description                                                                |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                       |
-| `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                            |
-| `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                          |
+| Variable                      | Description                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                                                                |
+| `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
+| `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                                                                   |
 | `ANTHROPIC_API_KEY`           | Agent auth via API key (recommended). Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
-| `CLAUDE_CODE_OAUTH_TOKEN`     | Agent auth via OAuth token (personal use). Uses your Claude Pro/Max subscription. See note below |
-| `BROWSERBIRD_RETENTION_DAYS`  | Override `database.retentionDays`                                          |
-| `BROWSERBIRD_MCP_CONFIG_PATH` | Override `browser.mcpConfigPath`                                           |
-| `NO_COLOR`                    | Disable colored output                                                     |
+| `CLAUDE_CODE_OAUTH_TOKEN`     | Agent auth via OAuth token (personal use). Uses your Claude Pro/Max subscription. See note below                   |
+| `BROWSERBIRD_RETENTION_DAYS`  | Override `database.retentionDays`                                                                                   |
+| `BROWSERBIRD_MCP_CONFIG_PATH` | Override `browser.mcpConfigPath`                                                                                    |
+| `NO_COLOR`                    | Disable colored output                                                                                              |
 
 > [!NOTE]
 > **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. Set one or the other, not both.
@@ -302,15 +288,13 @@ Runs at `http://localhost:18800` by default. Real-time updates via SSE.
 | ------------ | ----------------------------------------------------------------------------------- |
 | **Status**   | System stats, active sessions overview                                              |
 | **Sessions** | Agent sessions with message counts, clickable to inspect full history               |
-| **Birds**    | Scheduled birds — create, edit, enable/disable, trigger, inline flight history      |
+| **Birds**    | Scheduled birds: create, edit, enable/disable, trigger, inline flight history       |
 | **Browser**  | Live noVNC viewer (Docker only)                                                     |
 | **Settings** | Config (agents, sessions, slack, browser) + Database tab (job queue, cleanup, logs) |
 
 ## License
 
-[FSL-1.1-MIT](LICENSE) — source available, converts to MIT after two years.
-
----
+[FSL-1.1-MIT](LICENSE), source available, converts to MIT after two years.
 
 > [!NOTE]
 > This project was built with assistance from LLMs. Human review and guidance provided throughout.
