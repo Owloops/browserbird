@@ -1,9 +1,37 @@
 /** @fileoverview Platform-agnostic channel client interface. */
 
+import type { Block, ModalView } from './blocks.ts';
+
+export interface MessageOptions {
+  blocks?: Block[];
+}
+
+export interface StreamHandle {
+  append(args: { markdown_text?: string }): Promise<unknown>;
+  stop(args?: { blocks?: Block[] }): Promise<unknown>;
+}
+
+export interface StreamStartOptions {
+  channelId: string;
+  threadTs: string;
+  teamId: string;
+  userId: string;
+}
+
 export interface ChannelClient {
-  postMessage(channelId: string, threadTs: string, text: string): Promise<string>;
-  editMessage(channelId: string, messageId: string, text: string): Promise<void>;
-  postEphemeral(channelId: string, threadTs: string, userId: string, text: string): Promise<void>;
+  postMessage(
+    channelId: string,
+    threadTs: string,
+    text: string,
+    opts?: MessageOptions,
+  ): Promise<string>;
+  postEphemeral(
+    channelId: string,
+    threadTs: string,
+    userId: string,
+    text: string,
+    opts?: MessageOptions,
+  ): Promise<void>;
   uploadFile(
     channelId: string,
     threadTs: string,
@@ -11,8 +39,15 @@ export interface ChannelClient {
     filename: string,
     title: string,
   ): Promise<void>;
-  addReaction(channelId: string, messageId: string, name: string): Promise<void>;
-  removeReaction(channelId: string, messageId: string, name: string): Promise<void>;
+  startStream(opts: StreamStartOptions): StreamHandle;
+  openModal?(triggerId: string, view: ModalView): Promise<void>;
+  setStatus?(channelId: string, threadTs: string, status: string): Promise<void>;
+  setTitle?(channelId: string, threadTs: string, title: string): Promise<void>;
+  setSuggestedPrompts?(
+    channelId: string,
+    threadTs: string,
+    prompts: Array<{ title: string; message: string }>,
+  ): Promise<void>;
 }
 
 export interface ChannelHandle {
@@ -20,5 +55,5 @@ export interface ChannelHandle {
   stop(): Promise<void>;
   isConnected(): boolean;
   activeCount(): number;
-  postMessage(channel: string, text: string): Promise<void>;
+  postMessage(channel: string, text: string, opts?: MessageOptions): Promise<void>;
 }
