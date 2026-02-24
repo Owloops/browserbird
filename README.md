@@ -58,10 +58,11 @@ The stack runs two containers: a `vm` container with the Wayland compositor, VNC
 ## Slack App Setup
 
 1. Create a new Slack app at [api.slack.com/apps](https://api.slack.com/apps)
-2. Import `manifest.json` from this repo (Settings, From an app manifest)
-3. Install the app to your workspace
-4. Copy **Bot User OAuth Token** to `SLACK_BOT_TOKEN`
-5. Enable Socket Mode, copy **App-Level Token** to `SLACK_APP_TOKEN`
+2. Import `manifest.json` from this repo (Settings → App Manifest)
+3. Upload `web/public/logo-icon.png` as the app icon (Basic Information → Display Information)
+4. Install the app to your workspace
+5. Copy **Bot User OAuth Token** to `SLACK_BOT_TOKEN`
+6. Enable Socket Mode, copy **App-Level Token** to `SLACK_APP_TOKEN`
 
 ### Slash Commands
 
