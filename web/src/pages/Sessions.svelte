@@ -28,6 +28,7 @@
     {columns}
     isEmpty={table.items.length === 0}
     emptyMessage="No active sessions"
+    fetching={table.fetching}
     page={table.page}
     totalPages={table.totalPages}
     totalItems={table.totalItems}

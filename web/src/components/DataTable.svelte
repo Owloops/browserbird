@@ -14,6 +14,7 @@
     sort?: string;
     search?: string;
     searchPlaceholder?: string;
+    fetching?: boolean;
     onPageChange?: (page: number) => void;
     onSortChange?: (key: string) => void;
     onSearchChange?: (search: string) => void;
@@ -31,6 +32,7 @@
     sort,
     search,
     searchPlaceholder = 'Search...',
+    fetching,
     onPageChange,
     onSortChange,
     onSearchChange,
@@ -71,7 +73,7 @@
   </div>
 {/if}
 
-<div class="table-wrap">
+<div class="table-wrap" class:table-fetching={fetching}>
   <table class="table">
     <thead>
       <tr>
@@ -192,6 +194,12 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     overflow: hidden;
+    transition: opacity var(--transition-normal);
+  }
+
+  .table-fetching {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .table {

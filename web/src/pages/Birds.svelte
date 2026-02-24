@@ -226,6 +226,7 @@
     {columns}
     isEmpty={table.items.length === 0}
     emptyMessage="No birds configured"
+    fetching={table.fetching}
     page={table.page}
     totalPages={table.totalPages}
     totalItems={table.totalItems}

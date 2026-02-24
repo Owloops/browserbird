@@ -53,6 +53,7 @@
     {columns}
     isEmpty={table.items.length === 0}
     emptyMessage="No flights recorded"
+    fetching={table.fetching}
     page={table.page}
     totalPages={table.totalPages}
     totalItems={table.totalItems}

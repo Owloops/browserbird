@@ -57,6 +57,8 @@ export function createDataTable<T, R = PaginatedResult<T>>(config: DataTableConf
   let totalItems = $state(0);
   let perPage = $state(config.defaultPerPage ?? 15);
   let loading = $state(true);
+  let fetching = $state(false);
+  let hasLoaded = false;
   let sort = $state(initial.sort);
   let search = $state(initial.search);
 
@@ -102,11 +104,16 @@ export function createDataTable<T, R = PaginatedResult<T>>(config: DataTableConf
       } catch {
         // connection check handles display
       } finally {
-        if (!ac.signal.aborted) loading = false;
+        if (!ac.signal.aborted) {
+          loading = false;
+          fetching = false;
+          hasLoaded = true;
+        }
       }
     };
 
-    loading = true;
+    if (!hasLoaded) loading = true;
+    fetching = true;
     doFetch();
 
     const unsub = config.invalidateOn
@@ -163,6 +170,9 @@ export function createDataTable<T, R = PaginatedResult<T>>(config: DataTableConf
     },
     get loading() {
       return loading;
+    },
+    get fetching() {
+      return fetching;
     },
     get sort() {
       return sort;

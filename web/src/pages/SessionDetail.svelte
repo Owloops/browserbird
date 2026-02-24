@@ -100,6 +100,7 @@
     {columns}
     isEmpty={table.items.length === 0}
     emptyMessage="No messages recorded for this session"
+    fetching={table.fetching}
     page={table.page}
     totalPages={table.totalPages}
     totalItems={table.totalItems}
