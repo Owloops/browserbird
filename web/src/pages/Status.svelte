@@ -273,6 +273,5 @@
       width: auto;
       height: 1px;
     }
-
   }
 </style>

@@ -83,11 +83,23 @@
                 {col.label}
                 {#if dir === 'asc'}
                   <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-                    <path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path
+                      d="M1 5L5 1L9 5"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 {:else if dir === 'desc'}
                   <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path
+                      d="M1 1L5 5L9 1"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 {/if}
               </button>
@@ -112,17 +124,33 @@
     <div class="pagination">
       <button class="pg-btn" disabled={page === 1} onclick={() => onPageChange!(page! - 1)}>
         <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
-          <path d="M5 1L1 5L5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path
+            d="M5 1L1 5L5 9"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
         Prev
       </button>
       <span class="pg-info">
         Page {page} of {totalPages}{totalItems != null ? ` · ${totalItems} total` : ''}
       </span>
-      <button class="pg-btn" disabled={page === totalPages} onclick={() => onPageChange!(page! + 1)}>
+      <button
+        class="pg-btn"
+        disabled={page === totalPages}
+        onclick={() => onPageChange!(page! + 1)}
+      >
         Next
         <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
-          <path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path
+            d="M1 1L5 5L1 9"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
       </button>
     </div>
