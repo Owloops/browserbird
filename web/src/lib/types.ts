@@ -47,7 +47,6 @@ export interface ConfigResponse {
     ttlHours: number;
     maxConcurrent: number;
     processTimeoutMs: number;
-    longResponseMode: string;
   };
   slack: {
     requireMention: boolean;

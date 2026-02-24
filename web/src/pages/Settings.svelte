@@ -239,10 +239,6 @@
             >{(config.sessions.processTimeoutMs / 1000).toFixed(0)}s</span
           >
         </div>
-        <div class="field">
-          <span class="field-label">Long Response</span>
-          <span class="field-value mono">{config.sessions.longResponseMode}</span>
-        </div>
       </div>
     </div>
 

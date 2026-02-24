@@ -43,7 +43,6 @@ function printSettingsAll(configPath?: string): void {
   console.log(`  max concurrent:  ${config.sessions.maxConcurrent}`);
   console.log(`  ttl:             ${config.sessions.ttlHours}h`);
   console.log(`  timeout:         ${config.sessions.processTimeoutMs / 1000}s`);
-  console.log(`  long response:   ${config.sessions.longResponseMode}`);
 
   console.log('\nslack:');
   console.log(`  require mention: ${config.slack.requireMention ? 'yes' : 'no'}`);

@@ -38,7 +38,6 @@ export interface SessionsConfig {
   ttlHours: number;
   maxConcurrent: number;
   processTimeoutMs: number;
-  longResponseMode: 'snippet' | 'thread';
 }
 
 export interface BrowserConfig {

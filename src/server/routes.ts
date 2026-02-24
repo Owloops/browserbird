@@ -106,7 +106,6 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
             ttlHours: config.sessions.ttlHours,
             maxConcurrent: config.sessions.maxConcurrent,
             processTimeoutMs: config.sessions.processTimeoutMs,
-            longResponseMode: config.sessions.longResponseMode,
           },
           slack: {
             requireMention: config.slack.requireMention,

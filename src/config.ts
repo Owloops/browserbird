@@ -29,7 +29,6 @@ const DEFAULTS: Config = {
     ttlHours: 24,
     maxConcurrent: 5,
     processTimeoutMs: 300_000,
-    longResponseMode: 'snippet',
   },
   database: {
     retentionDays: 30,
