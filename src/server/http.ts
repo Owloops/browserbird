@@ -33,6 +33,7 @@ export interface WebServerHandle {
 export interface WebServerDeps {
   slackConnected: () => boolean;
   activeProcessCount: () => number;
+  serviceHealth: () => { agent: { available: boolean }; browser: { connected: boolean } };
 }
 
 export function pathToRegex(path: string): RegExp {

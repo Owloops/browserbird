@@ -29,6 +29,7 @@ export function handleSSE(
   const send = () => {
     const jobs = getJobStats();
     const messages = getMessageStats();
+    const health = deps.serviceHealth();
     const data = JSON.stringify({
       uptime: Date.now() - startedAt,
       processes: {
@@ -38,7 +39,8 @@ export function handleSSE(
       jobs,
       messages,
       web: { enabled: config.web.enabled, port: config.web.port },
-      browser: { enabled: config.browser.enabled },
+      agent: health.agent,
+      browser: { enabled: config.browser.enabled, connected: health.browser.connected },
       slack: { connected: deps.slackConnected() },
     });
     res.write(`event: status\ndata: ${data}\n\n`);

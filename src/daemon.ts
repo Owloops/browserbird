@@ -16,6 +16,7 @@ import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
 import { createWebServer } from './server/index.ts';
+import { startHealthChecks, getServiceHealth } from './server/health.ts';
 import { resolve } from 'node:path';
 
 const controller = new AbortController();
@@ -128,11 +129,14 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
   });
 
+  startHealthChecks(config, controller.signal);
+
   let webServer: Awaited<ReturnType<typeof createWebServer>> | null = null;
   if (config.web.enabled) {
     webServer = createWebServer(config, controller.signal, {
       slackConnected: () => slackApp.isConnected(),
       activeProcessCount: () => slackApp.activeCount(),
+      serviceHealth: () => getServiceHealth(config),
     });
     await webServer.start();
   }

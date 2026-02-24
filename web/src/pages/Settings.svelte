@@ -306,6 +306,19 @@
           <span class="field-label">Enabled</span>
           <span class="field-value">{config.browser.enabled ? 'Yes' : 'No'}</span>
         </div>
+        {#if config.browser.enabled && status}
+          <div class="field">
+            <span class="field-label">Connected</span>
+            <span class="field-value">
+              <span
+                class="dot"
+                class:dot-on={status.browser.connected}
+                class:dot-off={!status.browser.connected}
+              ></span>
+              {status.browser.connected ? 'Yes' : 'No'}
+            </span>
+          </div>
+        {/if}
         {#if config.browser.enabled}
           <div class="field">
             <span class="field-label">Resolution</span>

@@ -75,6 +75,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const uptimeMs = Date.now() - startedAt;
         const jobs = getJobStats();
         const messages = getMessageStats();
+        const health = deps.serviceHealth();
         json(res, {
           uptime: uptimeMs,
           processes: {
@@ -84,7 +85,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           jobs,
           messages,
           web: { enabled: config.web.enabled, port: config.web.port },
-          browser: { enabled: config.browser.enabled },
+          agent: health.agent,
+          browser: { enabled: config.browser.enabled, connected: health.browser.connected },
           slack: { connected: deps.slackConnected() },
         });
       },

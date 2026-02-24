@@ -13,6 +13,7 @@
   import { connectSSE, disconnectSSE, isSSEConnected } from './lib/sse.ts';
   import { dispatchInvalidate } from './lib/invalidate.ts';
   import Sidebar from './components/Sidebar.svelte';
+  import ServiceStatus from './components/ServiceStatus.svelte';
   import Toast from './components/Toast.svelte';
   import ConfirmDialog from './components/ConfirmDialog.svelte';
   import Status from './pages/Status.svelte';
@@ -168,12 +169,7 @@
       <div class="content-header">
         <h1 class="page-title">{pageTitle}</h1>
         <div class="header-right">
-          <span
-            class="slack-status"
-            class:slack-on={status?.slack.connected}
-            class:slack-off={!status?.slack.connected}
-            title="Slack: {status?.slack.connected ? 'connected' : 'disconnected'}"
-          ></span>
+          <ServiceStatus {status} />
         </div>
       </div>
       <div class="content-body">
@@ -231,22 +227,6 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-  }
-
-  .slack-status {
-    width: var(--dot-size);
-    height: var(--dot-size);
-    border-radius: 50%;
-  }
-
-  .slack-on {
-    background: var(--color-success);
-    box-shadow: 0 0 4px var(--color-success);
-  }
-
-  .slack-off {
-    background: var(--color-error);
-    box-shadow: 0 0 4px var(--color-error);
   }
 
   .content-body {

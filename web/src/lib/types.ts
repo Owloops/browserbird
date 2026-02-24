@@ -21,7 +21,8 @@ export interface StatusResponse {
   jobs: JobStats;
   messages: { totalMessages: number; totalTokensIn: number; totalTokensOut: number };
   web: { enabled: boolean; port: number };
-  browser: { enabled: boolean };
+  agent: { available: boolean };
+  browser: { enabled: boolean; connected: boolean };
   slack: { connected: boolean };
 }
 
