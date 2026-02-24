@@ -1,10 +1,14 @@
 {
   "display_information": {
     "name": "BrowserBird",
-    "description": "Claude Code CLI orchestrator for Slack",
+    "description": "AI agent with browser access",
     "background_color": "#1a1a2e"
   },
   "features": {
+    "assistant_view": {
+      "assistant_description": "AI agent with browser access",
+      "suggested_prompts_enabled": true
+    },
     "app_home": {
       "home_tab_enabled": true,
       "messages_tab_enabled": true,
@@ -13,12 +17,21 @@
     "bot_user": {
       "display_name": "BrowserBird",
       "always_online": true
-    }
+    },
+    "slash_commands": [
+      {
+        "command": "/bird",
+        "description": "Manage BrowserBird birds",
+        "usage_hint": "list | fly | logs | enable | disable | create | status",
+        "should_escape": false
+      }
+    ]
   },
   "oauth_config": {
     "scopes": {
       "bot": [
         "app_mentions:read",
+        "assistant:write",
         "channels:history",
         "channels:read",
         "chat:write",
@@ -31,9 +44,8 @@
         "im:write",
         "mpim:history",
         "mpim:read",
-        "reactions:read",
-        "reactions:write",
-        "users:read"
+        "users:read",
+        "commands"
       ]
     }
   },
@@ -41,6 +53,8 @@
     "event_subscriptions": {
       "bot_events": [
         "app_mention",
+        "assistant_thread_context_changed",
+        "assistant_thread_started",
         "message.channels",
         "message.groups",
         "message.im",
