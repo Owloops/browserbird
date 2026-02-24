@@ -234,7 +234,7 @@
     border-bottom: none;
   }
 
-  .table :global(tr:hover td) {
+  .table :global(tr:not(.flight-history-row):not(.detail-row):hover td) {
     background: var(--color-bg-hover);
   }
 

@@ -24,6 +24,7 @@ import {
   listCronJobs,
   listFlights,
   getMessageStats,
+  getFlightStats,
   getRecentLogs,
   retryJob,
   retryAllFailedJobs,
@@ -34,11 +35,6 @@ import {
   updateCronJob,
   deleteCronJob,
   getCronJob,
-  deleteOldMessages,
-  deleteOldCronRuns,
-  deleteOldJobs,
-  deleteOldLogs,
-  optimizeDatabase,
 } from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
 import { getErrorRates } from '../core/metrics.ts';
@@ -74,6 +70,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       handler(_req, res) {
         const uptimeMs = Date.now() - startedAt;
         const jobs = getJobStats();
+        const flights = getFlightStats();
         const messages = getMessageStats();
         const health = deps.serviceHealth();
         json(res, {
@@ -83,6 +80,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
             maxConcurrent: config.sessions.maxConcurrent,
           },
           jobs,
+          flights,
           messages,
           web: { enabled: config.web.enabled, port: config.web.port },
           agent: health.agent,
@@ -457,29 +455,6 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
             parseSearchParam(url),
           ),
         );
-      },
-    },
-    {
-      method: 'POST',
-      pattern: pathToRegex('/api/db/cleanup'),
-      async handler(req, res) {
-        let body: { days?: number } = {};
-        try {
-          body = await readJsonBody(req);
-        } catch {
-          /* empty body is fine, use defaults */
-        }
-        const days = body.days ?? config.database.retentionDays;
-        if (!Number.isFinite(days) || days < 1) {
-          jsonError(res, '"days" must be a positive number', 400);
-          return;
-        }
-        const messages = deleteOldMessages(days);
-        const cronRuns = deleteOldCronRuns(days);
-        const jobs = deleteOldJobs(days);
-        const logs = deleteOldLogs(days);
-        optimizeDatabase();
-        json(res, { messages, cronRuns, jobs, logs });
       },
     },
     {

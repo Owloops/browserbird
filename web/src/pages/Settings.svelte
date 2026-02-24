@@ -2,16 +2,17 @@
   import type {
     StatusResponse,
     ConfigResponse,
-    CleanupResponse,
     DoctorResponse,
     PaginatedResult,
     LogRow,
     JobStats,
+    CronJobRow,
+    FlightRow,
   } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { formatAge, formatUptime } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
-  import { showConfirm } from '../lib/confirm.svelte.ts';
+  import Badge from '../components/Badge.svelte';
 
   interface Props {
     status: StatusResponse | null;
@@ -23,6 +24,8 @@
   let doctor: DoctorResponse | null = $state(null);
   let recentErrors: LogRow[] = $state([]);
   let jobStats: JobStats | null = $state(null);
+  let systemBirds: CronJobRow[] = $state([]);
+  let systemFlights: Record<number, FlightRow[]> = $state({});
   let loading = $state(true);
   let activeTab: 'config' | 'database' = $state('config');
 
@@ -33,13 +36,15 @@
       api<DoctorResponse>('/api/doctor'),
       api<PaginatedResult<LogRow>>('/api/logs?level=error&perPage=10'),
       api<JobStats>('/api/jobs/stats'),
+      api<PaginatedResult<CronJobRow>>('/api/birds?system=true&perPage=100'),
     ])
-      .then(([c, d, logs, js]) => {
+      .then(([c, d, logs, js, birds]) => {
         if (ac.signal.aborted) return;
         config = c;
         doctor = d;
         recentErrors = logs.items;
         jobStats = js;
+        systemBirds = birds.items.filter((b) => b.name.startsWith('__bb_'));
       })
       .finally(() => {
         if (!ac.signal.aborted) loading = false;
@@ -47,7 +52,26 @@
     return () => ac.abort();
   });
 
-  let cleaningUp = $state(false);
+  async function loadSystemFlights(birdId: number): Promise<void> {
+    if (systemFlights[birdId]) return;
+    try {
+      const result = await api<PaginatedResult<FlightRow>>(
+        `/api/birds/${birdId}/flights?perPage=5`,
+      );
+      systemFlights = { ...systemFlights, [birdId]: result.items };
+    } catch {
+      systemFlights = { ...systemFlights, [birdId]: [] };
+    }
+  }
+
+  function flightDuration(startedAt: string, finishedAt: string | null): string {
+    if (!finishedAt) return '-';
+    const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+    if (ms < 0) return '-';
+    const secs = Math.round(ms / 1000);
+    return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
+  }
+
   let retryingFailed = $state(false);
   let clearingCompleted = $state(false);
   let clearingFailed = $state(false);
@@ -95,28 +119,16 @@
     }
   }
 
-  async function runCleanup(): Promise<void> {
-    if (
-      !(await showConfirm(
-        `Delete all records older than ${config?.database.retentionDays ?? 30}d?`,
-      ))
-    )
-      return;
-    cleaningUp = true;
+  async function flySystemBird(id: number, name: string): Promise<void> {
     try {
-      const result = await api<CleanupResponse>('/api/db/cleanup', {
+      const result = await api<{ success: boolean; jobId: number }>(`/api/birds/${id}/fly`, {
         method: 'POST',
-        body: {},
       });
-      const total = result.messages + result.cronRuns + result.jobs + result.logs;
-      showToast(
-        `Cleanup done: ${total} record(s) removed (${result.messages} messages, ${result.cronRuns} flight logs, ${result.jobs} jobs, ${result.logs} logs)`,
-        'success',
-      );
+      showToast(`${name} sent on a flight (job #${result.jobId})`, 'success');
+      const { [id]: _, ...rest } = systemFlights;
+      systemFlights = rest;
     } catch (err) {
-      showToast(`Cleanup failed: ${(err as Error).message}`, 'error');
-    } finally {
-      cleaningUp = false;
+      showToast(`Failed: ${(err as Error).message}`, 'error');
     }
   }
 </script>
@@ -402,19 +414,72 @@
     </div>
 
     <div class="group">
-      <h2 class="group-title">Cleanup</h2>
-      <div class="fields">
-        <div class="field">
-          <span class="field-label">Run Cleanup</span>
-          <span class="field-value">
-            <span class="field-dim">Delete records older than {config.database.retentionDays}d</span
-            >
-            <button class="btn btn-outline btn-sm" disabled={cleaningUp} onclick={runCleanup}
-              >{cleaningUp ? 'Running...' : 'Run Cleanup'}</button
-            >
-          </span>
+      <h2 class="group-title">System Birds</h2>
+      {#if systemBirds.length === 0}
+        <div class="fields">
+          <div class="field">
+            <span class="field-dim">No system birds registered</span>
+          </div>
         </div>
-      </div>
+      {:else}
+        {#each systemBirds as bird (bird.id)}
+          <div class="system-bird-card">
+            <div class="system-bird-header">
+              <span class="system-bird-name">{bird.name}</span>
+              <div class="system-bird-actions">
+                <span class="mono system-bird-schedule">{bird.schedule}</span>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick={() => flySystemBird(bird.id, bird.name)}>Fly</button
+                >
+              </div>
+            </div>
+            <div class="fields">
+              <div class="field">
+                <span class="field-label">Last Run</span>
+                <span class="field-value">
+                  {#if bird.last_run}
+                    {formatAge(bird.last_run)}
+                    {#if bird.last_status}
+                      <Badge status={bird.last_status} />
+                    {/if}
+                  {:else}
+                    <span class="field-dim">Never</span>
+                  {/if}
+                </span>
+              </div>
+              <div class="field">
+                <span class="field-label">Recent Flights</span>
+                <span class="field-value">
+                  {#if !systemFlights[bird.id]}
+                    <button
+                      class="btn btn-outline btn-sm"
+                      onclick={() => loadSystemFlights(bird.id)}>Load</button
+                    >
+                  {:else if systemFlights[bird.id]!.length === 0}
+                    <span class="field-dim">No flights</span>
+                  {:else}
+                    <span class="field-dim">{systemFlights[bird.id]!.length} flight(s)</span>
+                  {/if}
+                </span>
+              </div>
+            </div>
+            {#if systemFlights[bird.id]?.length}
+              <div class="system-flights">
+                {#each systemFlights[bird.id] as flight (flight.id)}
+                  <div class="system-flight-row">
+                    <span class="mono system-flight-id">#{flight.id}</span>
+                    <Badge status={flight.status} />
+                    <span class="mono">{flightDuration(flight.started_at, flight.finished_at)}</span
+                    >
+                    <span class="system-flight-time">{formatAge(flight.started_at)}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/each}
+      {/if}
     </div>
 
     <div class="group">
@@ -613,5 +678,73 @@
   .dot-off {
     background: var(--color-error);
     box-shadow: 0 0 4px var(--color-error);
+  }
+
+  .system-bird-card {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: var(--space-2);
+  }
+
+  .system-bird-card .fields {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    border-radius: 0;
+  }
+
+  .system-bird-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .system-bird-name {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+  }
+
+  .system-bird-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .system-bird-schedule {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .system-flights {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .system-flight-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1-5) var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--text-sm);
+  }
+
+  .system-flight-row:last-child {
+    border-bottom: none;
+  }
+
+  .system-flight-id {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    min-width: 3rem;
+  }
+
+  .system-flight-time {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    margin-left: auto;
   }
 </style>

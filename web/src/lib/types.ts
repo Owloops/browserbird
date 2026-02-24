@@ -15,10 +15,18 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+export interface FlightStats {
+  running: number;
+  completed: number;
+  failed: number;
+  total: number;
+}
+
 export interface StatusResponse {
   uptime: number;
   processes: { active: number; maxConcurrent: number };
   jobs: JobStats;
+  flights: FlightStats;
   messages: { totalMessages: number; totalTokensIn: number; totalTokensOut: number };
   web: { enabled: boolean; port: number };
   agent: { available: boolean };
@@ -152,13 +160,6 @@ export interface FlightRow {
 export interface InvalidateEvent {
   resource: 'sessions' | 'birds';
   cronJobId?: number;
-}
-
-export interface CleanupResponse {
-  messages: number;
-  cronRuns: number;
-  jobs: number;
-  logs: number;
 }
 
 export interface DoctorResponse {

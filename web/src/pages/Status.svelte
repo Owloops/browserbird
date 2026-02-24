@@ -99,9 +99,9 @@
     <div class="stat">
       <span class="stat-label">Flights</span>
       <span class="stat-value"
-        >{status.jobs.pending + status.jobs.running}<span class="stat-dim">&nbsp;active</span></span
+        >{status.flights.running}<span class="stat-dim">&nbsp;active</span></span
       >
-      <span class="stat-sub">{status.jobs.completed} done / {status.jobs.failed} failed</span>
+      <span class="stat-sub">{status.flights.completed} done / {status.flights.failed} failed</span>
     </div>
     <div class="stat-sep"></div>
     <div class="stat">

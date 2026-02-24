@@ -275,6 +275,34 @@ export function completeCronRun(
   stmt.run(status, result ?? null, error ?? null, runId);
 }
 
+export interface FlightStats {
+  running: number;
+  completed: number;
+  failed: number;
+  total: number;
+}
+
+export function getFlightStats(): FlightStats {
+  const rows = getDb()
+    .prepare(
+      `SELECT r.status, COUNT(*) as count
+       FROM cron_runs r
+       JOIN cron_jobs j ON j.id = r.job_id
+       WHERE j.name NOT LIKE '${SYSTEM_CRON_PREFIX}%'
+       GROUP BY r.status`,
+    )
+    .all() as unknown as Array<{ status: string; count: number }>;
+
+  const stats: FlightStats = { running: 0, completed: 0, failed: 0, total: 0 };
+  for (const row of rows) {
+    if (row.status === 'running') stats.running = row.count;
+    else if (row.status === 'success') stats.completed = row.count;
+    else if (row.status === 'error') stats.failed = row.count;
+    stats.total += row.count;
+  }
+  return stats;
+}
+
 export function deleteOldCronRuns(retentionDays: number): number {
   const stmt = getDb().prepare(
     `DELETE FROM cron_runs WHERE started_at < datetime('now', ? || ' days')`,

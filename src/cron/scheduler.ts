@@ -10,6 +10,7 @@ import {
   ensureSystemCronJob,
   deleteOldMessages,
   deleteOldCronRuns,
+  deleteOldJobs,
   deleteOldLogs,
   optimizeDatabase,
 } from '../db/index.ts';
@@ -50,9 +51,10 @@ function registerSystemCronJobs(config: Config, retentionDays: number): void {
     expireStaleSessions(config.sessions.ttlHours);
     const msgs = deleteOldMessages(retentionDays);
     const runs = deleteOldCronRuns(retentionDays);
+    const jobs = deleteOldJobs(retentionDays);
     const logs = deleteOldLogs(retentionDays);
-    if (msgs > 0 || runs > 0 || logs > 0) {
-      const summary = `${msgs} messages, ${runs} flight logs, ${logs} logs older than ${retentionDays}d`;
+    if (msgs > 0 || runs > 0 || jobs > 0 || logs > 0) {
+      const summary = `${msgs} messages, ${runs} flight logs, ${jobs} jobs, ${logs} logs older than ${retentionDays}d`;
       logger.info(`system cleanup: ${summary}`);
       return summary;
     }

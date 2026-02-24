@@ -4,13 +4,9 @@ import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { printTable, unknownSubcommand } from '../core/table.ts';
-import { loadConfig } from '../config.ts';
 import {
   openDatabase,
   closeDatabase,
-  deleteOldMessages,
-  deleteOldCronRuns,
-  optimizeDatabase,
   listJobs,
   getJobStats,
   retryJob,
@@ -27,7 +23,6 @@ database maintenance and inspection.
 
 subcommands:
 
-  cleanup          delete old records and optimize
   logs             show recent log entries (default: error level)
   jobs             list raw job queue entries
   jobs stats       show job queue statistics
@@ -44,7 +39,6 @@ options:
   --all-failed     retry all failed jobs (with jobs retry)
   --completed      clear completed jobs (with jobs clear)
   --failed         clear failed jobs (with jobs clear)
-  --days <n>       retention days override (with cleanup)
   --config <path>  config file path
   -h, --help       show this help
 `.trim();
@@ -67,38 +61,12 @@ export function handleDatabase(argv: string[]): void {
       'all-failed': { type: 'boolean', default: false },
       completed: { type: 'boolean', default: false },
       failed: { type: 'boolean', default: false },
-      days: { type: 'string' },
-      config: { type: 'string' },
     },
     allowPositionals: true,
     strict: false,
   });
 
   switch (subcommand) {
-    case 'cleanup': {
-      const config = loadConfig(values.config as string | undefined);
-      const envDays = process.env['BROWSERBIRD_RETENTION_DAYS'];
-      const days =
-        values.days != null
-          ? Number(values.days)
-          : envDays != null
-            ? Number(envDays)
-            : config.database.retentionDays;
-      if (!Number.isFinite(days) || days < 1) {
-        logger.error('--days must be a positive number');
-        process.exitCode = 1;
-        return;
-      }
-      const dbPath = resolve('.browserbird', 'browserbird.db');
-      openDatabase(dbPath);
-      const msgs = deleteOldMessages(days);
-      const runs = deleteOldCronRuns(days);
-      optimizeDatabase();
-      closeDatabase();
-      logger.success(`cleaned up: ${msgs} messages, ${runs} flight logs older than ${days}d`);
-      break;
-    }
-
     case 'logs': {
       const level = values.level as string | undefined;
       const perPage = values.limit != null ? Number(values.limit) : 20;

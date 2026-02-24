@@ -26,7 +26,6 @@
     { key: 'actions', label: 'Actions' },
   ];
 
-  let showSystem = $state(localStorage.getItem('birds-show-system') === 'true');
   let lastUpdated = $state(timeStamp());
   let expandedId: number | null = $state(null);
   let flightHistory: Record<number, FlightRow[]> = $state({});
@@ -37,12 +36,6 @@
     columns,
     defaultSort: 'id',
     invalidateOn: 'birds',
-    buildParams: () => {
-      const p: Record<string, string> = {};
-      if (showSystem) p['system'] = 'true';
-      return p;
-    },
-    watchExtras: () => showSystem,
     onResponse: () => {
       lastUpdated = timeStamp();
     },
@@ -245,17 +238,6 @@
           else openCreate();
         }}>{showForm && editingId == null ? 'Cancel' : 'Add Bird'}</button
       >
-      <div class="system-toggle">
-        <Toggle
-          active={showSystem}
-          onToggle={() => {
-            showSystem = !showSystem;
-            localStorage.setItem('birds-show-system', String(showSystem));
-            table.setPage(1);
-          }}
-        />
-        <span>System birds</span>
-      </div>
       <div class="filter-spacer"></div>
       <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}
@@ -337,15 +319,6 @@
 {/if}
 
 <style>
-  .system-toggle {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1-5);
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-    user-select: none;
-  }
-
   .filter-spacer {
     flex: 1;
   }

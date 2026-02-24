@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Config } from '../core/types.ts';
 import type { WebServerDeps } from './http.ts';
 import { checkAuth } from './http.ts';
-import { getJobStats, getMessageStats } from '../db/index.ts';
+import { getJobStats, getMessageStats, getFlightStats } from '../db/index.ts';
 
 const sseConnections = new Set<ServerResponse>();
 
@@ -28,6 +28,7 @@ export function handleSSE(
 
   const send = () => {
     const jobs = getJobStats();
+    const flights = getFlightStats();
     const messages = getMessageStats();
     const health = deps.serviceHealth();
     const data = JSON.stringify({
@@ -37,6 +38,7 @@ export function handleSSE(
         maxConcurrent: config.sessions.maxConcurrent,
       },
       jobs,
+      flights,
       messages,
       web: { enabled: config.web.enabled, port: config.web.port },
       agent: health.agent,
