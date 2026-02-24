@@ -63,6 +63,20 @@ The stack runs two containers: a `vm` container with the Wayland compositor, VNC
 4. Copy **Bot User OAuth Token** to `SLACK_BOT_TOKEN`
 5. Enable Socket Mode, copy **App-Level Token** to `SLACK_APP_TOKEN`
 
+### Slash Commands
+
+Once the app is installed, `/bird` is available in any channel:
+
+```
+/bird list              Show all configured birds
+/bird fly <name>        Trigger a bird immediately
+/bird logs <name>       Show recent flights
+/bird enable <name>     Enable a bird
+/bird disable <name>    Disable a bird
+/bird create            Create a new bird (opens form)
+/bird status            Show daemon status
+```
+
 ## Configuration
 
 ```bash
@@ -94,8 +108,7 @@ cp browserbird.example.json browserbird.json
   "sessions": {
     "ttlHours": 24,
     "maxConcurrent": 5,
-    "processTimeoutMs": 300000,
-    "longResponseMode": "snippet"
+    "processTimeoutMs": 300000
   },
   "database": { "retentionDays": 30, "optimizeIntervalHours": 24 },
   "browser": { "enabled": false, "mcpConfigPath": null },
@@ -151,12 +164,11 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 <details>
 <summary><strong>sessions</strong></summary>
 
-| Key                | Default     | Description                                                                                       |
-| ------------------ | ----------- | ------------------------------------------------------------------------------------------------- |
-| `ttlHours`         | `24`        | Session lifetime in hours (resets on each message)                                                |
-| `maxConcurrent`    | `5`         | Max simultaneous agent processes                                                                  |
-| `processTimeoutMs` | `300000`    | Per-request timeout in milliseconds                                                               |
-| `longResponseMode` | `"snippet"` | How to handle responses over 3900 bytes: `snippet` (file upload) or `thread` (split into chunks)  |
+| Key                | Default  | Description                                        |
+| ------------------ | -------- | -------------------------------------------------- |
+| `ttlHours`         | `24`     | Session lifetime in hours (resets on each message)  |
+| `maxConcurrent`    | `5`      | Max simultaneous agent processes                    |
+| `processTimeoutMs` | `300000` | Per-request timeout in milliseconds                 |
 
 </details>
 
@@ -267,8 +279,6 @@ browserbird settings --config ./my.json
 ### Database
 
 ```bash
-browserbird database cleanup
-browserbird database cleanup --days 7
 browserbird database logs
 browserbird database logs --level warn --limit 50
 browserbird database jobs
