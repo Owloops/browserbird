@@ -65,29 +65,13 @@
       Sessions
     </button>
     <h2 class="session-title">Session #{session.id}</h2>
-  </div>
-
-  <div class="meta-grid">
-    <div class="meta-item">
-      <span class="meta-label">Channel</span>
-      <span class="meta-value mono">{session.channel_id}</span>
-    </div>
-    <div class="meta-item">
-      <span class="meta-label">Thread</span>
-      <span class="meta-value mono">{session.thread_id ?? '-'}</span>
-    </div>
-    <div class="meta-item">
-      <span class="meta-label">Agent</span>
-      <span class="meta-value">{session.agent_id}</span>
-    </div>
-    <div class="meta-item">
-      <span class="meta-label">Created</span>
-      <span class="meta-value">{formatAge(session.created_at)}</span>
-    </div>
-    <div class="meta-item">
-      <span class="meta-label">Last Active</span>
-      <span class="meta-value">{formatAge(session.last_active)}</span>
-    </div>
+    <span class="session-meta">
+      <span class="mono">{session.channel_id}</span>
+      <span class="meta-sep"></span>
+      {session.agent_id}
+      <span class="meta-sep"></span>
+      {formatAge(session.last_active)}
+    </span>
   </div>
 
   <div class="stat-cards">
@@ -143,36 +127,24 @@
     font-weight: 600;
     color: var(--color-text-primary);
     margin: 0;
+    flex-shrink: 0;
   }
 
-  .meta-grid {
+  .session-meta {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-4) var(--space-8);
-    margin-bottom: var(--space-4);
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-  }
-
-  .meta-item {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  .meta-label {
-    font-size: var(--text-xs);
-    font-weight: 600;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
-  .meta-value {
-    font-size: var(--text-base);
-    color: var(--color-text-secondary);
+  .meta-sep {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+    flex-shrink: 0;
+    opacity: 0.5;
   }
 
   .stat-cards {
