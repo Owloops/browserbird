@@ -1,6 +1,10 @@
 /** @fileoverview Cron scheduler — evaluates cron jobs every 60s and enqueues due jobs. */
 
 import type { Config } from '../core/types.ts';
+import type { Block } from '../channel/blocks.ts';
+import type { CronSchedule } from './parse.ts';
+import type { StreamEventCompletion } from '../provider/stream.ts';
+
 import { logger } from '../core/logger.ts';
 import {
   SYSTEM_CRON_PREFIX,
@@ -19,7 +23,7 @@ import { registerHandler, enqueue } from '../jobs.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import { parseCron, matchesCron } from './parse.ts';
-import type { CronSchedule } from './parse.ts';
+import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
 
 const TICK_INTERVAL_MS = 60_000;
 
@@ -36,7 +40,7 @@ interface SystemCronPayload {
 }
 
 export interface SchedulerDeps {
-  postToSlack?: (channel: string, text: string) => Promise<void>;
+  postToSlack?: (channel: string, text: string, opts?: { blocks?: Block[] }) => Promise<void>;
 }
 
 type SystemCronHandler = () => string | void;
@@ -92,10 +96,21 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     );
 
     let result = '';
+    let completion: StreamEventCompletion | undefined;
     for await (const event of events) {
       if (event.type === 'text_delta') {
         result += event.delta;
+      } else if (event.type === 'completion') {
+        completion = event;
+      } else if (event.type === 'rate_limit') {
+        logger.warn(
+          `bird #${payload.cronJobId} rate limited (resets ${new Date(event.resetsAt * 1000).toISOString()})`,
+        );
       } else if (event.type === 'error') {
+        if (payload.channelId && deps?.postToSlack) {
+          const blocks = sessionErrorBlocks(event.error, { birdName: agent.name });
+          await deps.postToSlack(payload.channelId, `Bird failed: ${event.error}`, { blocks });
+        }
         throw new Error(event.error);
       }
     }
@@ -106,7 +121,14 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     }
 
     if (payload.channelId && deps?.postToSlack) {
-      await deps.postToSlack(payload.channelId, result);
+      if (completion) {
+        const summary = result.length > 300 ? result.slice(0, 300) + '...' : result;
+        const blocks = sessionCompleteBlocks(completion, summary, agent.name);
+        const fallback = `Bird ${agent.name} completed: ${completion.numTurns} turns`;
+        await deps.postToSlack(payload.channelId, fallback, { blocks });
+      } else {
+        await deps.postToSlack(payload.channelId, result);
+      }
       logger.info(`bird #${payload.cronJobId} result posted to ${payload.channelId}`);
     } else {
       logger.info(`bird #${payload.cronJobId} completed (${result.length} chars)`);
