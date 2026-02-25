@@ -185,8 +185,8 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 | --------------- | --------------- | ---------------------------------------------- |
 | `enabled`       | `false`         | Enable Playwright MCP for the agent            |
 | `mcpConfigPath` | `null`          | Path to your MCP config (relative or absolute) |
-| `display`       | `":1"`          | X display identifier                           |
-| `resolution`    | `"1280x800x24"` | Browser resolution                             |
+| `display`       | `":1"`          | Display identifier (X11 or Wayland)            |
+| `resolution`    | `"1280x800x24"` | Virtual display resolution                     |
 | `vncPort`       | `5900`          | VNC server port                                |
 | `novncPort`     | `6080`          | Upstream noVNC WebSocket port                  |
 | `novncHost`     | `"localhost"`   | Upstream noVNC host (e.g. `"vm"` in Docker)    |
@@ -199,6 +199,8 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 | Key           | Default | Description                                   |
 | ------------- | ------- | --------------------------------------------- |
 | `maxAttempts` | `3`     | Max job attempts before a bird stops retrying |
+
+Each bird also supports per-bird `active_hours_start` and `active_hours_end` (HH:MM format), set via CLI `--active-hours 09:00-17:00` or the API. When configured, the bird only runs during that time window in its configured timezone. Wrap-around windows (e.g. `22:00-06:00`) are supported.
 
 </details>
 
@@ -258,7 +260,9 @@ browserbird doctor                 # Check agent CLI and Node.js version
 browserbird birds list
 browserbird birds add "0 9 * * 1-5" "Summarize what happened in #general yesterday" --channel C123456
 browserbird birds add "@daily" "Check the status page and report any incidents" --agent code-reviewer
+browserbird birds add "*/30 * * * *" "Monitor uptime" --active-hours "09:00-17:00"
 browserbird birds edit <id> --schedule "0 8 * * *" --agent support-bot
+browserbird birds edit <id> --active-hours "08:00-22:00"
 browserbird birds enable <id>
 browserbird birds disable <id>
 browserbird birds remove <id>
@@ -305,6 +309,7 @@ Runs at `http://localhost:18800` by default. Real-time updates via SSE.
 | **Status**   | System stats, active sessions overview                                              |
 | **Sessions** | Agent sessions with message counts, clickable to inspect full history               |
 | **Birds**    | Scheduled birds: create, edit, enable/disable, trigger, inline flight history       |
+| **Flights**  | Flight log across all birds, with status filter and per-flight retry                |
 | **Browser**  | Live noVNC viewer (Docker only)                                                     |
 | **Settings** | Config (agents, sessions, slack, browser) + Database tab (job queue, cleanup, logs) |
 
