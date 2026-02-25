@@ -103,8 +103,8 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       } else if (event.type === 'completion') {
         completion = event;
       } else if (event.type === 'rate_limit') {
-        logger.warn(
-          `bird #${payload.cronJobId} rate limited (resets ${new Date(event.resetsAt * 1000).toISOString()})`,
+        logger.debug(
+          `bird #${payload.cronJobId} rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
         );
       } else if (event.type === 'error') {
         if (payload.channelId && deps?.postToSlack) {
@@ -169,7 +169,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
         }
       }
 
-      if (!matchesCron(schedule, now)) continue;
+      if (!matchesCron(schedule, now, job.timezone)) continue;
 
       const isSystem = job.name.startsWith(SYSTEM_CRON_PREFIX);
 

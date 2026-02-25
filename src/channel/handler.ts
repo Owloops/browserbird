@@ -104,8 +104,7 @@ export function createHandler(
           break;
 
         case 'rate_limit':
-          logger.warn(`rate limited (resets ${new Date(event.resetsAt * 1000).toISOString()})`);
-          client.setStatus?.(channelId, threadTs, 'waiting for rate limit...').catch(() => {});
+          logger.debug(`rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`);
           break;
 
         case 'error':
