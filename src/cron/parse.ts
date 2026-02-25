@@ -71,13 +71,38 @@ export function parseCron(expression: string): CronSchedule {
   };
 }
 
-/** Returns true if the given Date matches the cron schedule. */
-export function matchesCron(schedule: CronSchedule, date: Date): boolean {
+/** Returns true if the given Date matches the cron schedule in the specified timezone. */
+export function matchesCron(schedule: CronSchedule, date: Date, timezone?: string): boolean {
+  const tz = timezone || 'UTC';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: 'numeric',
+    minute: 'numeric',
+    day: 'numeric',
+    month: 'numeric',
+    weekday: 'short',
+    hour12: false,
+  }).formatToParts(date);
+
+  const get = (type: Intl.DateTimeFormatPartTypes): number =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+
+  const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? '';
+  const weekdayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+
   return (
-    schedule.minutes.has(date.getMinutes()) &&
-    schedule.hours.has(date.getHours()) &&
-    schedule.daysOfMonth.has(date.getDate()) &&
-    schedule.months.has(date.getMonth() + 1) &&
-    schedule.daysOfWeek.has(date.getDay())
+    schedule.minutes.has(get('minute')) &&
+    schedule.hours.has(get('hour')) &&
+    schedule.daysOfMonth.has(get('day')) &&
+    schedule.months.has(get('month')) &&
+    schedule.daysOfWeek.has(weekdayMap[weekdayStr] ?? 0)
   );
 }
