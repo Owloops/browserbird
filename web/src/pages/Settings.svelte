@@ -164,6 +164,10 @@
           </div>
         {/if}
         <div class="field">
+          <span class="field-label">Timezone</span>
+          <span class="field-value mono">{config.timezone}</span>
+        </div>
+        <div class="field">
           <span class="field-label">Web Port</span>
           <span class="field-value mono">{config.web.port}</span>
         </div>

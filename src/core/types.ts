@@ -68,6 +68,7 @@ export interface WebConfig {
 }
 
 export interface Config {
+  timezone: string;
   slack: SlackConfig;
   agents: AgentConfig[];
   sessions: SessionsConfig;

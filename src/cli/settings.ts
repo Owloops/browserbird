@@ -29,6 +29,7 @@ function printSettingsAll(configPath?: string): void {
 
   console.log('settings');
   console.log('--------');
+  console.log(`\ntimezone: ${config.timezone}`);
 
   console.log('\nagents:');
   for (const a of config.agents) {

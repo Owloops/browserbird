@@ -94,6 +94,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       pattern: pathToRegex('/api/config'),
       handler(_req, res) {
         json(res, {
+          timezone: config.timezone,
           agents: config.agents.map((a: AgentConfig) => ({
             id: a.id,
             name: a.name,
@@ -296,7 +297,13 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'POST',
       pattern: pathToRegex('/api/birds'),
       async handler(req, res) {
-        let body: { schedule?: string; prompt?: string; channel?: string; agent?: string };
+        let body: {
+          schedule?: string;
+          prompt?: string;
+          channel?: string;
+          agent?: string;
+          timezone?: string;
+        };
         try {
           body = await readJsonBody(req);
         } catch {
@@ -318,6 +325,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           body.prompt.trim(),
           body.channel?.trim() || undefined,
           body.agent?.trim() || undefined,
+          body.timezone?.trim() || config.timezone,
         );
         broadcastSSE('invalidate', { resource: 'birds' });
         json(res, job, 201);
@@ -332,7 +340,13 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           jsonError(res, 'Invalid bird ID', 400);
           return;
         }
-        let body: { schedule?: string; prompt?: string; channel?: string | null; agent?: string };
+        let body: {
+          schedule?: string;
+          prompt?: string;
+          channel?: string | null;
+          agent?: string;
+          timezone?: string;
+        };
         try {
           body = await readJsonBody(req);
         } catch {
@@ -345,6 +359,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           name: body.prompt ? body.prompt.trim().slice(0, 50) : undefined,
           targetChannelId: body.channel !== undefined ? body.channel?.trim() || null : undefined,
           agentId: body.agent?.trim() || undefined,
+          timezone: body.timezone?.trim() || undefined,
         });
         if (updated) {
           broadcastSSE('invalidate', { resource: 'birds' });

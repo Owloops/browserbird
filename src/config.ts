@@ -6,6 +6,7 @@ import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
 
 const DEFAULTS: Config = {
+  timezone: 'UTC',
   slack: {
     botToken: '',
     appToken: '',

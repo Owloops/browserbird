@@ -1,4 +1,5 @@
 {
+  "timezone": "UTC",
   "slack": {
     "botToken": "env:SLACK_BOT_TOKEN",
     "appToken": "env:SLACK_APP_TOKEN",

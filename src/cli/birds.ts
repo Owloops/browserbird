@@ -35,12 +35,13 @@ subcommands:
 
 options:
 
-  --channel <id>     target slack channel
-  --agent <id>       target agent id
-  --schedule <expr>  cron schedule expression
-  --prompt <text>    prompt text
-  --limit <n>        number of flights to show (default: 10, with logs)
-  -h, --help         show this help
+  --channel <id>       target slack channel
+  --agent <id>         target agent id
+  --schedule <expr>    cron schedule expression
+  --prompt <text>      prompt text
+  --timezone <tz>      IANA timezone (default: UTC)
+  --limit <n>          number of flights to show (default: 10, with logs)
+  -h, --help           show this help
 `.trim();
 
 export function handleBirds(argv: string[]): void {
@@ -54,6 +55,7 @@ export function handleBirds(argv: string[]): void {
       agent: { type: 'string' },
       schedule: { type: 'string' },
       prompt: { type: 'string' },
+      timezone: { type: 'string' },
       limit: { type: 'string' },
     },
     allowPositionals: true,
@@ -110,6 +112,7 @@ export function handleBirds(argv: string[]): void {
           prompt,
           values.channel as string | undefined,
           values.agent as string | undefined,
+          values.timezone as string | undefined,
         );
         logger.success(`bird #${job.id} created: "${schedule}"`);
         break;
@@ -119,7 +122,7 @@ export function handleBirds(argv: string[]): void {
         const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
           logger.error(
-            'usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>]',
+            'usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--timezone <tz>]',
           );
           process.exitCode = 1;
           return;
@@ -128,8 +131,11 @@ export function handleBirds(argv: string[]): void {
         const agent = values.agent as string | undefined;
         const schedule = values.schedule as string | undefined;
         const prompt = values.prompt as string | undefined;
-        if (!schedule && !prompt && !channel && !agent) {
-          logger.error('provide at least one of: --schedule, --prompt, --channel, --agent');
+        const timezone = values.timezone as string | undefined;
+        if (!schedule && !prompt && !channel && !agent && !timezone) {
+          logger.error(
+            'provide at least one of: --schedule, --prompt, --channel, --agent, --timezone',
+          );
           process.exitCode = 1;
           return;
         }
@@ -139,6 +145,7 @@ export function handleBirds(argv: string[]): void {
           name: prompt ? prompt.slice(0, 50) : undefined,
           targetChannelId: channel !== undefined ? channel || null : undefined,
           agentId: agent,
+          timezone,
         });
         if (updated) {
           logger.success(`bird #${id} updated`);

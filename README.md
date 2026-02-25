@@ -86,6 +86,7 @@ cp browserbird.example.json browserbird.json
 
 ```json
 {
+  "timezone": "UTC",
   "slack": {
     "botToken": "env:SLACK_BOT_TOKEN",
     "appToken": "env:SLACK_APP_TOKEN",
@@ -123,6 +124,10 @@ cp browserbird.example.json browserbird.json
   }
 }
 ```
+
+| Key        | Default | Description                                                         |
+| ---------- | ------- | ------------------------------------------------------------------- |
+| `timezone` | `"UTC"` | IANA timezone used as default for new birds (e.g. `"America/Chicago"`) |
 
 <details>
 <summary><strong>slack</strong></summary>

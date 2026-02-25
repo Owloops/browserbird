@@ -298,7 +298,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     if (interactionType === 'view_submission') {
       const view = body['view'] as Record<string, unknown> | undefined;
       if (view?.['callback_id'] === 'bird_create') {
-        await handleBirdCreateSubmission(view, webClient);
+        await handleBirdCreateSubmission(view, webClient, config.timezone);
       }
     }
   });
@@ -368,6 +368,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
 async function handleBirdCreateSubmission(
   view: Record<string, unknown>,
   webClient: WebClient,
+  defaultTimezone: string,
 ): Promise<void> {
   try {
     const values = view['state'] as Record<string, unknown> | undefined;
@@ -400,7 +401,14 @@ async function handleBirdCreateSubmission(
     }
 
     const { createCronJob, setCronJobEnabled } = await import('../db/index.ts');
-    const bird = createCronJob(name, schedule, prompt, channelId || undefined, 'default');
+    const bird = createCronJob(
+      name,
+      schedule,
+      prompt,
+      channelId || undefined,
+      'default',
+      defaultTimezone,
+    );
     if (enabledValue !== 'enabled') {
       setCronJobEnabled(bird.id, false);
     }

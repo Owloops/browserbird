@@ -63,6 +63,7 @@ export interface UpdateCronJobFields {
   prompt?: string;
   targetChannelId?: string | null;
   agentId?: string;
+  timezone?: string;
 }
 
 const CRON_SORT_COLUMNS = new Set([
@@ -106,10 +107,11 @@ export function createCronJob(
   prompt: string,
   targetChannelId?: string,
   agentId?: string,
+  timezone?: string,
 ): CronJobRow {
   const stmt = getDb().prepare(
-    `INSERT INTO cron_jobs (name, schedule, prompt, target_channel_id, agent_id)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO cron_jobs (name, schedule, prompt, target_channel_id, agent_id, timezone)
+     VALUES (?, ?, ?, ?, ?, ?)
      RETURNING *`,
   );
   return stmt.get(
@@ -118,6 +120,7 @@ export function createCronJob(
     prompt,
     targetChannelId ?? null,
     agentId ?? 'default',
+    timezone ?? 'UTC',
   ) as unknown as CronJobRow;
 }
 
@@ -164,6 +167,10 @@ export function updateCronJob(jobId: number, fields: UpdateCronJobFields): CronJ
   if (fields.agentId !== undefined) {
     sets.push('agent_id = ?');
     params.push(fields.agentId);
+  }
+  if (fields.timezone !== undefined) {
+    sets.push('timezone = ?');
+    params.push(fields.timezone);
   }
 
   if (sets.length === 0) return getCronJob(jobId);

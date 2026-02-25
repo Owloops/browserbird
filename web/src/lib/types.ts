@@ -35,6 +35,7 @@ export interface StatusResponse {
 }
 
 export interface ConfigResponse {
+  timezone: string;
   agents: {
     id: string;
     name: string;
