@@ -181,6 +181,18 @@
             </span>
           </div>
           <div class="field">
+            <span class="field-label">OpenCode CLI</span>
+            <span class="field-value">
+              {#if doctor.opencode.available}
+                <span class="dot dot-on"></span>
+                <span class="mono">{doctor.opencode.version}</span>
+              {:else}
+                <span class="dot dot-off"></span>
+                Not found
+              {/if}
+            </span>
+          </div>
+          <div class="field">
             <span class="field-label">Node.js</span>
             <span class="field-value mono">{doctor.node}</span>
           </div>

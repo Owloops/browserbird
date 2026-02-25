@@ -1,0 +1,95 @@
+/** @fileoverview Tests for the Claude CLI stream parser. */
+
+import { describe, it } from 'node:test';
+import { deepStrictEqual, strictEqual } from 'node:assert';
+import { claude } from './claude.ts';
+
+describe('claude parseStreamLine', () => {
+  it('parses system event into init', () => {
+    const events = claude.parseStreamLine(
+      '{"type":"system","session_id":"abc-123","model":"claude-sonnet-4-20250514"}',
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], {
+      type: 'init',
+      sessionId: 'abc-123',
+      model: 'claude-sonnet-4-20250514',
+    });
+  });
+
+  it('parses assistant text content', () => {
+    const events = claude.parseStreamLine(
+      '{"type":"assistant","message":{"content":[{"type":"text","text":"4"}]}}',
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], { type: 'text_delta', delta: '4' });
+  });
+
+  it('parses result into completion with full metrics', () => {
+    const events = claude.parseStreamLine(
+      JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        result: '4',
+        session_id: 'abc-123',
+        is_error: false,
+        usage: {
+          input_tokens: 100,
+          output_tokens: 5,
+          cache_creation_input_tokens: 50,
+          cache_read_input_tokens: 10,
+        },
+        total_cost_usd: 0.001,
+        duration_ms: 1500,
+        num_turns: 3,
+      }),
+    );
+    strictEqual(events.length, 1);
+    const c = events[0]!;
+    strictEqual(c.type, 'completion');
+    if (c.type === 'completion') {
+      strictEqual(c.subtype, 'success');
+      strictEqual(c.tokensIn, 100);
+      strictEqual(c.tokensOut, 5);
+      strictEqual(c.cacheCreationTokens, 50);
+      strictEqual(c.cacheReadTokens, 10);
+      strictEqual(c.costUsd, 0.001);
+      strictEqual(c.durationMs, 1500);
+      strictEqual(c.numTurns, 3);
+    }
+  });
+
+  it('parses error event', () => {
+    const events = claude.parseStreamLine('{"type":"error","error":"something broke"}');
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], { type: 'error', error: 'something broke' });
+  });
+
+  it('returns empty for blank lines', () => {
+    strictEqual(claude.parseStreamLine('').length, 0);
+    strictEqual(claude.parseStreamLine('   ').length, 0);
+  });
+
+  it('returns empty for non-json', () => {
+    strictEqual(claude.parseStreamLine('not json at all').length, 0);
+  });
+
+  it('ignores tool_use content blocks', () => {
+    const events = claude.parseStreamLine(
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"bash","input":{}}]}}',
+    );
+    strictEqual(events.length, 0);
+  });
+
+  it('parses rate_limit_event', () => {
+    const events = claude.parseStreamLine(
+      '{"type":"rate_limit_event","rate_limit_info":{"status":"rate_limited","resetsAt":1700000000}}',
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], {
+      type: 'rate_limit',
+      status: 'rate_limited',
+      resetsAt: 1700000000,
+    });
+  });
+});

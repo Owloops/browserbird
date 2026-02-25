@@ -139,7 +139,7 @@ cp browserbird.example.json browserbird.json
 | `requireMention`            | `true`    | Only respond in channels when the bot is `@mentioned`; DMs always respond |
 | `coalesce.debounceMs`       | `3000`    | Wait N ms after last message before dispatching (group channels)          |
 | `coalesce.bypassDms`        | `true`    | Skip debouncing for DMs                                                   |
-| `channels`                  | `["*"]`   | Restrict to specific channel IDs, or `"*"` for all                        |
+| `channels`                  | `["*"]`   | Channel names or IDs to listen in, or `"*"` for all                       |
 | `quietHours.enabled`        | `false`   | Silence the bot during specified hours                                    |
 | `quietHours.start`          | `"23:00"` | Start of quiet period (HH:MM)                                             |
 | `quietHours.end`            | `"08:00"` | End of quiet period (HH:MM), can wrap midnight                            |
@@ -152,17 +152,17 @@ cp browserbird.example.json browserbird.json
 
 Each agent is scoped to specific channels. Multiple agents are matched in order, first match wins.
 
-| Key                | Default                   | Description                                           |
-| ------------------ | ------------------------- | ----------------------------------------------------- |
-| `id`               | required                  | Unique agent identifier                               |
-| `name`             | required                  | Display name                                          |
-| `provider`         | `"claude"`                | Provider CLI to use                                   |
-| `model`            | `"sonnet"`                | Primary model                                         |
-| `fallbackModel`    | none                      | Optional fallback when primary is unavailable         |
-| `maxTurns`         | `50`                      | Max conversation turns per session                    |
-| `systemPrompt`     | none                      | Instructions prepended to every session               |
-| `channels`         | `["*"]`                   | Channel IDs this agent handles, or `"*"` for all      |
-| `processTimeoutMs` | inherits `sessions` value | Per-agent subprocess timeout override in milliseconds |
+| Key                | Default                   | Description                                                  |
+| ------------------ | ------------------------- | ------------------------------------------------------------ |
+| `id`               | required                  | Unique agent identifier                                      |
+| `name`             | required                  | Display name                                                 |
+| `provider`         | `"claude"`                | Provider CLI: `"claude"` or `"opencode"`                     |
+| `model`            | `"sonnet"`                | Model name. Claude uses short names (`sonnet`, `haiku`). OpenCode uses `provider/model` format (`anthropic/claude-sonnet-4-20250514`) |
+| `fallbackModel`    | none                      | Optional fallback when primary is unavailable (claude only, [pending for opencode](https://github.com/anomalyco/opencode/issues/7602)) |
+| `maxTurns`         | `50`                      | Max conversation turns per session                           |
+| `systemPrompt`     | none                      | Instructions prepended to every session                      |
+| `channels`         | `["*"]`                   | Channel names or IDs this agent handles, or `"*"` for all    |
+| `processTimeoutMs` | inherits `sessions` value | Per-agent subprocess timeout override in milliseconds        |
 
 </details>
 
@@ -232,19 +232,19 @@ Any string value in `browserbird.json` can reference an environment variable wit
 | `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                                                                |
 | `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
 | `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                                                                   |
-| `ANTHROPIC_API_KEY`           | Agent auth via API key (recommended). Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
-| `CLAUDE_CODE_OAUTH_TOKEN`     | Agent auth via OAuth token (personal use). Uses your Claude Pro/Max subscription. See note below                   |
+| `ANTHROPIC_API_KEY`           | Claude provider auth via API key (recommended). Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
+| `CLAUDE_CODE_OAUTH_TOKEN`     | Claude provider auth via OAuth token (personal use). Uses your Claude Pro/Max subscription. See note below                   |
 | `NO_COLOR`                    | Disable colored output                                                                                              |
 
 > [!NOTE]
-> **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. Set one or the other, not both.
+> **Agent authentication:** Each provider has its own auth. For the **claude** provider: `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS; `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. For the **opencode** provider: run `opencode auth` to configure credentials (stored in `~/.config/opencode`).
 
 ## CLI
 
 ```bash
 browserbird                        # Start the daemon
 browserbird --config ./my.json     # Use a specific config file
-browserbird doctor                 # Check agent CLI and Node.js version
+browserbird doctor                 # Check agent CLIs and Node.js version
 ```
 
 ### Birds

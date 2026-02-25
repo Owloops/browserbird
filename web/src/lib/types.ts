@@ -162,6 +162,7 @@ export interface InvalidateEvent {
 
 export interface DoctorResponse {
   claude: { available: boolean; version: string | null };
+  opencode: { available: boolean; version: string | null };
   node: string;
 }
 

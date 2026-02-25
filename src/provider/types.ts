@@ -2,11 +2,13 @@
 
 import type { StreamEvent } from './stream.ts';
 
-export type ProviderName = 'claude';
+export type ProviderName = 'claude' | 'opencode';
 
 export interface ProviderCommand {
   binary: string;
   args: string[];
+  cwd?: string;
+  env?: Record<string, string>;
 }
 
 export interface SpawnOptions {

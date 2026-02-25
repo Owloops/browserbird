@@ -359,11 +359,74 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     }
   });
 
+  async function resolveChannelNames(): Promise<void> {
+    const namesToResolve = new Set<string>();
+
+    function collectNames(channels: string[]): void {
+      for (const ch of channels) {
+        if (ch !== '*' && !ch.startsWith('C') && !ch.startsWith('D') && !ch.startsWith('G')) {
+          namesToResolve.add(ch);
+        }
+      }
+    }
+
+    collectNames(config.slack.channels);
+    for (const agent of config.agents) {
+      collectNames(agent.channels);
+    }
+    if (namesToResolve.size === 0) return;
+
+    const nameToId = new Map<string, string>();
+    try {
+      let cursor: string | undefined;
+      do {
+        const result = await webClient.conversations.list({
+          types: 'public_channel,private_channel',
+          limit: 200,
+          exclude_archived: true,
+          cursor,
+        });
+        for (const ch of result.channels ?? []) {
+          if (ch.name && ch.id && namesToResolve.has(ch.name)) {
+            nameToId.set(ch.name, ch.id);
+          }
+        }
+        cursor = result.response_metadata?.next_cursor || undefined;
+      } while (cursor);
+    } catch (err) {
+      logger.warn(
+        `failed to resolve channel names: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
+
+    function resolveList(channels: string[], label: string): string[] {
+      return channels.map((ch) => {
+        const resolved = nameToId.get(ch);
+        if (resolved) {
+          logger.info(`${label}: resolved channel "${ch}" -> ${resolved}`);
+          return resolved;
+        }
+        if (namesToResolve.has(ch)) {
+          logger.warn(`${label}: channel "${ch}" not found in workspace`);
+        }
+        return ch;
+      });
+    }
+
+    config.slack.channels = resolveList(config.slack.channels, 'slack');
+    for (const agent of config.agents) {
+      agent.channels = resolveList(agent.channels, `agent "${agent.id}"`);
+    }
+  }
+
   async function start(): Promise<void> {
     const authResult = await webClient.auth.test();
     botUserId = (authResult.user_id as string) ?? '';
     teamId = (authResult.team_id as string) ?? '';
     logger.info(`authenticated as ${authResult.user} (team: ${teamId})`);
+
+    await resolveChannelNames();
 
     await socketClient.start();
     connected = true;

@@ -6,9 +6,11 @@ import type { StreamEvent } from './stream.ts';
 import { splitLines } from './stream.ts';
 import { logger } from '../core/logger.ts';
 import { claude } from './claude.ts';
+import { opencode } from './opencode.ts';
 
 const PROVIDERS: Record<ProviderName, ProviderModule> = {
   claude,
+  opencode,
 };
 
 /** Env vars that prevent nested Claude Code sessions. */
@@ -39,15 +41,16 @@ export function spawnProvider(
   signal: AbortSignal,
 ): SpawnResult {
   const mod = PROVIDERS[provider];
-  const { binary, args } = mod.buildCommand(options);
+  const cmd = mod.buildCommand(options);
   const timeoutMs = options.agent.processTimeoutMs ?? 300_000;
 
-  logger.debug(`spawning: ${binary} ${args.join(' ')} (timeout: ${timeoutMs}ms)`);
+  logger.debug(`spawning: ${cmd.binary} ${cmd.args.join(' ')} (timeout: ${timeoutMs}ms)`);
 
-  const proc = spawn(binary, args, {
-    cwd: process.cwd(),
+  const baseEnv = cleanEnv();
+  const proc = spawn(cmd.binary, cmd.args, {
+    cwd: cmd.cwd ?? process.cwd(),
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: cleanEnv(),
+    env: cmd.env ? { ...baseEnv, ...cmd.env } : baseEnv,
   });
 
   let stderrBuf = '';
@@ -56,7 +59,7 @@ export function spawnProvider(
   });
 
   const timeout = setTimeout(() => {
-    logger.warn(`${binary} timed out after ${timeoutMs}ms, killing`);
+    logger.warn(`${cmd.binary} timed out after ${timeoutMs}ms, killing`);
     proc.kill('SIGTERM');
   }, timeoutMs);
 
@@ -78,7 +81,7 @@ export function spawnProvider(
       clearTimeout(timeout);
       signal.removeEventListener('abort', onAbort);
       if (stderrBuf.trim()) {
-        logger.debug(`${binary} stderr: ${stderrBuf.trim()}`);
+        logger.debug(`${cmd.binary} stderr: ${stderrBuf.trim()}`);
       }
     }
   }
