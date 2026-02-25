@@ -38,6 +38,7 @@
   },
   "browser": {
     "enabled": false,
+    "mode": "persistent",
     "mcpConfigPath": null,
     "vncPort": 5900,
     "novncPort": 6080,

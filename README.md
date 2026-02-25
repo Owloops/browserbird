@@ -62,8 +62,15 @@ services:
       - ./browserbird.json:/app/oci/app/config/browserbird.json:ro
 ```
 
-> [!NOTE]
-> `shm_size: 2g` is required for Chromium stability inside containers.
+The browser runs in **persistent** mode by default: logins and cookies are saved across sessions, and one agent uses the browser at a time. Set `BROWSER_MODE=isolated` in your `.env` (or `browser.mode` in config) for parallel sessions with fresh contexts. In isolated mode, concurrent sessions share a single Chromium process (~20-50 MB per session on top of the ~300 MB base):
+
+| Spec | Concurrent browser sessions (isolated mode) |
+| --- | --- |
+| 2 GB / 1 vCPU | 5-10 |
+| 4 GB / 2 vCPU | 15-25 |
+| 8 GB / 4 vCPU | 30+ |
+
+Agents without browser access (text-only) are lightweight (~50 MB each). `shm_size: 2g` is required for Chromium stability inside containers.
 
 ## Slack App Setup
 
@@ -123,7 +130,7 @@ cp browserbird.example.json browserbird.json
     "processTimeoutMs": 300000
   },
   "database": { "retentionDays": 30 },
-  "browser": { "enabled": false, "mcpConfigPath": null },
+  "browser": { "enabled": false, "mode": "persistent", "mcpConfigPath": null },
   "birds": { "maxAttempts": 3 },
   "web": {
     "enabled": true,
@@ -190,13 +197,14 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 <details>
 <summary><strong>browser</strong></summary>
 
-| Key             | Default         | Description                                    |
-| --------------- | --------------- | ---------------------------------------------- |
-| `enabled`       | `false`       | Enable Playwright MCP for the agent            |
-| `mcpConfigPath` | `null`        | Path to your MCP config (relative or absolute) |
-| `vncPort`       | `5900`        | VNC server port                                |
-| `novncPort`     | `6080`        | Upstream noVNC WebSocket port                  |
-| `novncHost`     | `"localhost"` | Upstream noVNC host (e.g. `"vm"` in Docker)    |
+| Key             | Default          | Description                                    |
+| --------------- | ---------------- | ---------------------------------------------- |
+| `enabled`       | `false`          | Enable Playwright MCP for the agent            |
+| `mode`          | `"persistent"`   | `"persistent"` saves logins across sessions (one agent at a time). `"isolated"` gives each session a fresh context (parallel agents, no saved state). |
+| `mcpConfigPath` | `null`           | Path to your MCP config (relative or absolute) |
+| `vncPort`       | `5900`           | VNC server port                                |
+| `novncPort`     | `6080`           | Upstream noVNC WebSocket port                  |
+| `novncHost`     | `"localhost"`    | Upstream noVNC host (e.g. `"vm"` in Docker)    |
 
 </details>
 
@@ -242,6 +250,7 @@ Any string value in `browserbird.json` can reference an environment variable wit
 | `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                                                                |
 | `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
 | `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                                                                   |
+| `BROWSER_MODE`                | `persistent` (default) or `isolated`. Passed to the VM container to control Playwright MCP context mode             |
 | `ANTHROPIC_API_KEY`           | Anthropic API key. Used by both claude and opencode providers. Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
 | `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. See note below |
 | `NO_COLOR`                    | Disable colored output                                                                                              |

@@ -36,6 +36,7 @@ const DEFAULTS: Config = {
   },
   browser: {
     enabled: false,
+    mode: 'persistent',
     mcpConfigPath: undefined,
     vncPort: 5900,
     novncPort: 6080,
@@ -133,6 +134,18 @@ export function loadConfig(configPath?: string): Config {
         `agent "${agent.id}": fallbackModel cannot be the same as model ("${agent.model}")`,
       );
     }
+  }
+
+  if (
+    config.browser.enabled &&
+    config.browser.mode === 'persistent' &&
+    config.sessions.maxConcurrent > 1
+  ) {
+    logger.warn(
+      `browser.mode is "persistent" but sessions.maxConcurrent is ${config.sessions.maxConcurrent}. ` +
+        'Persistent mode uses a single browser profile that locks on concurrent access. ' +
+        'Set maxConcurrent to 1, or switch browser.mode to "isolated" for parallel sessions.',
+    );
   }
 
   return config;

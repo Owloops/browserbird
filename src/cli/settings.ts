@@ -60,6 +60,7 @@ function printSettingsAll(configPath?: string): void {
   console.log('\nbrowser:');
   console.log(`  enabled:    ${config.browser.enabled ? 'yes' : 'no'}`);
   if (config.browser.enabled) {
+    console.log(`  mode:       ${config.browser.mode}`);
     console.log(`  vnc port:   ${config.browser.vncPort}`);
     console.log(`  novnc port: ${config.browser.novncPort}`);
   }

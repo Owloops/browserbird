@@ -92,6 +92,9 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   logger.success('browserbird orchestrator started');
   logger.info(`agents: ${config.agents.map((a) => a.id).join(', ')}`);
   logger.info(`max concurrent sessions: ${config.sessions.maxConcurrent}`);
+  if (config.browser.enabled) {
+    logger.info(`browser mode: ${config.browser.mode}`);
+  }
 
   await new Promise<void>((resolve) => {
     controller.signal.addEventListener('abort', () => {
