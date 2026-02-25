@@ -6,7 +6,7 @@ You are running inside a Docker container with a visible browser accessible via 
 
 The Playwright MCP server runs in **headed mode** — the browser window is visible to the user through a VNC viewer. The user can see everything you do in the browser in real time.
 
-- The browser renders on DISPLAY :1 (Xvfb virtual display)
+- The browser renders on a Wayland compositor (sway/cage)
 - The user watches via noVNC on port 6080
 - Chromium is available at `/usr/bin/chromium`
 - Do NOT launch chromium manually — use the Playwright MCP tools (`browser_navigate`, `browser_click`, etc.)

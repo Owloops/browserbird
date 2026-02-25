@@ -92,7 +92,7 @@ cp browserbird.example.json browserbird.json
     "appToken": "env:SLACK_APP_TOKEN",
     "requireMention": true,
     "coalesce": { "debounceMs": 3000, "bypassDms": true },
-    "permissions": { "allowChannels": ["*"], "denyChannels": [] },
+    "channels": ["*"],
     "quietHours": { "enabled": false, "start": "23:00", "end": "08:00", "timezone": "UTC" }
   },
   "agents": [
@@ -112,7 +112,7 @@ cp browserbird.example.json browserbird.json
     "maxConcurrent": 5,
     "processTimeoutMs": 300000
   },
-  "database": { "retentionDays": 30, "optimizeIntervalHours": 24 },
+  "database": { "retentionDays": 30 },
   "browser": { "enabled": false, "mcpConfigPath": null },
   "birds": { "maxAttempts": 3 },
   "web": {
@@ -139,8 +139,7 @@ cp browserbird.example.json browserbird.json
 | `requireMention`            | `true`    | Only respond in channels when the bot is `@mentioned`; DMs always respond |
 | `coalesce.debounceMs`       | `3000`    | Wait N ms after last message before dispatching (group channels)          |
 | `coalesce.bypassDms`        | `true`    | Skip debouncing for DMs                                                   |
-| `permissions.allowChannels` | `["*"]`   | Restrict to specific channel IDs, or `"*"` for all                        |
-| `permissions.denyChannels`  | `[]`      | Explicitly blocked channel IDs                                            |
+| `channels`                  | `["*"]`   | Restrict to specific channel IDs, or `"*"` for all                        |
 | `quietHours.enabled`        | `false`   | Silence the bot during specified hours                                    |
 | `quietHours.start`          | `"23:00"` | Start of quiet period (HH:MM)                                             |
 | `quietHours.end`            | `"08:00"` | End of quiet period (HH:MM), can wrap midnight                            |
@@ -183,13 +182,11 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 
 | Key             | Default         | Description                                    |
 | --------------- | --------------- | ---------------------------------------------- |
-| `enabled`       | `false`         | Enable Playwright MCP for the agent            |
-| `mcpConfigPath` | `null`          | Path to your MCP config (relative or absolute) |
-| `display`       | `":1"`          | Display identifier (X11 or Wayland)            |
-| `resolution`    | `"1280x800x24"` | Virtual display resolution                     |
-| `vncPort`       | `5900`          | VNC server port                                |
-| `novncPort`     | `6080`          | Upstream noVNC WebSocket port                  |
-| `novncHost`     | `"localhost"`   | Upstream noVNC host (e.g. `"vm"` in Docker)    |
+| `enabled`       | `false`       | Enable Playwright MCP for the agent            |
+| `mcpConfigPath` | `null`        | Path to your MCP config (relative or absolute) |
+| `vncPort`       | `5900`        | VNC server port                                |
+| `novncPort`     | `6080`        | Upstream noVNC WebSocket port                  |
+| `novncHost`     | `"localhost"` | Upstream noVNC host (e.g. `"vm"` in Docker)    |
 
 </details>
 
@@ -209,8 +206,7 @@ Each bird also supports per-bird `active_hours_start` and `active_hours_end` (HH
 
 | Key                     | Default | Description                                            |
 | ----------------------- | ------- | ------------------------------------------------------ |
-| `retentionDays`         | `30`    | How long to keep messages, flight logs, jobs, and logs |
-| `optimizeIntervalHours` | `24`    | How often to run WAL checkpoint and `PRAGMA optimize`  |
+| `retentionDays` | `30` | How long to keep messages, flight logs, jobs, and logs |
 
 </details>
 
@@ -248,8 +244,7 @@ Values in config can reference environment variables using `"env:VAR_NAME"`. Add
 ## CLI
 
 ```bash
-browserbird                        # Start in foreground
-browserbird start                  # Start as background daemon
+browserbird                        # Start the daemon
 browserbird --config ./my.json     # Use a specific config file
 browserbird doctor                 # Check agent CLI and Node.js version
 ```

@@ -8,10 +8,7 @@
       "debounceMs": 3000,
       "bypassDms": true
     },
-    "permissions": {
-      "allowChannels": ["*"],
-      "denyChannels": []
-    },
+    "channels": ["*"],
     "quietHours": {
       "enabled": false,
       "start": "23:00",
@@ -37,14 +34,11 @@
     "processTimeoutMs": 300000
   },
   "database": {
-    "retentionDays": 30,
-    "optimizeIntervalHours": 24
+    "retentionDays": 30
   },
   "browser": {
     "enabled": false,
     "mcpConfigPath": null,
-    "display": ":1",
-    "resolution": "1280x800x24",
     "vncPort": 5900,
     "novncPort": 6080,
     "novncHost": "localhost"
