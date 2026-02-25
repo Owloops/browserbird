@@ -7,7 +7,7 @@
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   const columns: ColumnDef[] = [
-    { key: 'id', label: '#', sortable: true },
+    { key: 'id', label: 'ID', sortable: true },
     { key: 'bird_name', label: 'Bird', sortable: true },
     { key: 'status', label: 'Status', sortable: true },
     { key: 'started_at', label: 'Duration', sortable: false },
@@ -80,7 +80,7 @@
           expandedId = expandedId === flight.id ? null : flight.id;
         }}
       >
-        <td class="mono">#{flight.id}</td>
+        <td class="mono">{flight.id}</td>
         <td>
           <a
             class="bird-link"

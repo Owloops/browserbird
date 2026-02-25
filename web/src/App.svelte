@@ -281,7 +281,7 @@
 
   .content-body {
     flex: 1;
-    padding: var(--space-5);
+    padding: var(--space-6);
     overflow-y: auto;
   }
 
@@ -296,12 +296,14 @@
   }
 
   .login-card {
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg);
     padding: var(--space-8) var(--space-6);
     width: 100%;
     max-width: 320px;
+    box-shadow: var(--shadow-elevated);
   }
 
   .login-brand {

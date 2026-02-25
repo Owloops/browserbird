@@ -26,7 +26,7 @@
     {
       page: 'flights',
       label: 'Flights',
-      svg: `<path d="M3 3h18"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M3 21h18"/>`,
+      svg: `<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>`,
     },
     {
       page: 'browser',
@@ -109,7 +109,8 @@
   .sidebar {
     width: var(--sidebar-width);
     background: var(--color-bg-surface);
-    border-right: 1px solid var(--color-border);
+    border-right: none;
+    box-shadow: 1px 0 0 var(--color-border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -123,18 +124,16 @@
 
   .sidebar-brand {
     height: var(--header-height);
-    padding: 0 var(--space-3);
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     flex-shrink: 0;
     overflow: hidden;
-    transition:
-      padding var(--transition-normal),
-      justify-content var(--transition-normal);
+    position: relative;
   }
 
   .brand-logo {
+    position: absolute;
     flex-shrink: 0;
     transition: opacity var(--transition-normal);
   }
@@ -142,12 +141,13 @@
   .brand-logo-full {
     height: 28px;
     width: auto;
+    left: var(--space-3);
   }
 
   .brand-logo-icon {
     height: 28px;
     width: 28px;
-    position: absolute;
+    left: calc((var(--sidebar-width-collapsed) - 28px) / 2);
     opacity: 0;
   }
 
@@ -159,45 +159,77 @@
     opacity: 1;
   }
 
-  .collapsed .sidebar-brand {
-    justify-content: center;
-    padding: 0;
-  }
-
   .sidebar-nav {
     flex: 1;
-    padding: var(--space-1-5) 0;
+    padding: var(--space-2) 0;
     overflow-y: auto;
   }
 
   .nav-item {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-2-5);
     padding: var(--space-2) var(--space-4);
+    margin: 1px var(--space-1-5);
+    border-radius: var(--radius-md);
     color: var(--color-text-muted);
     text-decoration: none;
     font-size: var(--text-base);
     font-weight: 500;
     transition:
       color var(--transition-fast),
+      background var(--transition-fast),
       padding var(--transition-normal),
+      margin var(--transition-normal),
+      border-radius var(--transition-normal),
       gap var(--transition-normal);
     white-space: nowrap;
+    position: relative;
   }
 
   .collapsed .nav-item {
     padding: var(--space-2) 0;
     padding-left: calc((var(--sidebar-width-collapsed) - 1.125rem) / 2);
     gap: 0;
+    margin: 1px 0;
+    border-radius: 0;
   }
 
   .nav-item:hover {
     color: var(--color-text-secondary);
+    background: var(--color-bg-hover);
   }
 
   .nav-item.active {
     color: var(--color-text-primary);
+    background: var(--color-bg-elevated);
+  }
+
+  .nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: var(--space-1-5);
+    bottom: var(--space-1-5);
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: var(--color-accent);
+    opacity: 0;
+    transition:
+      opacity var(--transition-fast),
+      top var(--transition-normal),
+      bottom var(--transition-normal),
+      border-radius var(--transition-normal);
+  }
+
+  .nav-item.active::before {
+    opacity: 1;
+  }
+
+  .collapsed .nav-item::before {
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
   }
 
   .nav-icon {
@@ -262,7 +294,8 @@
       display: block;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
       z-index: 99;
     }
 
@@ -273,7 +306,7 @@
       bottom: 0;
       width: 240px;
       z-index: 100;
-      border-right: 1px solid var(--color-border);
+      box-shadow: var(--shadow-elevated);
       transform: translateX(-100%);
       transition: transform var(--transition-normal);
     }
@@ -294,19 +327,17 @@
       opacity: 0;
     }
 
-    .collapsed .sidebar-brand {
-      justify-content: flex-start;
-      padding: 0 var(--space-3);
-    }
-
     .nav-item {
       padding: var(--space-3) var(--space-4);
       font-size: var(--text-base);
+      margin: 1px var(--space-1-5);
     }
 
     .collapsed .nav-item {
       padding: var(--space-3) var(--space-4);
-      gap: var(--space-2);
+      gap: var(--space-2-5);
+      margin: 1px var(--space-1-5);
+      border-radius: var(--radius-md);
     }
 
     .collapsed .nav-label {

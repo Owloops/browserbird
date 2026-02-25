@@ -26,12 +26,13 @@
   .badge {
     display: inline-flex;
     align-items: center;
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-sm);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
     font-family: var(--font-mono);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     font-weight: 500;
-    line-height: 1.4;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
   }
 
   .badge-success {

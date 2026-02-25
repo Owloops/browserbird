@@ -379,7 +379,7 @@
     gap: var(--space-1-5);
     z-index: 20;
     min-width: 180px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-elevated);
   }
 
   .conn-info-row {
@@ -525,6 +525,7 @@
 
   .clipboard-textarea:focus {
     border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(91, 140, 240, 0.15);
   }
 
   .vnc-container {

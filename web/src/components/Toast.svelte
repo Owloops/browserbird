@@ -30,16 +30,17 @@
     display: flex;
     align-items: center;
     gap: var(--space-2-5);
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
+    padding: var(--space-2-5) var(--space-3);
+    background: color-mix(in srgb, var(--color-bg-elevated) 90%, transparent);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-elevated);
     font-size: var(--text-sm);
     color: var(--color-text-primary);
     min-width: 240px;
     max-width: 380px;
-    animation: toast-in 0.15s ease;
+    animation: toast-in 0.2s ease;
   }
 
   .toast::before {

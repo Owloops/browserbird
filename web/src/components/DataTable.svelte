@@ -73,55 +73,57 @@
   </div>
 {/if}
 
-<div class="table-wrap" class:table-fetching={fetching}>
-  <table class="table">
-    <thead>
-      <tr>
-        {#each columns as col (col.key)}
-          <th class={col.class ?? ''}>
-            {#if col.sortable && onSortChange}
-              {@const dir = sortDirection(col.key)}
-              <button class="sort-btn" onclick={() => onSortChange(col.key)}>
-                {col.label}
-                {#if dir === 'asc'}
-                  <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-                    <path
-                      d="M1 5L5 1L9 5"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                {:else if dir === 'desc'}
-                  <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-                    <path
-                      d="M1 1L5 5L9 1"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                {/if}
-              </button>
-            {:else}
-              {col.label}
-            {/if}
-          </th>
-        {/each}
-      </tr>
-    </thead>
-    <tbody>
-      {#if isEmpty}
+<div class="table-card" class:table-fetching={fetching}>
+  <div class="table-scroll">
+    <table class="table">
+      <thead>
         <tr>
-          <td colspan={columns.length} class="empty-state">{emptyMessage}</td>
+          {#each columns as col (col.key)}
+            <th class={col.class ?? ''}>
+              {#if col.sortable && onSortChange}
+                {@const dir = sortDirection(col.key)}
+                <button class="sort-btn" onclick={() => onSortChange(col.key)}>
+                  {col.label}
+                  {#if dir === 'asc'}
+                    <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                      <path
+                        d="M1 5L5 1L9 5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  {:else if dir === 'desc'}
+                    <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                      <path
+                        d="M1 1L5 5L9 1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  {/if}
+                </button>
+              {:else}
+                {col.label}
+              {/if}
+            </th>
+          {/each}
         </tr>
-      {:else}
-        {@render children()}
-      {/if}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {#if isEmpty}
+          <tr>
+            <td colspan={columns.length} class="empty-state">{emptyMessage}</td>
+          </tr>
+        {:else}
+          {@render children()}
+        {/if}
+      </tbody>
+    </table>
+  </div>
   {#if hasPagination && totalPages! > 1}
     <div class="pagination">
       <button class="pg-btn" disabled={page === 1} onclick={() => onPageChange!(page! - 1)}>
@@ -184,18 +186,23 @@
   .search-input:focus {
     outline: none;
     border-color: var(--color-accent-dim);
+    box-shadow: 0 0 0 2px rgba(91, 140, 240, 0.15);
   }
 
   .search-input::placeholder {
     color: var(--color-text-muted);
   }
 
-  .table-wrap {
+  .table-card {
+    background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
+    transition: opacity var(--transition-normal);
+  }
+
+  .table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    transition: opacity var(--transition-normal);
   }
 
   .table-fetching {
@@ -214,7 +221,7 @@
   .table :global(td) {
     text-align: left;
     padding: var(--space-2-5) var(--space-4);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid rgba(35, 42, 53, 0.6);
   }
 
   .table :global(th) {
@@ -223,8 +230,9 @@
     color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    background: var(--color-bg-elevated);
+    background: transparent;
     white-space: nowrap;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .table :global(td) {
@@ -236,7 +244,7 @@
   }
 
   .table :global(tr:not(.flight-history-row):not(.detail-row):hover td) {
-    background: var(--color-bg-hover);
+    background: var(--color-bg-elevated);
   }
 
   .sort-btn {
@@ -269,7 +277,6 @@
     justify-content: space-between;
     padding: var(--space-2) var(--space-3);
     border-top: 1px solid var(--color-border);
-    background: var(--color-bg-elevated);
   }
 
   .pg-btn {

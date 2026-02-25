@@ -25,35 +25,46 @@
 <style>
   .toggle {
     position: relative;
-    width: 34px;
+    width: 36px;
     height: 20px;
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
+    background: var(--color-bg-hover);
+    border-radius: var(--radius-full);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition:
+      background var(--transition-fast),
+      box-shadow var(--transition-fast);
     flex-shrink: 0;
+  }
+
+  .toggle:hover {
+    background: var(--color-border);
   }
 
   .toggle.active {
     background: var(--color-success);
-    border-color: var(--color-success);
+  }
+
+  .toggle.active:hover {
+    background: color-mix(in srgb, var(--color-success) 85%, white);
   }
 
   .toggle::after {
     content: '';
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 12px;
-    height: 12px;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
     background: var(--color-text-muted);
     border-radius: 50%;
-    transition: transform var(--transition-fast);
+    transition:
+      transform var(--transition-fast),
+      background var(--transition-fast);
+    box-shadow: var(--shadow-sm);
   }
 
   .toggle.active::after {
-    transform: translateX(14px);
+    transform: translateX(16px);
     background: white;
   }
 </style>

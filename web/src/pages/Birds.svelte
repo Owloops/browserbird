@@ -293,7 +293,7 @@
                 <tbody>
                   {#each flightHistory[j.id] as flight (flight.id)}
                     <tr>
-                      <td class="mono">#{flight.id}</td>
+                      <td class="mono">{flight.id}</td>
                       <td><Badge status={flight.status} /></td>
                       <td class="mono">{flightDuration(flight.started_at, flight.finished_at)}</td>
                       <td>{formatAge(flight.started_at)}</td>
@@ -325,11 +325,12 @@
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: var(--space-3);
+    padding: var(--space-4);
     margin-bottom: var(--space-3);
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-2-5);
+    box-shadow: var(--shadow-sm);
   }
 
   .form-title {
@@ -424,18 +425,8 @@
       grid-template-columns: 1fr;
     }
 
-    .actions-cell {
-      flex-wrap: wrap;
-    }
-
     .flight-summary {
       max-width: 160px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .actions-cell {
-      gap: var(--space-1-5);
     }
   }
 </style>

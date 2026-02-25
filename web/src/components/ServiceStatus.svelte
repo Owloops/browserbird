@@ -155,7 +155,7 @@
     gap: var(--space-1-5);
     z-index: 100;
     min-width: 200px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-elevated);
   }
 
   .svc-row {

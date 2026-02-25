@@ -21,7 +21,7 @@
   ];
 
   const flightColumns: ColumnDef[] = [
-    { key: 'id', label: '#' },
+    { key: 'id', label: 'ID' },
     { key: 'bird_name', label: 'Bird' },
     { key: 'status', label: 'Status' },
     { key: 'duration', label: 'Duration' },
@@ -157,7 +157,7 @@
             window.location.hash = `#/flights?search=${encodeURIComponent(f.bird_name)}`;
           }}
         >
-          <td class="mono">#{f.id}</td>
+          <td class="mono">{f.id}</td>
           <td>{f.bird_name}</td>
           <td><Badge status={f.status} /></td>
           <td class="mono">{flightDuration(f.started_at, f.finished_at)}</td>
@@ -170,17 +170,16 @@
 
 <style>
   .stats {
-    display: flex;
-    align-items: stretch;
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
   }
 
   .stat {
-    flex: 1;
-    padding: var(--space-3) var(--space-4);
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
@@ -188,9 +187,7 @@
   }
 
   .stat-sep {
-    width: 1px;
-    background: var(--color-border);
-    flex-shrink: 0;
+    display: none;
   }
 
   .stat-label {
@@ -223,7 +220,7 @@
   }
 
   .section {
-    margin-top: var(--space-5);
+    margin-top: var(--space-6);
   }
 
   .section-header {
@@ -258,18 +255,18 @@
 
   @media (max-width: 768px) {
     .stats {
-      flex-direction: column;
-    }
-
-    .stat-sep {
-      width: auto;
-      height: 1px;
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 
   @media (max-width: 480px) {
+    .stats {
+      grid-template-columns: 1fr;
+      gap: var(--space-2);
+    }
+
     .stat {
-      padding: var(--space-2) var(--space-3);
+      padding: var(--space-3) var(--space-4);
     }
 
     .stat-value {

@@ -29,6 +29,11 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: var(--space-3) var(--space-4);
+    transition: border-color var(--transition-fast);
+  }
+
+  .stat-card:hover {
+    border-color: var(--color-border-subtle);
   }
 
   .card-label {

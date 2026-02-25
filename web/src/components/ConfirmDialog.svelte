@@ -41,7 +41,8 @@
   .backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
     border: none;
     cursor: default;
   }
@@ -49,7 +50,7 @@
   .dialog {
     position: relative;
     background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg);
     padding: var(--space-5) var(--space-6);
     max-width: 360px;
@@ -57,6 +58,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
+    box-shadow: var(--shadow-elevated);
   }
 
   .message {

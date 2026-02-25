@@ -456,7 +456,7 @@
               <div class="system-flights">
                 {#each systemFlights[bird.id] as flight (flight.id)}
                   <div class="system-flight-row">
-                    <span class="mono system-flight-id">#{flight.id}</span>
+                    <span class="mono system-flight-id">{flight.id}</span>
                     <Badge status={flight.status} />
                     <span class="mono">{flightDuration(flight.started_at, flight.finished_at)}</span
                     >
@@ -550,8 +550,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-2) var(--space-3);
-    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-2-5) var(--space-4);
+    border-bottom: 1px solid rgba(35, 42, 53, 0.6);
   }
 
   .field:last-child {

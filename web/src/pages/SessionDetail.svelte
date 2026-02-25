@@ -150,8 +150,8 @@
   .stat-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-2-5);
-    margin-bottom: var(--space-4);
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
   }
 
   .content-cell {
