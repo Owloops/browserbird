@@ -173,5 +173,24 @@
     .stat-cards {
       grid-template-columns: repeat(2, 1fr);
     }
+
+    .detail-header {
+      flex-wrap: wrap;
+    }
+
+    .session-meta {
+      flex-basis: 100%;
+      flex-wrap: wrap;
+    }
+
+    .content-cell {
+      max-width: 160px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stat-cards {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

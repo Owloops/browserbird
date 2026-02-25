@@ -207,4 +207,29 @@
   .error-pre {
     color: var(--color-error);
   }
+
+  @media (max-width: 768px) {
+    .summary-cell {
+      max-width: 160px;
+    }
+
+    .detail-content {
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .detail-pre {
+      max-height: 200px;
+      font-size: 0.65rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .summary-cell {
+      max-width: 100px;
+    }
+
+    .detail-content {
+      padding: var(--space-1-5) var(--space-2);
+    }
+  }
 </style>

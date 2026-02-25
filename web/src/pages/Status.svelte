@@ -266,4 +266,14 @@
       height: 1px;
     }
   }
+
+  @media (max-width: 480px) {
+    .stat {
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .stat-value {
+      font-size: var(--text-lg);
+    }
+  }
 </style>

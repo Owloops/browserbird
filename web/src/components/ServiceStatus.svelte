@@ -186,4 +186,12 @@
     font-size: var(--text-xs);
     color: var(--color-text-muted);
   }
+
+  @media (max-width: 768px) {
+    .svc-popover {
+      min-width: 0;
+      right: calc(-1 * var(--space-2));
+      max-width: calc(100vw - 2 * var(--space-3));
+    }
+  }
 </style>

@@ -69,4 +69,14 @@
   .stat-card-error .card-value {
     color: var(--color-error);
   }
+
+  @media (max-width: 480px) {
+    .stat-card {
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .card-value {
+      font-size: var(--text-lg);
+    }
+  }
 </style>

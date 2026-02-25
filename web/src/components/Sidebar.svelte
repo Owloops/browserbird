@@ -2,7 +2,9 @@
   interface Props {
     currentPage: string;
     collapsed: boolean;
+    mobileOpen: boolean;
     ontoggle: () => void;
+    onmobileclose: () => void;
   }
 
   const NAV_ITEMS = [
@@ -38,10 +40,18 @@
     },
   ] as const;
 
-  let { currentPage, collapsed, ontoggle }: Props = $props();
+  let { currentPage, collapsed, mobileOpen, ontoggle, onmobileclose }: Props = $props();
+
+  function handleNavClick(): void {
+    onmobileclose();
+  }
 </script>
 
-<nav class="sidebar" class:collapsed>
+{#if mobileOpen}
+  <div class="drawer-backdrop" onclick={onmobileclose} role="presentation"></div>
+{/if}
+
+<nav class="sidebar" class:collapsed class:mobile-open={mobileOpen}>
   <div class="sidebar-brand">
     <img src="/logo.svg" alt="BrowserBird" class="brand-logo brand-logo-full" />
     <img src="/logo-icon.svg" alt="BrowserBird" class="brand-logo brand-logo-icon" />
@@ -53,6 +63,7 @@
         class:active={currentPage === item.page}
         href="#/{item.page === 'status' ? '' : item.page}"
         title={collapsed ? item.label : undefined}
+        onclick={handleNavClick}
       >
         <svg
           class="nav-icon"
@@ -242,57 +253,73 @@
     height: 1.125rem;
   }
 
+  .drawer-backdrop {
+    display: none;
+  }
+
   @media (max-width: 768px) {
+    .drawer-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+
     .sidebar {
-      width: 100%;
-      border-right: none;
-      border-bottom: 1px solid var(--color-border);
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 240px;
+      z-index: 100;
+      border-right: 1px solid var(--color-border);
+      transform: translateX(-100%);
+      transition: transform var(--transition-normal);
     }
 
     .sidebar.collapsed {
-      width: 100%;
+      width: 240px;
     }
 
-    .sidebar-nav {
-      display: flex;
-      overflow-x: auto;
-      padding: 0;
-    }
-
-    .nav-item {
-      white-space: nowrap;
-      padding: var(--space-1-5) var(--space-2-5);
-    }
-
-    .collapsed .nav-item {
-      padding: var(--space-1-5) var(--space-2-5);
-      justify-content: initial;
-    }
-
-    .nav-icon {
-      display: none;
-    }
-
-    .nav-label {
-      opacity: 1;
-      width: auto;
-    }
-
-    .collapsed .nav-label {
-      opacity: 1;
-      width: auto;
-    }
-
-    .sidebar-footer {
-      display: none;
-    }
-
-    .brand-logo-icon {
-      display: none;
+    .sidebar.mobile-open {
+      transform: translateX(0);
     }
 
     .collapsed .brand-logo-full {
       opacity: 1;
+    }
+
+    .collapsed .brand-logo-icon {
+      opacity: 0;
+    }
+
+    .collapsed .sidebar-brand {
+      justify-content: flex-start;
+      padding: 0 var(--space-3);
+    }
+
+    .nav-item {
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-base);
+    }
+
+    .collapsed .nav-item {
+      padding: var(--space-3) var(--space-4);
+      gap: var(--space-2);
+    }
+
+    .collapsed .nav-label {
+      max-width: 150px;
+      opacity: 1;
+    }
+
+    .nav-icon {
+      display: block;
+    }
+
+    .sidebar-footer {
+      display: none;
     }
   }
 </style>

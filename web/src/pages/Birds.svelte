@@ -423,5 +423,19 @@
     .form-row {
       grid-template-columns: 1fr;
     }
+
+    .actions-cell {
+      flex-wrap: wrap;
+    }
+
+    .flight-summary {
+      max-width: 160px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .actions-cell {
+      gap: var(--space-1-5);
+    }
   }
 </style>

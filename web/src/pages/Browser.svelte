@@ -327,6 +327,7 @@
     display: flex;
     flex-direction: column;
     height: calc(100vh - var(--header-height) - var(--space-10));
+    min-height: 0;
   }
 
   .toolbar {
@@ -538,6 +539,7 @@
   .vnc-canvas {
     width: 100%;
     height: 100%;
+    touch-action: none;
   }
 
   .vnc-canvas :global(div) {
@@ -570,5 +572,51 @@
     font-size: var(--text-sm);
     color: var(--color-text-muted);
     margin-bottom: var(--space-1-5);
+  }
+
+  @media (max-width: 768px) {
+    .browser-viewer {
+      height: calc(100dvh - 44px - var(--space-6));
+    }
+
+    .toolbar {
+      flex-wrap: wrap;
+      gap: var(--space-1-5);
+      padding: var(--space-1-5) var(--space-2);
+    }
+
+    .toolbar-label {
+      font-size: var(--text-xs);
+    }
+
+    .toolbar-sep {
+      display: none;
+    }
+
+    .clipboard-popover {
+      width: auto;
+      left: var(--space-2);
+      right: var(--space-2);
+    }
+
+    .conn-info-popover {
+      min-width: 0;
+      max-width: calc(100vw - 2 * var(--space-3));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .browser-viewer {
+      height: calc(100dvh - 44px - var(--space-4));
+    }
+
+    .toolbar {
+      padding: var(--space-1) var(--space-1-5);
+    }
+
+    .clipboard-popover {
+      left: var(--space-1);
+      right: var(--space-1);
+    }
   }
 </style>

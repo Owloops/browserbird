@@ -735,4 +735,52 @@
     font-size: var(--text-xs);
     margin-left: auto;
   }
+
+  @media (max-width: 768px) {
+    .field {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-1);
+    }
+
+    .field-value {
+      text-align: left;
+      flex-wrap: wrap;
+    }
+
+    .error-row {
+      grid-template-columns: 1fr;
+      gap: var(--space-1);
+    }
+
+    .error-source {
+      font-size: var(--text-xs);
+    }
+
+    .error-message {
+      white-space: normal;
+    }
+
+    .system-bird-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-1-5);
+    }
+
+    .system-flight-row {
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .tabs {
+      flex-wrap: wrap;
+      gap: 0;
+    }
+
+    .tab {
+      font-size: var(--text-sm);
+      padding: var(--space-1-5) var(--space-2);
+    }
+  }
 </style>

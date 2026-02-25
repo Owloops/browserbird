@@ -41,6 +41,7 @@
   let connectionState: 'connected' | 'disconnected' | 'connecting' = $state('connecting');
   let sidebarCollapsed = $state(localStorage.getItem('sidebar-collapsed') === 'true');
 
+  let mobileNavOpen = $state(false);
   let loginToken = $state('');
   let loginError = $state('');
 
@@ -58,6 +59,7 @@
   $effect(() => {
     const handler = () => {
       currentPage = getPageFromHash();
+      mobileNavOpen = false;
     };
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
@@ -164,9 +166,40 @@
   </div>
 {:else}
   <div class="app">
-    <Sidebar {currentPage} collapsed={sidebarCollapsed} ontoggle={toggleSidebar} />
+    <Sidebar
+      {currentPage}
+      collapsed={sidebarCollapsed}
+      mobileOpen={mobileNavOpen}
+      ontoggle={toggleSidebar}
+      onmobileclose={() => {
+        mobileNavOpen = false;
+      }}
+    />
     <main class="content">
       <div class="content-header">
+        <button
+          class="hamburger"
+          onclick={() => {
+            mobileNavOpen = true;
+          }}
+          aria-label="Open navigation"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
         <h1 class="page-title">{pageTitle}</h1>
         <div class="header-right">
           <ServiceStatus {status} />
@@ -229,6 +262,23 @@
     gap: var(--space-2);
   }
 
+  .hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast);
+  }
+
+  .hamburger:hover {
+    color: var(--color-text-primary);
+  }
+
   .content-body {
     flex: 1;
     padding: var(--space-5);
@@ -276,8 +326,31 @@
   }
 
   @media (max-width: 768px) {
-    .app {
-      flex-direction: column;
+    .hamburger {
+      display: flex;
+    }
+
+    .content-header {
+      height: 44px;
+      padding: 0 var(--space-3);
+    }
+
+    .content-body {
+      padding: var(--space-3);
+    }
+
+    .page-title {
+      font-size: var(--text-base);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .content-header {
+      padding: 0 var(--space-2);
+    }
+
+    .content-body {
+      padding: var(--space-2);
     }
   }
 </style>
