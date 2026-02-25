@@ -209,7 +209,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     if (!isDm && config.slack.requireMention) return;
 
     const channelId = event['channel'] as string;
-    if (!isChannelAllowed(channelId, config.slack.permissions)) return;
+    if (!isChannelAllowed(channelId, config.slack.channels)) return;
     if (!isDm && isQuietHours(config.slack.quietHours)) return;
 
     const threadTs = (event['thread_ts'] as string | undefined) ?? (event['ts'] as string);
@@ -237,7 +237,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
       if (isDuplicate(body)) return;
 
       const channelId = event['channel'] as string;
-      if (!isChannelAllowed(channelId, config.slack.permissions)) return;
+      if (!isChannelAllowed(channelId, config.slack.channels)) return;
       if (isQuietHours(config.slack.quietHours)) return;
 
       const messageTs = event['ts'] as string | undefined;
@@ -487,10 +487,9 @@ async function handleSessionRetry(
   }
 }
 
-function isChannelAllowed(channelId: string, permissions: SlackConfig['permissions']): boolean {
-  if (permissions.denyChannels.includes(channelId)) return false;
-  if (permissions.allowChannels.includes('*')) return true;
-  return permissions.allowChannels.includes(channelId);
+function isChannelAllowed(channelId: string, channels: string[]): boolean {
+  if (channels.includes('*')) return true;
+  return channels.includes(channelId);
 }
 
 function isQuietHours(quietHours: SlackConfig['quietHours']): boolean {

@@ -267,17 +267,9 @@
           <span class="field-value">{config.slack.coalesce.bypassDms ? 'Yes' : 'No'}</span>
         </div>
         <div class="field">
-          <span class="field-label">Allow Channels</span>
-          <span class="field-value mono"
-            >{config.slack.permissions.allowChannels.join(', ') || '*'}</span
-          >
+          <span class="field-label">Channels</span>
+          <span class="field-value mono">{config.slack.channels.join(', ') || '*'}</span>
         </div>
-        {#if config.slack.permissions.denyChannels.length > 0}
-          <div class="field">
-            <span class="field-label">Deny Channels</span>
-            <span class="field-value mono">{config.slack.permissions.denyChannels.join(', ')}</span>
-          </div>
-        {/if}
         <div class="field">
           <span class="field-label">Quiet Hours</span>
           <span class="field-value">
@@ -325,10 +317,6 @@
         {/if}
         {#if config.browser.enabled}
           <div class="field">
-            <span class="field-label">Resolution</span>
-            <span class="field-value mono">{config.browser.resolution}</span>
-          </div>
-          <div class="field">
             <span class="field-label">VNC Port</span>
             <span class="field-value mono">{config.browser.vncPort}</span>
           </div>
@@ -346,10 +334,6 @@
         <div class="field">
           <span class="field-label">Retention</span>
           <span class="field-value mono">{config.database.retentionDays}d</span>
-        </div>
-        <div class="field">
-          <span class="field-label">Optimize Interval</span>
-          <span class="field-value mono">{config.database.optimizeIntervalHours}h</span>
         </div>
       </div>
     </div>

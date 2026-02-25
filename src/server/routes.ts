@@ -37,7 +37,6 @@ import {
   getCronJob,
 } from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
-import { getErrorRates } from '../core/metrics.ts';
 import { checkDoctor } from '../cli/index.ts';
 
 export function buildStatusPayload(config: Config, startedAt: number, deps: WebServerDeps): object {
@@ -114,7 +113,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           slack: {
             requireMention: config.slack.requireMention,
             coalesce: config.slack.coalesce,
-            permissions: config.slack.permissions,
+            channels: config.slack.channels,
             quietHours: config.slack.quietHours,
           },
           birds: config.birds,
@@ -489,13 +488,6 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       pattern: pathToRegex('/api/messages/stats'),
       handler(_req, res) {
         json(res, getMessageStats());
-      },
-    },
-    {
-      method: 'GET',
-      pattern: pathToRegex('/api/metrics'),
-      handler(_req, res) {
-        json(res, getErrorRates());
       },
     },
     {

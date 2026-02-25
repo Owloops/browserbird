@@ -14,7 +14,6 @@ import {
   completeCronRun,
 } from './db/index.ts';
 import { logger } from './core/logger.ts';
-import { recordError } from './core/metrics.ts';
 import { broadcastSSE } from './server/index.ts';
 
 type JobHandler = (payload: unknown) => Promise<string | void> | string | void;
@@ -76,7 +75,6 @@ async function processJob(job: JobRow): Promise<void> {
     errorText = err instanceof Error ? err.message : String(err);
     failJob(job.id, errorText);
     logger.warn(`job ${job.id} failed (attempt ${job.attempts}/${job.max_attempts}): ${errorText}`);
-    recordError('cron');
     insertLog('error', 'cron', errorText);
   } finally {
     if (cronRun != null) {

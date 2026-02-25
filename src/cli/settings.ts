@@ -49,10 +49,7 @@ function printSettingsAll(configPath?: string): void {
   console.log(`  require mention: ${config.slack.requireMention ? 'yes' : 'no'}`);
   console.log(`  debounce:        ${config.slack.coalesce.debounceMs}ms`);
   console.log(`  bypass dms:      ${config.slack.coalesce.bypassDms ? 'yes' : 'no'}`);
-  console.log(`  allow channels:  ${config.slack.permissions.allowChannels.join(', ') || '(all)'}`);
-  if (config.slack.permissions.denyChannels.length > 0) {
-    console.log(`  deny channels:   ${config.slack.permissions.denyChannels.join(', ')}`);
-  }
+  console.log(`  channels:        ${config.slack.channels.join(', ') || '(all)'}`);
   console.log(
     `  quiet hours:     ${config.slack.quietHours.enabled ? `${config.slack.quietHours.start}-${config.slack.quietHours.end} (${config.slack.quietHours.timezone})` : 'disabled'}`,
   );
@@ -63,14 +60,12 @@ function printSettingsAll(configPath?: string): void {
   console.log('\nbrowser:');
   console.log(`  enabled:    ${config.browser.enabled ? 'yes' : 'no'}`);
   if (config.browser.enabled) {
-    console.log(`  resolution: ${config.browser.resolution}`);
     console.log(`  vnc port:   ${config.browser.vncPort}`);
     console.log(`  novnc port: ${config.browser.novncPort}`);
   }
 
   console.log('\ndatabase:');
   console.log(`  retention: ${config.database.retentionDays}d`);
-  console.log(`  optimize:  every ${config.database.optimizeIntervalHours}h`);
 
   console.log('\nweb:');
   console.log(`  port: ${config.web.port}`);

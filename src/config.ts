@@ -12,7 +12,7 @@ const DEFAULTS: Config = {
     appToken: '',
     requireMention: true,
     coalesce: { debounceMs: 3000, bypassDms: true },
-    permissions: { allowChannels: ['*'], denyChannels: [] },
+    channels: ['*'],
     quietHours: { enabled: false, start: '23:00', end: '08:00', timezone: 'UTC' },
   },
   agents: [
@@ -33,13 +33,10 @@ const DEFAULTS: Config = {
   },
   database: {
     retentionDays: 30,
-    optimizeIntervalHours: 24,
   },
   browser: {
     enabled: false,
     mcpConfigPath: undefined,
-    display: ':1',
-    resolution: '1280x800x24',
     vncPort: 5900,
     novncPort: 6080,
     novncHost: 'localhost',

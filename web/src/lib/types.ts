@@ -52,18 +52,16 @@ export interface ConfigResponse {
   slack: {
     requireMention: boolean;
     coalesce: { debounceMs: number; bypassDms: boolean };
-    permissions: { allowChannels: string[]; denyChannels: string[] };
+    channels: string[];
     quietHours: { enabled: boolean; start: string; end: string; timezone: string };
   };
   birds: { maxAttempts: number };
   browser: {
     enabled: boolean;
-    display: string;
-    resolution: string;
     vncPort: number;
     novncPort: number;
   };
-  database: { retentionDays: number; optimizeIntervalHours: number };
+  database: { retentionDays: number };
   web: { port: number; authEnabled: boolean };
 }
 

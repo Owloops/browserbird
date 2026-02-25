@@ -9,7 +9,6 @@ import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import * as db from '../db/index.ts';
 import { logger } from '../core/logger.ts';
-import { recordError } from '../core/metrics.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { sessionErrorBlocks, busyBlocks, noAgentBlocks, completionFooterBlocks } from './blocks.ts';
 
@@ -109,7 +108,6 @@ export function createHandler(
 
         case 'error':
           hasError = true;
-          recordError('spawn');
           db.insertLog('error', 'spawn', event.error, channelId);
           await streamer.append({ markdown_text: `\n\n:x: ${event.error}` });
           break;
@@ -227,7 +225,6 @@ export function createHandler(
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       logger.error(`handler error: ${errMsg}`);
-      recordError('handler');
       db.insertLog('error', 'handler', errMsg, channelId);
       try {
         const blocks = sessionErrorBlocks(errMsg, { sessionId });

@@ -10,10 +10,7 @@ export interface SlackConfig {
     debounceMs: number;
     bypassDms: boolean;
   };
-  permissions: {
-    allowChannels: string[];
-    denyChannels: string[];
-  };
+  channels: string[];
   quietHours: {
     enabled: boolean;
     start: string;
@@ -43,8 +40,6 @@ export interface SessionsConfig {
 export interface BrowserConfig {
   enabled: boolean;
   mcpConfigPath: string | undefined;
-  display: string;
-  resolution: string;
   vncPort: number;
   novncPort: number;
   novncHost: string;
@@ -52,7 +47,6 @@ export interface BrowserConfig {
 
 export interface DatabaseConfig {
   retentionDays: number;
-  optimizeIntervalHours: number;
 }
 
 export interface BirdsConfig {
@@ -79,7 +73,6 @@ export interface Config {
 }
 
 export const COMMANDS = {
-  START: 'start',
   STATUS: 'status',
   SESSIONS: 'sessions',
   BIRDS: 'birds',

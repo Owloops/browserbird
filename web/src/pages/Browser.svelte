@@ -163,14 +163,6 @@
         {#if connInfoOpen && config?.browser}
           <div class="conn-info-popover">
             <div class="conn-info-row">
-              <span class="conn-info-key">Display</span>
-              <span class="mono conn-info-val">{config.browser.display}</span>
-            </div>
-            <div class="conn-info-row">
-              <span class="conn-info-key">Resolution</span>
-              <span class="mono conn-info-val">{config.browser.resolution}</span>
-            </div>
-            <div class="conn-info-row">
               <span class="conn-info-key">VNC port</span>
               <span class="mono conn-info-val">{config.browser.vncPort}</span>
             </div>

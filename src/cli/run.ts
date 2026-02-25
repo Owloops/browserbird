@@ -83,9 +83,6 @@ export async function run(argv: string[]): Promise<void> {
   }
 
   switch (command as Command) {
-    case COMMANDS.START:
-      await startDaemon(parseGlobalFlags(argv));
-      break;
     case COMMANDS.STATUS:
       if (isHelp) {
         console.log(COMMAND_HELP.status);
