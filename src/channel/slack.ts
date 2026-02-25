@@ -11,6 +11,8 @@ import type {
 import type { ModalView } from './blocks.ts';
 import type { SlashCommandBody } from './commands.ts';
 
+import type { Handler } from './handler.ts';
+
 import { SocketModeClient } from '@slack/socket-mode';
 import { WebClient, LogLevel } from '@slack/web-api';
 import { createCoalescer } from './coalesce.ts';
@@ -301,6 +303,31 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
         await handleBirdCreateSubmission(view, webClient, config.timezone);
       }
     }
+
+    if (interactionType === 'block_actions') {
+      const actionsArr = body['actions'] as Array<Record<string, unknown>> | undefined;
+      const channel = (body['channel'] as Record<string, unknown> | undefined)?.['id'] as
+        | string
+        | undefined;
+      const user = (body['user'] as Record<string, unknown> | undefined)?.['id'] as
+        | string
+        | undefined;
+      if (!actionsArr || !channel) return;
+
+      for (const action of actionsArr) {
+        if (action['action_id'] !== 'session_error_overflow') continue;
+        const selected = (action['selected_option'] as Record<string, unknown> | undefined)?.[
+          'value'
+        ] as string | undefined;
+        if (!selected) continue;
+
+        if (selected.startsWith('retry:')) {
+          const sessionId = Number(selected.slice('retry:'.length));
+          if (!Number.isFinite(sessionId)) continue;
+          await handleSessionRetry(sessionId, channel, user ?? 'unknown', config, handler);
+        }
+      }
+    }
   });
 
   const MAX_CONSECUTIVE_FAILURES = 5;
@@ -423,6 +450,39 @@ async function handleBirdCreateSubmission(
     logger.error(
       `bird_create submission error: ${err instanceof Error ? err.message : String(err)}`,
     );
+  }
+}
+
+async function handleSessionRetry(
+  sessionId: number,
+  channelId: string,
+  userId: string,
+  config: Config,
+  handler: Handler,
+): Promise<void> {
+  try {
+    const { getSession, getLastInboundMessage } = await import('../db/index.ts');
+    const session = getSession(sessionId);
+    if (!session) {
+      logger.warn(`retry: session #${sessionId} not found`);
+      return;
+    }
+
+    const lastMsg = getLastInboundMessage(session.channel_id, session.thread_id);
+    if (!lastMsg) {
+      logger.warn(`retry: no inbound message for session #${sessionId}`);
+      return;
+    }
+
+    handler.handle({
+      channelId: session.channel_id,
+      threadTs: session.thread_id ?? lastMsg.timestamp,
+      messages: [{ userId, text: lastMsg.content, timestamp: lastMsg.timestamp }],
+    });
+
+    logger.info(`retry: session #${sessionId} re-dispatched by ${userId}`);
+  } catch (err) {
+    logger.error(`retry error: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

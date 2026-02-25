@@ -38,6 +38,21 @@ export function logMessage(
   );
 }
 
+export function getLastInboundMessage(
+  channelId: string,
+  threadId: string | null,
+): { content: string; timestamp: string } | undefined {
+  const row = getDb()
+    .prepare(
+      `SELECT content, created_at FROM messages
+       WHERE channel_id = ? AND thread_id IS ? AND direction = 'in' AND content IS NOT NULL
+       ORDER BY created_at DESC LIMIT 1`,
+    )
+    .get(channelId, threadId) as unknown as { content: string; created_at: string } | undefined;
+  if (!row) return undefined;
+  return { content: row.content, timestamp: row.created_at };
+}
+
 export function deleteOldMessages(retentionDays: number): number {
   const stmt = getDb().prepare(
     `DELETE FROM messages WHERE created_at < datetime('now', ? || ' days')`,

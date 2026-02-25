@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { ColumnDef, FlightRow } from '../lib/types.ts';
+  import { api } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
   import { formatAge } from '../lib/format.ts';
+  import { showToast } from '../lib/toast.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   const columns: ColumnDef[] = [
@@ -11,6 +13,7 @@
     { key: 'started_at', label: 'Duration', sortable: false },
     { key: 'started_at_time', label: 'Started', sortable: true },
     { key: 'error', label: 'Error / Result' },
+    { key: 'actions', label: '' },
   ];
 
   let statusFilter = $state('');
@@ -35,6 +38,15 @@
     if (ms < 0) return '-';
     const secs = Math.round(ms / 1000);
     return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
+  }
+
+  async function retryFlight(flight: FlightRow): Promise<void> {
+    try {
+      await api(`/api/birds/${flight.cron_job_id}/fly`, { method: 'POST' });
+      showToast(`Retrying ${flight.bird_name}`, 'success');
+    } catch (err) {
+      showToast(`Failed: ${(err as Error).message}`, 'error');
+    }
   }
 
   function resetPage(): void {
@@ -88,10 +100,21 @@
         <td class="mono">{flightDuration(flight.started_at, flight.finished_at)}</td>
         <td>{formatAge(flight.started_at)}</td>
         <td class="summary-cell">{flight.error ?? flight.result ?? '-'}</td>
+        <td>
+          {#if flight.status === 'error'}
+            <button
+              class="btn btn-outline btn-sm"
+              onclick={(e) => {
+                e.stopPropagation();
+                retryFlight(flight);
+              }}>Retry</button
+            >
+          {/if}
+        </td>
       </tr>
       {#if expandedId === flight.id && (flight.result || flight.error)}
         <tr class="detail-row">
-          <td colspan="6">
+          <td colspan="7">
             <div class="detail-content">
               {#if flight.error}
                 <p class="detail-label error-label">Error</p>

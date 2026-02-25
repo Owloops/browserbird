@@ -176,6 +176,7 @@ export function createHandler(
     lock.processing = true;
     activeSpawns++;
 
+    let sessionId: number | undefined;
     try {
       const resolved = resolveSession(channelId, threadTs, config);
       if (!resolved) {
@@ -187,6 +188,7 @@ export function createHandler(
       }
 
       const { session, agent, isNew } = resolved;
+      sessionId = session.id;
 
       for (const msg of messages) {
         db.logMessage(channelId, threadTs, msg.userId, 'in', msg.text);
@@ -228,7 +230,7 @@ export function createHandler(
       recordError('handler');
       db.insertLog('error', 'handler', errMsg, channelId);
       try {
-        const blocks = sessionErrorBlocks(errMsg);
+        const blocks = sessionErrorBlocks(errMsg, { sessionId });
         await client.postMessage(channelId, threadTs, `Something went wrong: ${errMsg}`, {
           blocks,
         });
