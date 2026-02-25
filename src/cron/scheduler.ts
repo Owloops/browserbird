@@ -22,10 +22,11 @@ import { expireStaleSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { spawnProvider } from '../provider/spawn.ts';
-import { parseCron, matchesCron } from './parse.ts';
+import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
 import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
 
 const TICK_INTERVAL_MS = 60_000;
+const MAX_SCHEDULE_ERRORS = 3;
 
 interface CronRunPayload {
   cronJobId: number;
@@ -149,6 +150,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
   });
 
   const scheduleCache = new Map<number, CronSchedule>();
+  const scheduleErrors = new Map<number, number>();
 
   const tick = () => {
     if (signal.aborted) return;
@@ -162,14 +164,31 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
         try {
           schedule = parseCron(job.schedule);
           scheduleCache.set(job.id, schedule);
+          scheduleErrors.delete(job.id);
         } catch {
-          logger.warn(`bird #${job.id}: invalid expression "${job.schedule}", disabling`);
-          setCronJobEnabled(job.id, false);
+          const count = (scheduleErrors.get(job.id) ?? 0) + 1;
+          scheduleErrors.set(job.id, count);
+          if (count >= MAX_SCHEDULE_ERRORS) {
+            logger.warn(
+              `bird #${job.id}: invalid expression "${job.schedule}" (${count} consecutive failures), disabling`,
+            );
+            setCronJobEnabled(job.id, false);
+            scheduleErrors.delete(job.id);
+          } else {
+            logger.warn(
+              `bird #${job.id}: invalid expression "${job.schedule}" (attempt ${count}/${MAX_SCHEDULE_ERRORS})`,
+            );
+          }
           continue;
         }
       }
 
       if (!matchesCron(schedule, now, job.timezone)) continue;
+
+      if (!isWithinActiveHours(job.active_hours_start, job.active_hours_end, now, job.timezone)) {
+        logger.debug(`bird #${job.id} skipped: outside active hours`);
+        continue;
+      }
 
       const isSystem = job.name.startsWith(SYSTEM_CRON_PREFIX);
 
@@ -209,6 +228,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
   signal.addEventListener('abort', () => {
     clearInterval(timer);
     scheduleCache.clear();
+    scheduleErrors.clear();
   });
 
   logger.info('bird scheduler started (60s tick)');

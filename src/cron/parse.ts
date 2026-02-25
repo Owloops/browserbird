@@ -71,6 +71,45 @@ export function parseCron(expression: string): CronSchedule {
   };
 }
 
+/**
+ * Returns true if the current time falls within the active hours window.
+ * When both start and end are null, the bird is always active.
+ * Hours are evaluated in the bird's configured timezone.
+ */
+export function isWithinActiveHours(
+  start: string | null,
+  end: string | null,
+  date: Date,
+  timezone?: string,
+): boolean {
+  if (start == null && end == null) return true;
+
+  const tz = timezone || 'UTC';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(date);
+
+  const h = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
+  const m = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
+  const nowMinutes = h * 60 + m;
+
+  const parseHM = (hm: string): number => {
+    const [hh, mm] = hm.split(':');
+    return Number(hh) * 60 + Number(mm ?? 0);
+  };
+
+  const startMin = start != null ? parseHM(start) : 0;
+  const endMin = end != null ? parseHM(end) : 24 * 60;
+
+  if (startMin <= endMin) {
+    return nowMinutes >= startMin && nowMinutes < endMin;
+  }
+  return nowMinutes >= startMin || nowMinutes < endMin;
+}
+
 /** Returns true if the given Date matches the cron schedule in the specified timezone. */
 export function matchesCron(schedule: CronSchedule, date: Date, timezone?: string): boolean {
   const tz = timezone || 'UTC';

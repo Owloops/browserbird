@@ -147,14 +147,42 @@ export function failJob(jobId: number, error: string): void {
   }
 }
 
-/** Marks running jobs past their timeout as failed. */
+/** Marks running jobs past their timeout as failed and cascades to linked cron_runs/cron_jobs. */
 export function failStaleJobs(): number {
-  const stmt = getDb().prepare(
+  const d = getDb();
+
+  const staleRows = d
+    .prepare(
+      `SELECT id, cron_job_id FROM jobs
+       WHERE status = 'running'
+         AND started_at < datetime('now', '-' || timeout || ' seconds')`,
+    )
+    .all() as unknown as Array<{ id: number; cron_job_id: number | null }>;
+
+  if (staleRows.length === 0) return 0;
+
+  const updateJob = d.prepare(
     `UPDATE jobs SET status = 'failed', error = 'timeout', completed_at = datetime('now')
-     WHERE status = 'running'
-       AND started_at < datetime('now', '-' || timeout || ' seconds')`,
+     WHERE id = ?`,
   );
-  return Number(stmt.run().changes);
+  const updateRun = d.prepare(
+    `UPDATE cron_runs SET status = 'error', error = 'timeout', finished_at = datetime('now')
+     WHERE job_id = ? AND status = 'running'`,
+  );
+  const updateBird = d.prepare(
+    `UPDATE cron_jobs SET last_status = 'failed', failure_count = failure_count + 1
+     WHERE id = ?`,
+  );
+
+  for (const row of staleRows) {
+    updateJob.run(row.id);
+    if (row.cron_job_id != null) {
+      updateRun.run(row.cron_job_id);
+      updateBird.run(row.cron_job_id);
+    }
+  }
+
+  return staleRows.length;
 }
 
 export function deleteOldJobs(retentionDays: number): number {
