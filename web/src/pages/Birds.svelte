@@ -1,19 +1,22 @@
 <script lang="ts">
-  import type {
-    PaginatedResult,
-    ColumnDef,
-    CronJobRow,
-    CreateCronRequest,
-    FlightRow,
-  } from '../lib/types.ts';
+  import type { ColumnDef, CronJobRow, CreateCronRequest } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge, timeStamp, flightDuration } from '../lib/format.ts';
+  import { formatAge, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import { showConfirm } from '../lib/confirm.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import Toggle from '../components/Toggle.svelte';
+
+  type EditableField = 'schedule' | 'prompt' | 'agent_id';
+
+  interface EditingCell {
+    id: number;
+    field: EditableField;
+    value: string;
+    original: string;
+  }
 
   const columns: ColumnDef[] = [
     { key: 'id', label: 'ID', sortable: true },
@@ -27,9 +30,6 @@
   ];
 
   let lastUpdated = $state(timeStamp());
-  let expandedId: number | null = $state(null);
-  let flightHistory: Record<number, FlightRow[]> = $state({});
-  let flightLoading: Record<number, boolean> = $state({});
 
   const table = createDataTable<CronJobRow>({
     endpoint: '/api/birds',
@@ -41,31 +41,15 @@
     },
   });
 
-  async function toggleHistory(id: number): Promise<void> {
-    if (expandedId === id) {
-      expandedId = null;
-      return;
-    }
-    expandedId = id;
-    if (flightHistory[id]) return;
-    flightLoading = { ...flightLoading, [id]: true };
-    try {
-      const result = await api<PaginatedResult<FlightRow>>(`/api/birds/${id}/flights?perPage=10`);
-      flightHistory = { ...flightHistory, [id]: result.items };
-    } catch {
-      flightHistory = { ...flightHistory, [id]: [] };
-    } finally {
-      flightLoading = { ...flightLoading, [id]: false };
-    }
-  }
-
   let showForm = $state(false);
-  let editingId: number | null = $state(null);
   let formSchedule = $state('');
   let formPrompt = $state('');
   let formChannel = $state('');
   let formAgent = $state('');
   let submitting = $state(false);
+
+  let editing: EditingCell | null = $state(null);
+  let saving = $state(false);
 
   async function toggleCron(id: number, currentlyEnabled: boolean): Promise<void> {
     const action = currentlyEnabled ? 'disable' : 'enable';
@@ -77,61 +61,33 @@
     }
   }
 
-  function resetForm(): void {
+  function openCreate(): void {
     formSchedule = '';
     formPrompt = '';
     formChannel = '';
     formAgent = '';
-    editingId = null;
-  }
-
-  function openCreate(): void {
-    resetForm();
-    showForm = true;
-  }
-
-  function openEdit(job: CronJobRow): void {
-    editingId = job.id;
-    formSchedule = job.schedule;
-    formPrompt = job.prompt;
-    formChannel = job.target_channel_id ?? '';
-    formAgent = job.agent_id;
     showForm = true;
   }
 
   function closeForm(): void {
     showForm = false;
-    resetForm();
   }
 
-  async function submitForm(): Promise<void> {
+  async function submitCreate(): Promise<void> {
     if (!formSchedule.trim() || !formPrompt.trim()) {
       showToast('Schedule and prompt are required', 'error');
       return;
     }
     submitting = true;
     try {
-      if (editingId != null) {
-        await api(`/api/birds/${editingId}`, {
-          method: 'PATCH',
-          body: {
-            schedule: formSchedule.trim(),
-            prompt: formPrompt.trim(),
-            channel: formChannel.trim() || null,
-            agent: formAgent.trim() || undefined,
-          },
-        });
-        showToast(`Bird #${editingId} updated`, 'success');
-      } else {
-        const body: CreateCronRequest = {
-          schedule: formSchedule.trim(),
-          prompt: formPrompt.trim(),
-        };
-        if (formChannel.trim()) body.channel = formChannel.trim();
-        if (formAgent.trim()) body.agent = formAgent.trim();
-        await api('/api/birds', { method: 'POST', body });
-        showToast('Bird created', 'success');
-      }
+      const body: CreateCronRequest = {
+        schedule: formSchedule.trim(),
+        prompt: formPrompt.trim(),
+      };
+      if (formChannel.trim()) body.channel = formChannel.trim();
+      if (formAgent.trim()) body.agent = formAgent.trim();
+      await api('/api/birds', { method: 'POST', body });
+      showToast('Bird created', 'success');
       closeForm();
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
@@ -140,13 +96,68 @@
     }
   }
 
+  function startCellEdit(job: CronJobRow, field: EditableField): void {
+    if (job.name.startsWith('__bb_')) return;
+    const value = field === 'agent_id' ? job.agent_id : job[field];
+    editing = { id: job.id, field, value, original: value };
+  }
+
+  function cancelCellEdit(): void {
+    editing = null;
+  }
+
+  async function saveCellEdit(): Promise<void> {
+    if (editing == null) return;
+    const trimmed = editing.value.trim();
+    if (trimmed === editing.original.trim()) {
+      editing = null;
+      return;
+    }
+    if (!trimmed) {
+      showToast('Value cannot be empty', 'error');
+      return;
+    }
+    saving = true;
+    const fieldMap: Record<EditableField, string> = {
+      schedule: 'schedule',
+      prompt: 'prompt',
+      agent_id: 'agent',
+    };
+    try {
+      await api(`/api/birds/${editing.id}`, {
+        method: 'PATCH',
+        body: { [fieldMap[editing.field]]: trimmed },
+      });
+      showToast(`Updated ${editing.field.replace('_', ' ')}`, 'success');
+      editing = null;
+    } catch (err) {
+      showToast(`Failed: ${(err as Error).message}`, 'error');
+    } finally {
+      saving = false;
+    }
+  }
+
+  function handleCellKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Escape') {
+      cancelCellEdit();
+    } else if (e.key === 'Enter') {
+      const isPrompt = editing?.field === 'prompt';
+      if (isPrompt ? e.metaKey : !e.shiftKey) {
+        e.preventDefault();
+        saveCellEdit();
+      }
+    }
+  }
+
+  function isEditingCell(id: number, field: EditableField): boolean {
+    return editing != null && editing.id === id && editing.field === field;
+  }
+
   async function runCron(id: number): Promise<void> {
     try {
       const result = await api<{ success: boolean; jobId: number }>(`/api/birds/${id}/fly`, {
         method: 'POST',
       });
-      const { [id]: _, ...rest } = flightHistory;
-      flightHistory = rest;
       showToast(`Bird #${id} sent on a flight (job #${result.jobId})`, 'success');
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
@@ -170,7 +181,7 @@
 {:else}
   {#if showForm}
     <div class="create-form">
-      <div class="form-title">{editingId != null ? `Edit Bird #${editingId}` : 'New Bird'}</div>
+      <div class="form-title">New Bird</div>
       <div class="form-row">
         <label class="form-label">
           Schedule
@@ -199,13 +210,58 @@
         ></textarea>
       </label>
       <div class="form-actions">
-        <button class="btn btn-primary btn-sm" disabled={submitting} onclick={submitForm}
-          >{submitting ? 'Saving...' : editingId != null ? 'Update' : 'Create'}</button
+        <button class="btn btn-primary btn-sm" disabled={submitting} onclick={submitCreate}
+          >{submitting ? 'Saving...' : 'Create'}</button
         >
         <button class="btn btn-outline btn-sm" onclick={closeForm}>Cancel</button>
       </div>
     </div>
   {/if}
+
+  {#snippet cellActions()}
+    <div class="cell-edit-actions">
+      <button
+        class="cell-btn cell-btn-save"
+        title="Save"
+        disabled={saving}
+        onclick={(e) => {
+          e.stopPropagation();
+          saveCellEdit();
+        }}
+      >
+        {#if saving}
+          <span class="cell-btn-label">...</span>
+        {:else}
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
+            ><path
+              d="M3 8.5l3.5 3.5L13 4.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            /></svg
+          >
+        {/if}
+      </button>
+      <button
+        class="cell-btn cell-btn-cancel"
+        title="Cancel"
+        onclick={(e) => {
+          e.stopPropagation();
+          cancelCellEdit();
+        }}
+      >
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
+          ><path
+            d="M4 4l8 8M12 4l-8 8"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          /></svg
+        >
+      </button>
+    </div>
+  {/snippet}
 
   <DataTable
     {columns}
@@ -228,18 +284,65 @@
         onclick={() => {
           if (showForm) closeForm();
           else openCreate();
-        }}>{showForm && editingId == null ? 'Cancel' : 'Add Bird'}</button
+        }}>{showForm ? 'Cancel' : 'Add Bird'}</button
       >
       <div class="filter-spacer"></div>
       <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}
     {#each table.items as j (j.id)}
+      {@const isSystem = j.name.startsWith('__bb_')}
       <tr>
         <td class="mono">{j.id}</td>
         <td>{j.name}</td>
-        <td class="mono">{j.schedule}</td>
-        <td>{j.prompt.slice(0, 60)}{j.prompt.length > 60 ? '...' : ''}</td>
-        <td>{j.agent_id}</td>
+        <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'schedule')}>
+          <span class="mono cell-text" class:cell-text-hidden={isEditingCell(j.id, 'schedule')}
+            >{j.schedule}</span
+          >
+          {#if isEditingCell(j.id, 'schedule')}
+            <div class="cell-edit-overlay">
+              <input
+                class="cell-input mono"
+                type="text"
+                bind:value={editing!.value}
+                onkeydown={handleCellKeydown}
+              />
+              {@render cellActions()}
+            </div>
+          {/if}
+        </td>
+        <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'prompt')}>
+          <span
+            class="cell-text prompt-text"
+            class:cell-text-hidden={isEditingCell(j.id, 'prompt')}
+            title={j.prompt}>{j.prompt.slice(0, 60)}{j.prompt.length > 60 ? '...' : ''}</span
+          >
+          {#if isEditingCell(j.id, 'prompt')}
+            <div class="cell-edit-overlay">
+              <textarea
+                class="cell-input cell-textarea"
+                bind:value={editing!.value}
+                onkeydown={handleCellKeydown}
+              ></textarea>
+              {@render cellActions()}
+            </div>
+          {/if}
+        </td>
+        <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'agent_id')}>
+          <span class="cell-text" class:cell-text-hidden={isEditingCell(j.id, 'agent_id')}
+            >{j.agent_id}</span
+          >
+          {#if isEditingCell(j.id, 'agent_id')}
+            <div class="cell-edit-overlay">
+              <input
+                class="cell-input"
+                type="text"
+                bind:value={editing!.value}
+                onkeydown={handleCellKeydown}
+              />
+              {@render cellActions()}
+            </div>
+          {/if}
+        </td>
         <td>
           <Toggle active={!!j.enabled} onToggle={() => toggleCron(j.id, !!j.enabled)} />
         </td>
@@ -255,16 +358,11 @@
         </td>
         <td>
           <div class="actions-cell">
-            <button
-              class="btn btn-outline btn-sm"
-              class:btn-active={expandedId === j.id}
-              onclick={() => toggleHistory(j.id)}>Flights</button
+            <a class="btn btn-outline btn-sm" href="#/flights?search={encodeURIComponent(j.name)}"
+              >Flights</a
             >
-            {#if !j.name.startsWith('__bb_')}
-              <button class="btn btn-outline btn-sm" onclick={() => openEdit(j)}>Edit</button>
-            {/if}
             <button class="btn btn-outline btn-sm" onclick={() => runCron(j.id)}>Fly</button>
-            {#if !j.name.startsWith('__bb_')}
+            {#if !isSystem}
               <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id, j.name)}
                 >Delete</button
               >
@@ -272,40 +370,6 @@
           </div>
         </td>
       </tr>
-      {#if expandedId === j.id}
-        <tr class="flight-history-row">
-          <td colspan="8">
-            {#if flightLoading[j.id]}
-              <div class="flight-loading">Loading flights...</div>
-            {:else if !flightHistory[j.id]?.length}
-              <div class="flight-empty">No flight history</div>
-            {:else}
-              <table class="flight-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Status</th>
-                    <th>Duration</th>
-                    <th>Started</th>
-                    <th>Error / Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each flightHistory[j.id] as flight (flight.id)}
-                    <tr>
-                      <td class="mono">{flight.id}</td>
-                      <td><Badge status={flight.status} /></td>
-                      <td class="mono">{flightDuration(flight.started_at, flight.finished_at)}</td>
-                      <td>{formatAge(flight.started_at)}</td>
-                      <td class="flight-summary">{flight.error ?? flight.result ?? '-'}</td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            {/if}
-          </td>
-        </tr>
-      {/if}
     {/each}
   </DataTable>
 {/if}
@@ -368,65 +432,160 @@
     gap: var(--space-1);
   }
 
-  .btn-active {
-    background: var(--color-bg-elevated);
+  .cell-editable {
+    cursor: pointer;
+    position: relative;
+  }
+
+  .cell-editable .cell-text {
+    text-decoration: underline;
+    text-decoration-style: dashed;
+    text-decoration-color: rgba(255, 255, 255, 0.15);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  .cell-editable:hover .cell-text {
+    color: var(--color-text-primary);
+    text-decoration-style: solid;
+    text-decoration-color: var(--color-accent-dim);
+  }
+
+  .cell-text {
+    transition: color 0.12s ease;
+    white-space: nowrap;
+  }
+
+  .cell-text-hidden {
+    visibility: hidden;
+  }
+
+  .cell-edit-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    z-index: 2;
+  }
+
+  .cell-edit-overlay:has(.cell-textarea) {
+    bottom: auto;
+    min-height: 100%;
+    height: 5rem;
+    align-items: flex-start;
+    padding-top: var(--space-1-5);
+    padding-bottom: var(--space-1-5);
+  }
+
+  .cell-input {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-1-5) var(--space-2);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-accent-dim);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    box-shadow: 0 0 0 2px rgba(91, 140, 240, 0.1);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .cell-input.mono {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .cell-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(91, 140, 240, 0.18);
+  }
+
+  .cell-textarea {
+    resize: none;
+    line-height: 1.5;
+    overflow-y: auto;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+  }
+
+  .cell-edit-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    padding-top: var(--space-1);
+  }
+
+  .cell-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    padding: 0;
+    transition:
+      background 0.12s ease,
+      color 0.12s ease;
+  }
+
+  .cell-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .cell-btn-save {
+    background: var(--color-accent-dim);
     color: var(--color-text-primary);
   }
 
-  .flight-history-row td {
-    padding: 0;
-    background: var(--color-bg-deep);
+  .cell-btn-save:hover {
+    background: var(--color-accent);
   }
 
-  .flight-loading,
-  .flight-empty {
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--text-sm);
+  .cell-btn-save:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .cell-btn-cancel {
+    background: transparent;
     color: var(--color-text-muted);
   }
 
-  .flight-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--text-sm);
-  }
-
-  .flight-table th {
-    padding: var(--space-1-5) var(--space-3);
-    text-align: left;
-    font-weight: 600;
-    font-size: var(--text-xs);
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .flight-table td {
-    padding: var(--space-1-5) var(--space-3);
+  .cell-btn-cancel:hover {
+    background: var(--color-bg-elevated);
     color: var(--color-text-secondary);
-    border-bottom: 1px solid var(--color-border);
   }
 
-  .flight-table tr:last-child td {
-    border-bottom: none;
+  .cell-btn-label {
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
   }
 
-  .flight-summary {
-    max-width: 300px;
+  .prompt-text {
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--color-text-muted);
   }
 
   @media (max-width: 768px) {
     .form-row {
       grid-template-columns: 1fr;
-    }
-
-    .flight-summary {
-      max-width: 160px;
     }
   }
 </style>
