@@ -1,13 +1,12 @@
 {
   "display_information": {
     "name": "BrowserBird",
-    "description": "AI agent with browser access",
+    "description": "A self-hosted AI assistant in Slack, with a real browser and a scheduler.",
     "background_color": "#1a1a2e"
   },
   "features": {
     "assistant_view": {
-      "assistant_description": "AI agent with browser access",
-      "suggested_prompts_enabled": true
+      "assistant_description": "A self-hosted AI assistant in Slack, with a real browser and a scheduler."
     },
     "app_home": {
       "home_tab_enabled": true,
@@ -44,6 +43,8 @@
         "im:write",
         "mpim:history",
         "mpim:read",
+        "reactions:read",
+        "reactions:write",
         "users:read",
         "commands"
       ]
