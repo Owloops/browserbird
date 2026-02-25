@@ -37,6 +37,7 @@ import {
   getCronJob,
 } from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
+import { deriveBirdName } from '../core/utils.ts';
 import { checkDoctor } from '../cli/index.ts';
 
 export function buildStatusPayload(config: Config, startedAt: number, deps: WebServerDeps): object {
@@ -322,9 +323,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           jsonError(res, '"prompt" is required', 400);
           return;
         }
-        const name = body.prompt.slice(0, 50);
         const job = createCronJob(
-          name,
+          deriveBirdName(body.prompt),
           body.schedule.trim(),
           body.prompt.trim(),
           body.channel?.trim() || undefined,
@@ -364,7 +364,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const updated = updateCronJob(id, {
           schedule: body.schedule?.trim() || undefined,
           prompt: body.prompt?.trim() || undefined,
-          name: body.prompt ? body.prompt.trim().slice(0, 50) : undefined,
+          name: body.prompt ? deriveBirdName(body.prompt) : undefined,
           targetChannelId: body.channel !== undefined ? body.channel?.trim() || null : undefined,
           agentId: body.agent?.trim() || undefined,
           timezone: body.timezone?.trim() || undefined,

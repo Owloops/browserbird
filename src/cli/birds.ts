@@ -3,7 +3,7 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
-import { printTable, unknownSubcommand } from '../core/table.ts';
+import { formatDuration, deriveBirdName, printTable, unknownSubcommand } from '../core/utils.ts';
 import {
   openDatabase,
   closeDatabase,
@@ -128,7 +128,7 @@ export function handleBirds(argv: string[]): void {
           activeEnd = parsed.end;
         }
         const job = createCronJob(
-          prompt.slice(0, 50),
+          deriveBirdName(prompt),
           schedule,
           prompt,
           values.channel as string | undefined,
@@ -188,7 +188,7 @@ export function handleBirds(argv: string[]): void {
         const updated = updateCronJob(id, {
           schedule,
           prompt,
-          name: prompt ? prompt.slice(0, 50) : undefined,
+          name: prompt ? deriveBirdName(prompt) : undefined,
           targetChannelId: channel !== undefined ? channel || null : undefined,
           agentId: agent,
           timezone,
@@ -289,12 +289,7 @@ export function handleBirds(argv: string[]): void {
           const durationMs = flight.finished_at
             ? new Date(flight.finished_at).getTime() - new Date(flight.started_at).getTime()
             : null;
-          const duration =
-            durationMs == null
-              ? '-'
-              : durationMs >= 60_000
-                ? `${Math.floor(durationMs / 60_000)}m ${Math.floor((durationMs % 60_000) / 1000)}s`
-                : `${Math.round(durationMs / 1000)}s`;
+          const duration = durationMs == null ? '-' : formatDuration(durationMs);
           return [
             String(flight.id),
             flight.status,

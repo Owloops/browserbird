@@ -3,7 +3,7 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
-import { printTable, unknownSubcommand } from '../core/table.ts';
+import { printTable, unknownSubcommand } from '../core/utils.ts';
 import {
   openDatabase,
   closeDatabase,

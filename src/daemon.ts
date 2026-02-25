@@ -49,11 +49,6 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
 
   const config = loadConfig(options.flags.config);
 
-  const envMcpConfigPath = process.env['BROWSERBIRD_MCP_CONFIG_PATH'];
-  if (envMcpConfigPath != null) {
-    config.browser.mcpConfigPath = envMcpConfigPath;
-  }
-
   if (!config.slack.botToken) {
     throw new Error(
       'slack.botToken is required (set SLACK_BOT_TOKEN or configure in browserbird.json)',

@@ -1,6 +1,7 @@
 /** @fileoverview Slack Block Kit builder functions for rich message formatting. */
 
 import type { StreamEventCompletion } from '../provider/stream.ts';
+import { formatDuration } from '../core/utils.ts';
 
 /**
  * Slack Block Kit block types used throughout the channel layer.
@@ -163,14 +164,6 @@ function divider(): DividerBlock {
 
 function context(text: string): ContextBlock {
   return { type: 'context', elements: [mrkdwn(text)] };
-}
-
-export function formatDuration(ms: number): string {
-  const totalSeconds = Math.round(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (minutes === 0) return `${seconds}s`;
-  return `${minutes}m ${seconds}s`;
 }
 
 export function formatCost(usd: number): string {

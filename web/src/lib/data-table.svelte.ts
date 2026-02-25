@@ -148,10 +148,6 @@ export function createDataTable<T, R = PaginatedResult<T>>(config: DataTableConf
     page = 1;
   }
 
-  function refetch(): void {
-    page = page;
-  }
-
   return {
     get items() {
       return items;
@@ -183,6 +179,5 @@ export function createDataTable<T, R = PaginatedResult<T>>(config: DataTableConf
     setPage,
     setSort,
     setSearch,
-    refetch,
   };
 }

@@ -19,7 +19,7 @@ import { createCoalescer } from './coalesce.ts';
 import { createHandler } from './handler.ts';
 import { handleSlashCommand } from './commands.ts';
 import { logger } from '../core/logger.ts';
-import { isWithinTimeRange } from '../core/time.ts';
+import { isWithinTimeRange } from '../core/utils.ts';
 
 class SlackChannelClient implements ChannelClient {
   private readonly web: WebClient;

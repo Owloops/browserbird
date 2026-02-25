@@ -79,9 +79,7 @@ function registerSystemCronJobs(config: Config, retentionDays: number): void {
 
 /** Registers the cron_run job handler and starts the scheduler tick loop. */
 export function startScheduler(config: Config, signal: AbortSignal, deps?: SchedulerDeps): void {
-  const envDays = process.env['BROWSERBIRD_RETENTION_DAYS'];
-  const retentionDays = envDays != null ? Number(envDays) : config.database.retentionDays;
-  registerSystemCronJobs(config, retentionDays);
+  registerSystemCronJobs(config, config.database.retentionDays);
 
   registerHandler('cron_run', async (raw) => {
     const payload = raw as CronRunPayload;

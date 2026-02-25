@@ -1,6 +1,6 @@
 /** @fileoverview Cron expression parser. Standard 5-field syntax + common macros. */
 
-import { isWithinTimeRange } from '../core/time.ts';
+import { isWithinTimeRange } from '../core/utils.ts';
 
 const MACROS: Record<string, string> = {
   '@yearly': '0 0 1 1 *',

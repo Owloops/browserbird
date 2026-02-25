@@ -225,7 +225,7 @@ Each bird also supports per-bird `active_hours_start` and `active_hours_end` (HH
 
 ### Environment variables
 
-Values in config can reference environment variables using `"env:VAR_NAME"`. Additionally:
+Any string value in `browserbird.json` can reference an environment variable with `"env:VAR_NAME"`. The variable name is yours to choose. The example config uses the conventional names below, but `"env:MY_SLACK_TOKEN"` works just as well as `"env:SLACK_BOT_TOKEN"`.
 
 | Variable                      | Description                                                                                                         |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -234,8 +234,6 @@ Values in config can reference environment variables using `"env:VAR_NAME"`. Add
 | `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                                                                   |
 | `ANTHROPIC_API_KEY`           | Agent auth via API key (recommended). Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
 | `CLAUDE_CODE_OAUTH_TOKEN`     | Agent auth via OAuth token (personal use). Uses your Claude Pro/Max subscription. See note below                   |
-| `BROWSERBIRD_RETENTION_DAYS`  | Override `database.retentionDays`                                                                                   |
-| `BROWSERBIRD_MCP_CONFIG_PATH` | Override `browser.mcpConfigPath`                                                                                    |
 | `NO_COLOR`                    | Disable colored output                                                                                              |
 
 > [!NOTE]
