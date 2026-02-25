@@ -76,8 +76,8 @@
 
   <div class="stat-cards">
     <StatCard label="Messages" value={session.message_count} />
-    <StatCard label="Tokens In" value={stats.totalTokensIn.toLocaleString()} variant="info" />
-    <StatCard label="Tokens Out" value={stats.totalTokensOut.toLocaleString()} variant="info" />
+    <StatCard label="Tokens In" value={stats.totalTokensIn.toLocaleString()} />
+    <StatCard label="Tokens Out" value={stats.totalTokensOut.toLocaleString()} />
   </div>
 
   <DataTable
