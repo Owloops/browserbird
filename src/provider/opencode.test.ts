@@ -134,10 +134,32 @@ describe('opencode parseStreamLine', () => {
     }
   });
 
-  it('parses error event', () => {
+  it('parses simple error event', () => {
     const events = opencode.parseStreamLine('{"type":"error","message":"auth failed"}');
     strictEqual(events.length, 1);
     deepStrictEqual(events[0], { type: 'error', error: 'auth failed' });
+  });
+
+  it('extracts message from nested API error', () => {
+    const events = opencode.parseStreamLine(
+      JSON.stringify({
+        type: 'error',
+        error: {
+          name: 'APIError',
+          data: { message: 'Your credit balance is too low', statusCode: 400 },
+        },
+      }),
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], { type: 'error', error: 'Your credit balance is too low' });
+  });
+
+  it('falls back to error name when no message', () => {
+    const events = opencode.parseStreamLine(
+      JSON.stringify({ type: 'error', error: { name: 'UnknownError', data: {} } }),
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], { type: 'error', error: 'UnknownError' });
   });
 
   it('returns empty for blank lines and non-json', () => {

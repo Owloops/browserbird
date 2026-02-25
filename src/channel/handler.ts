@@ -108,6 +108,7 @@ export function createHandler(
 
         case 'error':
           hasError = true;
+          logger.error(`agent error: ${event.error}`);
           db.insertLog('error', 'spawn', event.error, channelId);
           await streamer.append({ markdown_text: `\n\n:x: ${event.error}` });
           break;

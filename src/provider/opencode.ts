@@ -1,6 +1,6 @@
 /** @fileoverview OpenCode CLI provider — arg building, workspace setup, and JSON stream parsing. */
 
-import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, copyFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { ProviderModule, SpawnOptions, ProviderCommand } from './types.ts';
 import type { StreamEvent } from './stream.ts';
@@ -73,6 +73,11 @@ function ensureWorkspace(mcpConfigPath?: string, systemPrompt?: string): void {
   if (systemPrompt) {
     const agentMd = `---\nmode: primary\n---\n\n${systemPrompt}\n`;
     writeFileSync(resolve(WORKSPACE_DIR, '.opencode', 'agent', 'browserbird.md'), agentMd);
+  }
+
+  const agentsMd = resolve('AGENTS.md');
+  if (existsSync(agentsMd)) {
+    copyFileSync(agentsMd, resolve(WORKSPACE_DIR, 'AGENTS.md'));
   }
 }
 
@@ -215,8 +220,13 @@ function parseStreamLine(line: string): StreamEvent[] {
     }
 
     case 'error': {
+      const err = parsed['error'] as Record<string, unknown> | undefined;
+      const data = err?.['data'] as Record<string, unknown> | undefined;
       const msg =
-        typeof parsed['message'] === 'string' ? parsed['message'] : JSON.stringify(parsed);
+        (typeof data?.['message'] === 'string' && data['message']) ||
+        (typeof parsed['message'] === 'string' && parsed['message']) ||
+        (typeof err?.['name'] === 'string' && err['name']) ||
+        JSON.stringify(parsed);
       return [{ type: 'error', error: msg }];
     }
 

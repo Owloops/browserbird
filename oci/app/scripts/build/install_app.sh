@@ -8,7 +8,7 @@ curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt-get install -y --no-install-recommends nodejs
 
 echo "Installing global npm packages..."
-npm install -g @anthropic-ai/claude-code
+npm install -g @anthropic-ai/claude-code opencode-ai
 
 rm -rf /var/lib/apt/lists/*
 

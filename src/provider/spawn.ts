@@ -47,10 +47,16 @@ export function spawnProvider(
   logger.debug(`spawning: ${cmd.binary} ${cmd.args.join(' ')} (timeout: ${timeoutMs}ms)`);
 
   const baseEnv = cleanEnv();
+  if (cmd.env) {
+    for (const [k, v] of Object.entries(cmd.env)) {
+      if (v === '') delete baseEnv[k];
+      else baseEnv[k] = v;
+    }
+  }
   const proc = spawn(cmd.binary, cmd.args, {
     cwd: cmd.cwd ?? process.cwd(),
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: cmd.env ? { ...baseEnv, ...cmd.env } : baseEnv,
+    env: baseEnv,
   });
 
   let stderrBuf = '';

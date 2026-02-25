@@ -52,6 +52,16 @@ Pre-built images are pulled from `ghcr.io/owloops/browserbird` automatically. No
 
 The stack runs two containers: a `vm` container with the Wayland compositor, VNC server, and noVNC; and a `browserbird` container with the agent CLI, Playwright MCP, and BrowserBird itself.
 
+The default image ships a single claude agent on all channels. To customize agents, mount your own config:
+
+```yaml
+# docker-compose.override.yml
+services:
+  app:
+    volumes:
+      - ./browserbird.json:/app/oci/app/config/browserbird.json:ro
+```
+
 > [!NOTE]
 > `shm_size: 2g` is required for Chromium stability inside containers.
 
@@ -232,12 +242,14 @@ Any string value in `browserbird.json` can reference an environment variable wit
 | `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                                                                |
 | `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
 | `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                                                                   |
-| `ANTHROPIC_API_KEY`           | Claude provider auth via API key (recommended). Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
-| `CLAUDE_CODE_OAUTH_TOKEN`     | Claude provider auth via OAuth token (personal use). Uses your Claude Pro/Max subscription. See note below                   |
+| `ANTHROPIC_API_KEY`           | Anthropic API key. Used by both claude and opencode providers. Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
+| `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. See note below |
 | `NO_COLOR`                    | Disable colored output                                                                                              |
 
+The **opencode** provider inherits standard env vars per model provider. Set `OPENAI_API_KEY` for OpenAI models, `GEMINI_API_KEY` for Google, `OPENROUTER_API_KEY` for OpenRouter, etc. See the full list at [models.dev](https://models.dev).
+
 > [!NOTE]
-> **Agent authentication:** Each provider has its own auth. For the **claude** provider: `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS; `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. For the **opencode** provider: run `opencode auth` to configure credentials (stored in `~/.config/opencode`).
+> **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use (claude provider only). When both are set, the claude provider uses OAuth and the opencode provider uses the API key.
 
 ## CLI
 
