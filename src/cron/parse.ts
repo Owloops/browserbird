@@ -1,5 +1,7 @@
 /** @fileoverview Cron expression parser. Standard 5-field syntax + common macros. */
 
+import { isWithinTimeRange } from '../core/time.ts';
+
 const MACROS: Record<string, string> = {
   '@yearly': '0 0 1 1 *',
   '@annually': '0 0 1 1 *',
@@ -83,31 +85,7 @@ export function isWithinActiveHours(
   timezone?: string,
 ): boolean {
   if (start == null && end == null) return true;
-
-  const tz = timezone || 'UTC';
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: false,
-  }).formatToParts(date);
-
-  const h = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
-  const m = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
-  const nowMinutes = h * 60 + m;
-
-  const parseHM = (hm: string): number => {
-    const [hh, mm] = hm.split(':');
-    return Number(hh) * 60 + Number(mm ?? 0);
-  };
-
-  const startMin = start != null ? parseHM(start) : 0;
-  const endMin = end != null ? parseHM(end) : 24 * 60;
-
-  if (startMin <= endMin) {
-    return nowMinutes >= startMin && nowMinutes < endMin;
-  }
-  return nowMinutes >= startMin || nowMinutes < endMin;
+  return isWithinTimeRange(start ?? '00:00', end ?? '24:00', date, timezone || 'UTC');
 }
 
 /** Returns true if the given Date matches the cron schedule in the specified timezone. */

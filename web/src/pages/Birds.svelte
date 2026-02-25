@@ -8,7 +8,7 @@
   } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge, timeStamp } from '../lib/format.ts';
+  import { formatAge, timeStamp, flightDuration } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import { showConfirm } from '../lib/confirm.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
@@ -151,14 +151,6 @@
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
-  }
-
-  function flightDuration(startedAt: string, finishedAt: string | null): string {
-    if (!finishedAt) return '-';
-    const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-    if (ms < 0) return '-';
-    const secs = Math.round(ms / 1000);
-    return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
   }
 
   async function deleteCron(id: number, name: string): Promise<void> {

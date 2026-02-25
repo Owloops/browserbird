@@ -193,13 +193,6 @@ export function deleteOldJobs(retentionDays: number): number {
   return Number(stmt.run(`-${retentionDays}`).changes);
 }
 
-export function countPendingJobs(): number {
-  const row = getDb()
-    .prepare(`SELECT COUNT(*) as count FROM jobs WHERE status = 'pending'`)
-    .get() as unknown as { count: number };
-  return row.count;
-}
-
 const JOB_SORT_COLUMNS = new Set(['id', 'name', 'status', 'priority', 'created_at', 'started_at']);
 const JOB_SEARCH_COLUMNS = ['name', 'error'] as const;
 

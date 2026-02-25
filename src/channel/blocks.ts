@@ -165,26 +165,6 @@ function context(text: string): ContextBlock {
   return { type: 'context', elements: [mrkdwn(text)] };
 }
 
-function button(
-  actionId: string,
-  label: string,
-  opts?: {
-    style?: 'primary' | 'danger';
-    value?: string;
-    url?: string;
-  },
-): ButtonElement {
-  const btn: ButtonElement = { type: 'button', text: plain(label), action_id: actionId };
-  if (opts?.style) btn.style = opts.style;
-  if (opts?.value) btn.value = opts.value;
-  if (opts?.url) btn.url = opts.url;
-  return btn;
-}
-
-function actions(blockId: string, elements: ActionElement[]): ActionsBlock {
-  return { type: 'actions', block_id: blockId, elements };
-}
-
 export function formatDuration(ms: number): string {
   const totalSeconds = Math.round(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -318,52 +298,6 @@ export function noAgentBlocks(channelId: string): Block[] {
     section(':grey_question: *No agent configured for this channel*'),
     context(`Channel: \`${channelId}\``),
   ];
-}
-
-interface FlightSummaryEntry {
-  name: string;
-  success: boolean;
-  durationMs?: number;
-  costUsd?: number;
-  error?: string;
-}
-
-export function flightSummaryBlocks(entries: FlightSummaryEntry[], dashboardUrl?: string): Block[] {
-  const succeeded = entries.filter((e) => e.success).length;
-  const total = entries.length;
-  const totalCost = entries.reduce((sum, e) => sum + (e.costUsd ?? 0), 0);
-  const totalDuration = entries.reduce((sum, e) => sum + (e.durationMs ?? 0), 0);
-
-  const blocks: Block[] = [header('Daily Flight Summary')];
-
-  const lines = entries.map((e) => {
-    const icon = e.success ? ':white_check_mark:' : ':x:';
-    const duration = e.durationMs ? formatDuration(e.durationMs) : '?';
-    const cost = e.costUsd ? formatCost(e.costUsd) : '?';
-    const detail = e.success ? `${duration}, ${cost}` : (e.error ?? 'failed');
-    return `${icon}  *${e.name}* \u2014 \`${detail}\``;
-  });
-
-  blocks.push(section(lines.join('\n')));
-  blocks.push(divider());
-  blocks.push(
-    fields(
-      ['Total Flights', String(total)],
-      ['Success Rate', total > 0 ? `${Math.round((succeeded / total) * 100)}%` : 'N/A'],
-      ['Total Cost', formatCost(totalCost)],
-      ['Total Time', formatDuration(totalDuration)],
-    ),
-  );
-
-  if (dashboardUrl) {
-    blocks.push(
-      actions('flight_summary_actions', [
-        button('open_dashboard', 'Open Dashboard', { style: 'primary', url: dashboardUrl }),
-      ]),
-    );
-  }
-
-  return blocks;
 }
 
 export function birdCreateModal(defaults?: {

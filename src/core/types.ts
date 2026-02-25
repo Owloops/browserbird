@@ -80,7 +80,6 @@ export interface Config {
 
 export const COMMANDS = {
   START: 'start',
-  STOP: 'stop',
   STATUS: 'status',
   SESSIONS: 'sessions',
   BIRDS: 'birds',

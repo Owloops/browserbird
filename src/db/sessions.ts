@@ -149,15 +149,6 @@ export function deleteStaleSessions(ttlHours: number): number {
   return Number(result.changes);
 }
 
-export function countActiveSessions(ttlHours: number): number {
-  const row = getDb()
-    .prepare(
-      `SELECT COUNT(*) as count FROM sessions WHERE last_active >= datetime('now', ? || ' hours')`,
-    )
-    .get(`-${ttlHours}`) as unknown as { count: number };
-  return row.count;
-}
-
 export function updateSessionProviderId(id: number, providerSessionId: string): void {
   getDb()
     .prepare('UPDATE sessions SET provider_session_id = ? WHERE id = ?')

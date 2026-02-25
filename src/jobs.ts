@@ -7,7 +7,6 @@ import {
   completeJob,
   failJob,
   failStaleJobs,
-  deleteOldJobs,
   insertLog,
   updateCronJobStatus,
   getCronJob,
@@ -107,7 +106,7 @@ async function processJob(job: JobRow): Promise<void> {
  * Starts the job worker loop. Polls for pending jobs, processes them one at a time.
  * Checks for stale running jobs every 5 minutes.
  */
-export function startWorker(signal: AbortSignal, retentionDays: number): void {
+export function startWorker(signal: AbortSignal): void {
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
   const pollTick = async () => {
@@ -128,10 +127,6 @@ export function startWorker(signal: AbortSignal, retentionDays: number): void {
     const stale = failStaleJobs();
     if (stale > 0) {
       logger.info(`timed out ${stale} stale job(s)`);
-    }
-    const deleted = deleteOldJobs(retentionDays);
-    if (deleted > 0) {
-      logger.info(`cleaned up ${deleted} old job(s)`);
     }
   };
 

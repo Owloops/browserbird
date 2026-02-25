@@ -40,6 +40,27 @@ import { enqueue } from '../jobs.ts';
 import { getErrorRates } from '../core/metrics.ts';
 import { checkDoctor } from '../cli/index.ts';
 
+export function buildStatusPayload(config: Config, startedAt: number, deps: WebServerDeps): object {
+  const jobs = getJobStats();
+  const flights = getFlightStats();
+  const messages = getMessageStats();
+  const health = deps.serviceHealth();
+  return {
+    uptime: Date.now() - startedAt,
+    processes: {
+      active: deps.activeProcessCount(),
+      maxConcurrent: config.sessions.maxConcurrent,
+    },
+    jobs,
+    flights,
+    messages,
+    web: { enabled: config.web.enabled, port: config.web.port },
+    agent: health.agent,
+    browser: { enabled: config.browser.enabled, connected: health.browser.connected },
+    slack: { connected: deps.slackConnected() },
+  };
+}
+
 export function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Route[] {
   return [
     {
@@ -68,25 +89,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'GET',
       pattern: pathToRegex('/api/status'),
       handler(_req, res) {
-        const uptimeMs = Date.now() - startedAt;
-        const jobs = getJobStats();
-        const flights = getFlightStats();
-        const messages = getMessageStats();
-        const health = deps.serviceHealth();
-        json(res, {
-          uptime: uptimeMs,
-          processes: {
-            active: deps.activeProcessCount(),
-            maxConcurrent: config.sessions.maxConcurrent,
-          },
-          jobs,
-          flights,
-          messages,
-          web: { enabled: config.web.enabled, port: config.web.port },
-          agent: health.agent,
-          browser: { enabled: config.browser.enabled, connected: health.browser.connected },
-          slack: { connected: deps.slackConnected() },
-        });
+        json(res, buildStatusPayload(config, startedAt, deps));
       },
     },
     {

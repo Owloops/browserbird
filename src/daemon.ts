@@ -1,17 +1,8 @@
 /** @fileoverview Main orchestrator process — starts all subsystems and handles graceful shutdown. */
 
-import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
 import { loadConfig } from './config.ts';
-import {
-  openDatabase,
-  closeDatabase,
-  deleteOldMessages,
-  deleteOldCronRuns,
-  deleteOldLogs,
-  optimizeDatabase,
-} from './db/index.ts';
-import { expireStaleSessions } from './provider/session.ts';
+import { openDatabase, closeDatabase } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
@@ -43,40 +34,6 @@ function setupShutdown(): void {
 
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
-}
-
-/** Periodically cleans up expired sessions, old messages, and cron runs. */
-function startCleanupTask(config: Config, retentionDays: number): void {
-  const cleanupIntervalMs = 60 * 60 * 1000;
-  const optimizeIntervalMs = config.database.optimizeIntervalHours * 60 * 60 * 1000;
-
-  const cleanup = () => {
-    if (controller.signal.aborted) return;
-    expireStaleSessions(config.sessions.ttlHours);
-    const msgs = deleteOldMessages(retentionDays);
-    const runs = deleteOldCronRuns(retentionDays);
-    const errs = deleteOldLogs(retentionDays);
-    if (msgs > 0 || runs > 0 || errs > 0) {
-      logger.info(
-        `cleanup: ${msgs} messages, ${runs} cron runs, ${errs} logs older than ${retentionDays}d`,
-      );
-    }
-  };
-
-  const optimize = () => {
-    if (controller.signal.aborted) return;
-    optimizeDatabase();
-    logger.debug('database optimized');
-  };
-
-  cleanup();
-  const cleanupTimer = setInterval(cleanup, cleanupIntervalMs);
-  const optimizeTimer = setInterval(optimize, optimizeIntervalMs);
-
-  controller.signal.addEventListener('abort', () => {
-    clearInterval(cleanupTimer);
-    clearInterval(optimizeTimer);
-  });
 }
 
 interface DaemonOptions {
@@ -111,11 +68,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const dbPath = resolve('.browserbird', 'browserbird.db');
   openDatabase(dbPath);
 
-  const envDays = process.env['BROWSERBIRD_RETENTION_DAYS'];
-  const retentionDays = envDays != null ? Number(envDays) : config.database.retentionDays;
-
-  startCleanupTask(config, retentionDays);
-  startWorker(controller.signal, retentionDays);
+  startWorker(controller.signal);
 
   const slackApp = createSlackChannel(config, controller.signal);
 

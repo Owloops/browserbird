@@ -1,9 +1,9 @@
 /** @fileoverview Cached service health checks for agent CLI and browser connectivity. */
 
 import { connect } from 'node:net';
-import { execFileSync } from 'node:child_process';
 import type { Config } from '../core/types.ts';
 import { logger } from '../core/logger.ts';
+import { checkDoctor } from '../cli/doctor.ts';
 
 export interface ServiceHealth {
   agent: { available: boolean };
@@ -20,23 +20,10 @@ let agentCheckedAt = 0;
 let browserConnected = false;
 let browserCheckPending = false;
 
-function probeAgent(): boolean {
-  try {
-    execFileSync('claude', ['--version'], {
-      timeout: 5_000,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function refreshAgent(): void {
   const now = Date.now();
   if (now - agentCheckedAt < AGENT_CHECK_INTERVAL_MS) return;
-  agentAvailable = probeAgent();
+  agentAvailable = checkDoctor().claude.available;
   agentCheckedAt = now;
 }
 

@@ -23,3 +23,11 @@ export function formatAge(dateStr: string): string {
 export function timeStamp(): string {
   return new Date().toLocaleTimeString();
 }
+
+export function flightDuration(startedAt: string, finishedAt: string | null): string {
+  if (!finishedAt) return '-';
+  const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+  if (ms < 0) return '-';
+  const secs = Math.round(ms / 1000);
+  return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
+}

@@ -19,6 +19,7 @@ import { createCoalescer } from './coalesce.ts';
 import { createHandler } from './handler.ts';
 import { handleSlashCommand } from './commands.ts';
 import { logger } from '../core/logger.ts';
+import { isWithinTimeRange } from '../core/time.ts';
 
 class SlackChannelClient implements ChannelClient {
   private readonly web: WebClient;
@@ -494,30 +495,7 @@ function isChannelAllowed(channelId: string, permissions: SlackConfig['permissio
 
 function isQuietHours(quietHours: SlackConfig['quietHours']): boolean {
   if (!quietHours.enabled) return false;
-
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: false,
-    timeZone: quietHours.timezone,
-  });
-
-  function parseHHMM(s: string): number {
-    const parts = s.split(':');
-    const h = Number(parts[0]);
-    const m = Number(parts[1]);
-    if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
-    return h * 60 + m;
-  }
-
-  const currentMinutes = parseHHMM(formatter.format(new Date()));
-  const startMinutes = parseHHMM(quietHours.start);
-  const endMinutes = parseHHMM(quietHours.end);
-
-  if (startMinutes <= endMinutes) {
-    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-  }
-  return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+  return isWithinTimeRange(quietHours.start, quietHours.end, new Date(), quietHours.timezone);
 }
 
 function stripMention(text: string): string {

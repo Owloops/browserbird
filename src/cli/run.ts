@@ -1,6 +1,7 @@
 /** @fileoverview CLI entry point — argument parsing and command routing. */
 
 import { parseArgs } from 'node:util';
+import { createRequire } from 'node:module';
 import type { Command } from '../core/types.ts';
 import { COMMANDS } from '../core/types.ts';
 import { logger } from '../core/logger.ts';
@@ -17,7 +18,8 @@ import { SETTINGS_HELP } from './settings.ts';
 import { handleDoctor } from './doctor.ts';
 import { DOCTOR_HELP } from './doctor.ts';
 
-const VERSION = '0.0.0';
+const require = createRequire(import.meta.url);
+const VERSION: string = (require('../../package.json') as { version: string }).version;
 
 const MAIN_HELP = `
 usage: browserbird [command] [options]
@@ -83,9 +85,6 @@ export async function run(argv: string[]): Promise<void> {
   switch (command as Command) {
     case COMMANDS.START:
       await startDaemon(parseGlobalFlags(argv));
-      break;
-    case COMMANDS.STOP:
-      logger.info(`command "${command}" not yet implemented`);
       break;
     case COMMANDS.STATUS:
       if (isHelp) {

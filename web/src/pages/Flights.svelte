@@ -2,7 +2,7 @@
   import type { ColumnDef, FlightRow } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge } from '../lib/format.ts';
+  import { formatAge, flightDuration } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
@@ -31,14 +31,6 @@
     },
     watchExtras: () => statusFilter,
   });
-
-  function flightDuration(startedAt: string, finishedAt: string | null): string {
-    if (!finishedAt) return '-';
-    const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-    if (ms < 0) return '-';
-    const secs = Math.round(ms / 1000);
-    return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
-  }
 
   async function retryFlight(flight: FlightRow): Promise<void> {
     try {

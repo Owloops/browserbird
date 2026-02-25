@@ -10,7 +10,7 @@
     FlightRow,
   } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
-  import { formatAge, formatUptime } from '../lib/format.ts';
+  import { formatAge, formatUptime, flightDuration } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import Badge from '../components/Badge.svelte';
 
@@ -62,14 +62,6 @@
     } catch {
       systemFlights = { ...systemFlights, [birdId]: [] };
     }
-  }
-
-  function flightDuration(startedAt: string, finishedAt: string | null): string {
-    if (!finishedAt) return '-';
-    const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-    if (ms < 0) return '-';
-    const secs = Math.round(ms / 1000);
-    return secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
   }
 
   let retryingFailed = $state(false);
