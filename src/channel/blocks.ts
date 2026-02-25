@@ -452,7 +452,8 @@ export function birdLogsBlocks(
 }
 
 function formatAge(isoDate: string): string {
-  const ms = Date.now() - new Date(isoDate).getTime();
+  const normalized = isoDate.endsWith('Z') ? isoDate : isoDate + 'Z';
+  const ms = Date.now() - new Date(normalized).getTime();
   const minutes = Math.floor(ms / 60_000);
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);

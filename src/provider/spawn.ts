@@ -8,10 +8,26 @@ import { logger } from '../core/logger.ts';
 import { claude } from './claude.ts';
 import { opencode } from './opencode.ts';
 
+const SIGKILL_GRACE_MS = 5_000;
+
 const PROVIDERS: Record<ProviderName, ProviderModule> = {
   claude,
   opencode,
 };
+
+/** Sends SIGTERM, then SIGKILL after a grace period if the process is still alive. */
+function gracefulKill(proc: ChildProcess): void {
+  if (!proc.pid || proc.killed) return;
+  proc.kill('SIGTERM');
+  const escalation = setTimeout(() => {
+    if (!proc.killed) {
+      logger.warn(`process ${proc.pid} did not exit after SIGTERM, sending SIGKILL`);
+      proc.kill('SIGKILL');
+    }
+  }, SIGKILL_GRACE_MS);
+  escalation.unref();
+  proc.on('exit', () => clearTimeout(escalation));
+}
 
 /** Env vars that prevent nested Claude Code sessions. */
 const STRIPPED_ENV_VARS = ['CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT'];
@@ -66,10 +82,10 @@ export function spawnProvider(
 
   const timeout = setTimeout(() => {
     logger.warn(`${cmd.binary} timed out after ${timeoutMs}ms, killing`);
-    proc.kill('SIGTERM');
+    gracefulKill(proc);
   }, timeoutMs);
 
-  const onAbort = () => proc.kill('SIGTERM');
+  const onAbort = () => gracefulKill(proc);
   signal.addEventListener('abort', onAbort, { once: true });
 
   async function* iterate(): AsyncIterable<StreamEvent> {
@@ -94,7 +110,7 @@ export function spawnProvider(
 
   return {
     events: iterate(),
-    kill: () => proc.kill('SIGTERM'),
+    kill: () => gracefulKill(proc),
   };
 }
 

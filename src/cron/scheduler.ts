@@ -12,6 +12,7 @@ import {
   updateCronJobStatus,
   setCronJobEnabled,
   ensureSystemCronJob,
+  hasPendingCronJob,
   deleteOldMessages,
   deleteOldCronRuns,
   deleteOldJobs,
@@ -185,6 +186,11 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
 
       if (!isWithinActiveHours(job.active_hours_start, job.active_hours_end, now, job.timezone)) {
         logger.debug(`bird #${job.id} skipped: outside active hours`);
+        continue;
+      }
+
+      if (hasPendingCronJob(job.id)) {
+        logger.debug(`bird #${job.id} skipped: previous run still pending or running`);
         continue;
       }
 

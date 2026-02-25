@@ -270,6 +270,7 @@ function migrate(d: DatabaseSync): void {
     d.exec('BEGIN');
     try {
       migration.up(d);
+      setSchemaVersion(d, i + 1);
       d.exec('COMMIT');
     } catch (err) {
       d.exec('ROLLBACK');
@@ -278,7 +279,6 @@ function migrate(d: DatabaseSync): void {
         { cause: err },
       );
     }
-    setSchemaVersion(d, i + 1);
   }
 }
 

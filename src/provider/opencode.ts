@@ -107,42 +107,29 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
   return { binary: 'opencode', args, cwd: WORKSPACE_DIR };
 }
 
-/**
- * Per-session accumulator for metrics that opencode spreads across multiple events.
- * Each `opencode run` is a separate process so there's no interleaving.
- * Reset on first step_start, consumed on final step_finish.
- */
-let currentSessionId = '';
-let startTimestamp = 0;
-let stepCount = 0;
-let totalTokensIn = 0;
-let totalTokensOut = 0;
-let totalCacheWrite = 0;
-let totalCacheRead = 0;
-let totalCost = 0;
-
-function resetAccumulator(sessionId: string, timestamp: number): void {
-  currentSessionId = sessionId;
-  startTimestamp = timestamp;
-  stepCount = 0;
-  totalTokensIn = 0;
-  totalTokensOut = 0;
-  totalCacheWrite = 0;
-  totalCacheRead = 0;
-  totalCost = 0;
+interface MetricAccumulator {
+  startTimestamp: number;
+  stepCount: number;
+  tokensIn: number;
+  tokensOut: number;
+  cacheWrite: number;
+  cacheRead: number;
+  cost: number;
 }
 
-function accumulateStep(part: Record<string, unknown>, timestamp: number): void {
-  stepCount++;
+/** Per-session metric accumulators. Concurrent sessions each get their own entry. */
+const accumulators = new Map<string, MetricAccumulator>();
+
+function accumulateStep(sessionId: string, part: Record<string, unknown>): void {
+  const acc = accumulators.get(sessionId)!;
+  acc.stepCount++;
   const tokens = part['tokens'] as Record<string, unknown> | undefined;
   const cache = tokens?.['cache'] as Record<string, unknown> | undefined;
-  totalTokensIn += (tokens?.['input'] as number) ?? 0;
-  totalTokensOut += (tokens?.['output'] as number) ?? 0;
-  totalCacheWrite += (cache?.['write'] as number) ?? 0;
-  totalCacheRead += (cache?.['read'] as number) ?? 0;
-  totalCost += (part['cost'] as number) ?? 0;
-  // Use latest timestamp as end time (step_finish fires after step_start)
-  startTimestamp = startTimestamp || timestamp;
+  acc.tokensIn += (tokens?.['input'] as number) ?? 0;
+  acc.tokensOut += (tokens?.['output'] as number) ?? 0;
+  acc.cacheWrite += (cache?.['write'] as number) ?? 0;
+  acc.cacheRead += (cache?.['read'] as number) ?? 0;
+  acc.cost += (part['cost'] as number) ?? 0;
 }
 
 /**
@@ -175,7 +162,17 @@ function parseStreamLine(line: string): StreamEvent[] {
     case 'step_start':
       if (part && typeof part['sessionID'] === 'string') {
         const sid = part['sessionID'];
-        if (sid !== currentSessionId) resetAccumulator(sid, timestamp);
+        if (!accumulators.has(sid)) {
+          accumulators.set(sid, {
+            startTimestamp: timestamp,
+            stepCount: 0,
+            tokensIn: 0,
+            tokensOut: 0,
+            cacheWrite: 0,
+            cacheRead: 0,
+            cost: 0,
+          });
+        }
         return [
           {
             type: 'init',
@@ -194,28 +191,31 @@ function parseStreamLine(line: string): StreamEvent[] {
 
     case 'step_finish': {
       if (!part) return [];
-      accumulateStep(part, timestamp);
+      const sid = (part['sessionID'] as string) ?? '';
+      accumulateStep(sid, part);
 
       const reason = part['reason'] as string | undefined;
       if (reason !== 'stop') return [];
 
-      const durationMs = timestamp > startTimestamp ? timestamp - startTimestamp : 0;
+      const acc = accumulators.get(sid)!;
+
+      const durationMs = timestamp > acc.startTimestamp ? timestamp - acc.startTimestamp : 0;
       const completion: StreamEvent = {
         type: 'completion',
         subtype: 'success',
         result: '',
-        sessionId: (part['sessionID'] as string) ?? '',
+        sessionId: sid,
         isError: false,
-        tokensIn: totalTokensIn,
-        tokensOut: totalTokensOut,
-        cacheCreationTokens: totalCacheWrite,
-        cacheReadTokens: totalCacheRead,
-        costUsd: totalCost,
+        tokensIn: acc.tokensIn,
+        tokensOut: acc.tokensOut,
+        cacheCreationTokens: acc.cacheWrite,
+        cacheReadTokens: acc.cacheRead,
+        costUsd: acc.cost,
         durationMs,
-        numTurns: stepCount,
+        numTurns: acc.stepCount,
       };
 
-      resetAccumulator('', 0);
+      accumulators.delete(sid);
       return [completion];
     }
 

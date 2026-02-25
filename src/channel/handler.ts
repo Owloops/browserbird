@@ -242,7 +242,9 @@ export function createHandler(
 
       const next = lock.queue.shift();
       if (next) {
-        handle(next);
+        handle(next).catch((err: unknown) => {
+          logger.error(`dispatch error: ${err instanceof Error ? err.message : String(err)}`);
+        });
       } else if (lock.queue.length === 0) {
         locks.delete(key);
       }

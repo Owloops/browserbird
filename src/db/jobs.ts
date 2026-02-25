@@ -277,3 +277,13 @@ export function clearJobs(status: 'completed' | 'failed'): number {
   const result = getDb().prepare('DELETE FROM jobs WHERE status = ?').run(status);
   return Number(result.changes);
 }
+
+/** Returns true if the given cron job has a pending or running job in the queue. */
+export function hasPendingCronJob(cronJobId: number): boolean {
+  const row = getDb()
+    .prepare(
+      `SELECT 1 FROM jobs WHERE cron_job_id = ? AND status IN ('pending', 'running') LIMIT 1`,
+    )
+    .get(cronJobId) as unknown | undefined;
+  return row != null;
+}

@@ -5,6 +5,9 @@ import { resolve } from 'node:path';
 import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
 
+const VALID_PROVIDERS = new Set<string>(['claude', 'opencode']);
+const VALID_BROWSER_MODES = new Set<string>(['persistent', 'isolated']);
+
 const DEFAULTS: Config = {
   timezone: 'UTC',
   slack: {
@@ -128,12 +131,43 @@ export function loadConfig(configPath?: string): Config {
   const resolved = resolveEnvValues(merged);
   const config = resolved as unknown as Config;
 
+  validateConfig(config);
+
+  return config;
+}
+
+/** Validates merged config and throws on invalid values, warns on risky combinations. */
+function validateConfig(config: Config): void {
+  if (!Array.isArray(config.agents) || config.agents.length === 0) {
+    throw new Error('at least one agent must be configured');
+  }
+
   for (const agent of config.agents) {
+    if (!agent.id || !agent.name) {
+      throw new Error('each agent must have an "id" and "name"');
+    }
+    if (!VALID_PROVIDERS.has(agent.provider)) {
+      throw new Error(
+        `agent "${agent.id}": unknown provider "${agent.provider}" (expected: ${[...VALID_PROVIDERS].join(', ')})`,
+      );
+    }
+    if (!agent.model) {
+      throw new Error(`agent "${agent.id}": "model" is required`);
+    }
+    if (!Array.isArray(agent.channels) || agent.channels.length === 0) {
+      throw new Error(`agent "${agent.id}": "channels" must be a non-empty array`);
+    }
     if (agent.fallbackModel && agent.fallbackModel === agent.model) {
       throw new Error(
         `agent "${agent.id}": fallbackModel cannot be the same as model ("${agent.model}")`,
       );
     }
+  }
+
+  if (config.browser.enabled && !VALID_BROWSER_MODES.has(config.browser.mode)) {
+    throw new Error(
+      `browser.mode "${config.browser.mode}" is invalid (expected: ${[...VALID_BROWSER_MODES].join(', ')})`,
+    );
   }
 
   if (
@@ -142,11 +176,7 @@ export function loadConfig(configPath?: string): Config {
     config.sessions.maxConcurrent > 1
   ) {
     logger.warn(
-      `browser.mode is "persistent" but sessions.maxConcurrent is ${config.sessions.maxConcurrent}. ` +
-        'Persistent mode uses a single browser profile that locks on concurrent access. ' +
-        'Set maxConcurrent to 1, or switch browser.mode to "isolated" for parallel sessions.',
+      'persistent browser mode with maxConcurrent > 1 will cause lock contention; use "isolated" or set maxConcurrent to 1',
     );
   }
-
-  return config;
 }

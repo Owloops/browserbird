@@ -143,6 +143,10 @@ const IGNORED_SUBTYPES = new Set([
 const DEDUP_TTL_MS = 30_000;
 const DEDUP_CLEANUP_MS = 60_000;
 
+function logDispatchError(err: unknown): void {
+  logger.error(`dispatch error: ${err instanceof Error ? err.message : String(err)}`);
+}
+
 interface SocketModeEvent {
   ack: (response?: unknown) => Promise<void>;
   envelope_id: string;
@@ -168,7 +172,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
   const channelClient = new SlackChannelClient(webClient);
   const handler = createHandler(channelClient, config, signal, () => teamId);
   const coalescer = createCoalescer(config.slack.coalesce, (dispatch) => {
-    handler.handle(dispatch);
+    handler.handle(dispatch).catch(logDispatchError);
   });
 
   const dedupTimer = setInterval(() => {
@@ -220,11 +224,13 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     if (!cleanText.trim()) return;
 
     if (isDm && config.slack.coalesce.bypassDms) {
-      handler.handle({
-        channelId,
-        threadTs,
-        messages: [{ userId, text: cleanText, timestamp: messageTs }],
-      });
+      handler
+        .handle({
+          channelId,
+          threadTs,
+          messages: [{ userId, text: cleanText, timestamp: messageTs }],
+        })
+        .catch(logDispatchError);
     } else {
       coalescer.push(channelId, threadTs, userId, cleanText, messageTs);
     }
@@ -538,11 +544,13 @@ async function handleSessionRetry(
       return;
     }
 
-    handler.handle({
-      channelId: session.channel_id,
-      threadTs: session.thread_id ?? lastMsg.timestamp,
-      messages: [{ userId, text: lastMsg.content, timestamp: lastMsg.timestamp }],
-    });
+    handler
+      .handle({
+        channelId: session.channel_id,
+        threadTs: session.thread_id ?? lastMsg.timestamp,
+        messages: [{ userId, text: lastMsg.content, timestamp: lastMsg.timestamp }],
+      })
+      .catch(logDispatchError);
 
     logger.info(`retry: session #${sessionId} re-dispatched by ${userId}`);
   } catch (err) {
