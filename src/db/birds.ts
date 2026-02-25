@@ -64,6 +64,8 @@ export interface UpdateCronJobFields {
   targetChannelId?: string | null;
   agentId?: string;
   timezone?: string;
+  activeHoursStart?: string | null;
+  activeHoursEnd?: string | null;
 }
 
 const CRON_SORT_COLUMNS = new Set([
@@ -108,10 +110,12 @@ export function createCronJob(
   targetChannelId?: string,
   agentId?: string,
   timezone?: string,
+  activeHoursStart?: string,
+  activeHoursEnd?: string,
 ): CronJobRow {
   const stmt = getDb().prepare(
-    `INSERT INTO cron_jobs (name, schedule, prompt, target_channel_id, agent_id, timezone)
-     VALUES (?, ?, ?, ?, ?, ?)
+    `INSERT INTO cron_jobs (name, schedule, prompt, target_channel_id, agent_id, timezone, active_hours_start, active_hours_end)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
   );
   return stmt.get(
@@ -121,6 +125,8 @@ export function createCronJob(
     targetChannelId ?? null,
     agentId ?? 'default',
     timezone ?? 'UTC',
+    activeHoursStart ?? null,
+    activeHoursEnd ?? null,
   ) as unknown as CronJobRow;
 }
 
@@ -171,6 +177,14 @@ export function updateCronJob(jobId: number, fields: UpdateCronJobFields): CronJ
   if (fields.timezone !== undefined) {
     sets.push('timezone = ?');
     params.push(fields.timezone);
+  }
+  if (fields.activeHoursStart !== undefined) {
+    sets.push('active_hours_start = ?');
+    params.push(fields.activeHoursStart);
+  }
+  if (fields.activeHoursEnd !== undefined) {
+    sets.push('active_hours_end = ?');
+    params.push(fields.activeHoursEnd);
   }
 
   if (sets.length === 0) return getCronJob(jobId);

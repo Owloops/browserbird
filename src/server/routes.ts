@@ -303,6 +303,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           channel?: string;
           agent?: string;
           timezone?: string;
+          activeHoursStart?: string;
+          activeHoursEnd?: string;
         };
         try {
           body = await readJsonBody(req);
@@ -326,6 +328,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           body.channel?.trim() || undefined,
           body.agent?.trim() || undefined,
           body.timezone?.trim() || config.timezone,
+          body.activeHoursStart?.trim() || undefined,
+          body.activeHoursEnd?.trim() || undefined,
         );
         broadcastSSE('invalidate', { resource: 'birds' });
         json(res, job, 201);
@@ -346,6 +350,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           channel?: string | null;
           agent?: string;
           timezone?: string;
+          activeHoursStart?: string | null;
+          activeHoursEnd?: string | null;
         };
         try {
           body = await readJsonBody(req);
@@ -360,6 +366,10 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           targetChannelId: body.channel !== undefined ? body.channel?.trim() || null : undefined,
           agentId: body.agent?.trim() || undefined,
           timezone: body.timezone?.trim() || undefined,
+          activeHoursStart:
+            body.activeHoursStart !== undefined ? body.activeHoursStart?.trim() || null : undefined,
+          activeHoursEnd:
+            body.activeHoursEnd !== undefined ? body.activeHoursEnd?.trim() || null : undefined,
         });
         if (updated) {
           broadcastSSE('invalidate', { resource: 'birds' });

@@ -40,9 +40,16 @@ options:
   --schedule <expr>    cron schedule expression
   --prompt <text>      prompt text
   --timezone <tz>      IANA timezone (default: UTC)
+  --active-hours <range>  restrict runs to a time window (e.g. "09:00-17:00")
   --limit <n>          number of flights to show (default: 10, with logs)
   -h, --help           show this help
 `.trim();
+
+function parseActiveHours(raw: string): { start: string; end: string } | null {
+  const match = raw.match(/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+  if (!match) return null;
+  return { start: match[1]!, end: match[2]! };
+}
 
 export function handleBirds(argv: string[]): void {
   const subcommand = argv[0] ?? 'list';
@@ -56,6 +63,7 @@ export function handleBirds(argv: string[]): void {
       schedule: { type: 'string' },
       prompt: { type: 'string' },
       timezone: { type: 'string' },
+      'active-hours': { type: 'string' },
       limit: { type: 'string' },
     },
     allowPositionals: true,
@@ -106,6 +114,19 @@ export function handleBirds(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
+        const activeHoursRaw = values['active-hours'] as string | undefined;
+        let activeStart: string | undefined;
+        let activeEnd: string | undefined;
+        if (activeHoursRaw) {
+          const parsed = parseActiveHours(activeHoursRaw);
+          if (!parsed) {
+            logger.error('--active-hours must be HH:MM-HH:MM (e.g. "09:00-17:00")');
+            process.exitCode = 1;
+            return;
+          }
+          activeStart = parsed.start;
+          activeEnd = parsed.end;
+        }
         const job = createCronJob(
           prompt.slice(0, 50),
           schedule,
@@ -113,6 +134,8 @@ export function handleBirds(argv: string[]): void {
           values.channel as string | undefined,
           values.agent as string | undefined,
           values.timezone as string | undefined,
+          activeStart,
+          activeEnd,
         );
         logger.success(`bird #${job.id} created: "${schedule}"`);
         break;
@@ -122,7 +145,7 @@ export function handleBirds(argv: string[]): void {
         const id = Number(positionals[0]);
         if (!Number.isFinite(id)) {
           logger.error(
-            'usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--timezone <tz>]',
+            'usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--timezone <tz>] [--active-hours <range>]',
           );
           process.exitCode = 1;
           return;
@@ -132,9 +155,32 @@ export function handleBirds(argv: string[]): void {
         const schedule = values.schedule as string | undefined;
         const prompt = values.prompt as string | undefined;
         const timezone = values.timezone as string | undefined;
-        if (!schedule && !prompt && !channel && !agent && !timezone) {
+        const editActiveHoursRaw = values['active-hours'] as string | undefined;
+        let editActiveStart: string | null | undefined;
+        let editActiveEnd: string | null | undefined;
+        if (editActiveHoursRaw === '') {
+          editActiveStart = null;
+          editActiveEnd = null;
+        } else if (editActiveHoursRaw) {
+          const parsed = parseActiveHours(editActiveHoursRaw);
+          if (!parsed) {
+            logger.error('--active-hours must be HH:MM-HH:MM (e.g. "09:00-17:00"), or "" to clear');
+            process.exitCode = 1;
+            return;
+          }
+          editActiveStart = parsed.start;
+          editActiveEnd = parsed.end;
+        }
+        if (
+          !schedule &&
+          !prompt &&
+          !channel &&
+          !agent &&
+          !timezone &&
+          editActiveStart === undefined
+        ) {
           logger.error(
-            'provide at least one of: --schedule, --prompt, --channel, --agent, --timezone',
+            'provide at least one of: --schedule, --prompt, --channel, --agent, --timezone, --active-hours',
           );
           process.exitCode = 1;
           return;
@@ -146,6 +192,8 @@ export function handleBirds(argv: string[]): void {
           targetChannelId: channel !== undefined ? channel || null : undefined,
           agentId: agent,
           timezone,
+          activeHoursStart: editActiveStart,
+          activeHoursEnd: editActiveEnd,
         });
         if (updated) {
           logger.success(`bird #${id} updated`);
