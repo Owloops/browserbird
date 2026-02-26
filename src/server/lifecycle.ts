@@ -55,7 +55,7 @@ export function createWebServer(
       const match = pathOnly.match(route.pattern);
       if (!match) continue;
 
-      if (!route.skipAuth && !checkAuth(config, req, res)) return;
+      if (!route.skipAuth && !checkAuth(req, res)) return;
 
       const params = (match.groups ?? {}) as Record<string, string>;
       try {

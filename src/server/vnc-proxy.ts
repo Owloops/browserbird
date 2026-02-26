@@ -5,18 +5,20 @@ import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import type { Config } from '../core/types.ts';
 import { logger } from '../core/logger.ts';
+import { getUserCount } from '../db/auth.ts';
+import { verifyToken } from './auth.ts';
 
 function destroyWithStatus(socket: Duplex, status: number, message: string): void {
   const body = `HTTP/1.1 ${status} ${message}\r\n\r\n`;
   socket.end(body);
 }
 
-function checkUpgradeAuth(config: Config, req: IncomingMessage): boolean {
-  const token = config.web.authToken;
-  if (!token) return true;
+function checkUpgradeAuth(req: IncomingMessage): boolean {
+  if (getUserCount() === 0) return true;
 
   const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
-  return url.searchParams.get('token') === token;
+  const token = url.searchParams.get('token');
+  return token != null && verifyToken(token);
 }
 
 export function handleVncUpgrade(
@@ -30,7 +32,7 @@ export function handleVncUpgrade(
     return;
   }
 
-  if (!checkUpgradeAuth(config, req)) {
+  if (!checkUpgradeAuth(req)) {
     destroyWithStatus(socket, 403, 'Forbidden');
     return;
   }

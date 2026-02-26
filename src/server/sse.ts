@@ -15,7 +15,7 @@ export function handleSSE(
   req: IncomingMessage,
   res: ServerResponse,
 ): void {
-  if (!checkAuth(config, req, res, true)) return;
+  if (!checkAuth(req, res, true)) return;
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',

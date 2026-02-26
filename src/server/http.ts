@@ -1,7 +1,8 @@
 /** @fileoverview HTTP utilities — response helpers, auth, body parsing, and shared types. */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { Config } from '../core/types.ts';
+import { getUserCount } from '../db/auth.ts';
+import { verifyToken } from './auth.ts';
 
 export const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -98,24 +99,34 @@ export async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
   });
 }
 
+function extractToken(req: IncomingMessage, allowQueryToken: boolean): string | null {
+  const authHeader = req.headers['authorization'] ?? '';
+  if (authHeader.startsWith('Bearer ')) return authHeader.slice(7);
+
+  if (allowQueryToken) {
+    const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+    return url.searchParams.get('token');
+  }
+
+  return null;
+}
+
+/**
+ * Verifies the request is authenticated. In setup mode (no users in DB),
+ * all requests are allowed. Otherwise, a valid signed token is required.
+ */
 export function checkAuth(
-  config: Config,
   req: IncomingMessage,
   res: ServerResponse,
   allowQueryToken = false,
 ): boolean {
-  const token = config.web.authToken;
-  if (!token) return true;
+  if (getUserCount() === 0) return true;
 
-  const authHeader = req.headers['authorization'] ?? '';
-  if (authHeader === `Bearer ${token}`) return true;
-
-  if (allowQueryToken) {
-    const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
-    const queryToken = url.searchParams.get('token');
-    if (queryToken === token) return true;
+  const token = extractToken(req, allowQueryToken);
+  if (!token || !verifyToken(token)) {
+    jsonError(res, 'Unauthorized', 401);
+    return false;
   }
 
-  jsonError(res, 'Unauthorized', 401);
-  return false;
+  return true;
 }
