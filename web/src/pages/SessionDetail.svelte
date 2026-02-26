@@ -2,7 +2,7 @@
   import type { ColumnDef, SessionDetail, SessionRow, MessageRow } from '../lib/types.ts';
   import { getHashParams } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge, shortUid } from '../lib/format.ts';
+  import { formatAge, shortUid, timeStamp } from '../lib/format.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import StatCard from '../components/StatCard.svelte';
@@ -18,6 +18,7 @@
     { key: 'created_at', label: 'Time', sortable: true },
   ];
 
+  let lastUpdated = $state(timeStamp());
   let session: SessionRow | null = $state(null);
   let stats: { totalTokensIn: number; totalTokensOut: number } | null = $state(null);
   let error = $state('');
@@ -30,6 +31,7 @@
         invalidateOn: 'sessions',
         transformResponse: (raw) => raw.messages,
         onResponse: (raw) => {
+          lastUpdated = timeStamp();
           session = raw.session;
           stats = raw.stats;
         },
@@ -95,6 +97,10 @@
     onSortChange={table.setSort}
     onSearchChange={table.setSearch}
   >
+    {#snippet toolbar()}
+      <div class="filter-spacer"></div>
+      <span class="last-updated">Updated {lastUpdated}</span>
+    {/snippet}
     {#each table.items as m (m.id)}
       <tr>
         <td><Badge status={m.direction === 'in' ? 'info' : 'success'} /></td>
@@ -109,6 +115,16 @@
 {/if}
 
 <style>
+  .filter-spacer {
+    flex: 1;
+  }
+
+  .last-updated {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+  }
+
   .detail-header {
     display: flex;
     align-items: center;

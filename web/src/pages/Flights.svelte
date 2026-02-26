@@ -2,7 +2,7 @@
   import type { ColumnDef, FlightRow } from '../lib/types.ts';
   import { api, getHashParams } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge, flightDuration, shortUid } from '../lib/format.ts';
+  import { formatAge, flightDuration, shortUid, timeStamp } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
@@ -18,6 +18,7 @@
     { key: 'actions', label: '' },
   ];
 
+  let lastUpdated = $state(timeStamp());
   let statusFilter = $state('');
   let expandedUid: string | null = $state(null);
 
@@ -37,6 +38,7 @@
     },
     watchExtras: () => [statusFilter, birdUidFilter],
     onResponse: (raw) => {
+      lastUpdated = timeStamp();
       if (birdUidFilter && !birdFilterName && raw.items.length > 0) {
         birdFilterName = raw.items[0]!.bird_name;
       }
@@ -107,6 +109,8 @@
           onClear={clearBirdFilter}
         />
       {/if}
+      <div class="filter-spacer"></div>
+      <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}
     {#each table.items as flight (flight.uid)}
       <tr
@@ -161,6 +165,16 @@
 {/if}
 
 <style>
+  .filter-spacer {
+    flex: 1;
+  }
+
+  .last-updated {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+  }
+
   .filter-select {
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);

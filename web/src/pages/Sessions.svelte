@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ColumnDef, SessionRow } from '../lib/types.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge, shortUid } from '../lib/format.ts';
+  import { formatAge, shortUid, timeStamp } from '../lib/format.ts';
   import DataTable from '../components/DataTable.svelte';
 
   const columns: ColumnDef[] = [
@@ -13,11 +13,16 @@
     { key: 'last_active', label: 'Last Active', sortable: true },
   ];
 
+  let lastUpdated = $state(timeStamp());
+
   const table = createDataTable<SessionRow>({
     endpoint: '/api/sessions',
     columns,
     defaultSort: '-last_active',
     invalidateOn: 'sessions',
+    onResponse: () => {
+      lastUpdated = timeStamp();
+    },
   });
 </script>
 
@@ -39,6 +44,10 @@
     onSortChange={table.setSort}
     onSearchChange={table.setSearch}
   >
+    {#snippet toolbar()}
+      <div class="filter-spacer"></div>
+      <span class="last-updated">Updated {lastUpdated}</span>
+    {/snippet}
     {#each table.items as s (s.uid)}
       <tr
         class="clickable-row"
@@ -58,6 +67,16 @@
 {/if}
 
 <style>
+  .filter-spacer {
+    flex: 1;
+  }
+
+  .last-updated {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+  }
+
   .clickable-row {
     cursor: pointer;
   }
