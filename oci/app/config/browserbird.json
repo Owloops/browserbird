@@ -32,7 +32,6 @@
     "novncHost": "vm"
   },
   "web": {
-    "host": "0.0.0.0",
-    "authToken": "env:BROWSERBIRD_AUTH_TOKEN"
+    "host": "0.0.0.0"
   }
 }

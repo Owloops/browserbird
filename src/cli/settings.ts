@@ -70,5 +70,4 @@ function printSettingsAll(configPath?: string): void {
 
   console.log('\nweb:');
   console.log(`  port: ${config.web.port}`);
-  console.log(`  auth: ${config.web.authToken ? 'enabled' : 'disabled'}`);
 }

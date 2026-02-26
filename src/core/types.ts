@@ -60,7 +60,6 @@ export interface WebConfig {
   enabled: boolean;
   host: string;
   port: number;
-  authToken: string;
   corsOrigin: string;
 }
 

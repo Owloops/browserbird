@@ -155,14 +155,9 @@ async function handleStatus(argv: string[]): Promise<void> {
   const config = loadConfig(values.config as string | undefined);
   const url = `http://${config.web.host}:${config.web.port}/api/status`;
 
-  const headers: Record<string, string> = {};
-  if (config.web.authToken) {
-    headers['Authorization'] = `Bearer ${config.web.authToken}`;
-  }
-
   let body: string;
   try {
-    const res = await fetch(url, { headers });
+    const res = await fetch(url);
     if (!res.ok) {
       logger.error(`daemon returned HTTP ${res.status}`);
       process.exitCode = 1;
