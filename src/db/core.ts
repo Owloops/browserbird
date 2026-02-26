@@ -138,6 +138,19 @@ const MIGRATIONS: Migration[] = [
     name: 'initial schema',
     up(d) {
       d.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT UNIQUE NOT NULL COLLATE NOCASE,
+          password_hash TEXT NOT NULL,
+          token_key TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS sessions (
           uid TEXT PRIMARY KEY,
           channel_id TEXT NOT NULL,

@@ -6,3 +6,4 @@ export * from './birds.ts';
 export * from './jobs.ts';
 export * from './messages.ts';
 export * from './logs.ts';
+export * from './auth.ts';
