@@ -40,6 +40,7 @@
   let connectionState: 'connected' | 'disconnected' | 'connecting' = $state('connecting');
   let sidebarCollapsed = $state(localStorage.getItem('sidebar-collapsed') === 'true');
 
+  let authEnabled = $state(false);
   let mobileNavOpen = $state(false);
   let loginToken = $state('');
   let loginError = $state('');
@@ -72,6 +73,7 @@
 
   $effect(() => {
     void checkAuthRequired().then(async (required) => {
+      authEnabled = required;
       if (!required) {
         authenticated = true;
       } else if (getAuthToken()) {
@@ -121,6 +123,11 @@
       clearInterval(healthCheck);
     };
   });
+
+  function handleSignOut(): void {
+    clearAuthToken();
+    authenticated = false;
+  }
 
   async function handleLogin(e: SubmitEvent): Promise<void> {
     e.preventDefault();
@@ -175,10 +182,12 @@
       {currentPage}
       collapsed={sidebarCollapsed}
       mobileOpen={mobileNavOpen}
+      {authEnabled}
       ontoggle={toggleSidebar}
       onmobileclose={() => {
         mobileNavOpen = false;
       }}
+      onsignout={handleSignOut}
     />
     <main class="content">
       <div class="content-header">

@@ -3,8 +3,10 @@
     currentPage: string;
     collapsed: boolean;
     mobileOpen: boolean;
+    authEnabled: boolean;
     ontoggle: () => void;
     onmobileclose: () => void;
+    onsignout: () => void;
   }
 
   const NAV_ITEMS = [
@@ -35,7 +37,15 @@
     },
   ] as const;
 
-  let { currentPage, collapsed, mobileOpen, ontoggle, onmobileclose }: Props = $props();
+  let {
+    currentPage,
+    collapsed,
+    mobileOpen,
+    authEnabled,
+    ontoggle,
+    onmobileclose,
+    onsignout,
+  }: Props = $props();
 
   function handleNavClick(): void {
     onmobileclose();
@@ -73,6 +83,29 @@
         <span class="nav-label">{item.label}</span>
       </a>
     {/each}
+    {#if authEnabled}
+      <button
+        class="nav-item signout-item"
+        onclick={onsignout}
+        title={collapsed ? 'Sign out' : undefined}
+      >
+        <svg
+          class="nav-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        <span class="nav-label">Sign out</span>
+      </button>
+    {/if}
   </div>
   <div class="sidebar-footer">
     <button
@@ -157,6 +190,7 @@
   .sidebar-nav {
     flex: 1;
     padding: var(--space-2) 0;
+    overflow-x: hidden;
     overflow-y: auto;
   }
 
@@ -252,6 +286,35 @@
     opacity: 0;
   }
 
+  .signout-item {
+    margin-top: auto;
+    border-top: 1px solid var(--color-border);
+    border-radius: 0;
+    font-size: var(--text-base);
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .signout-item:hover {
+    color: var(--color-error);
+    background: var(--color-error-bg);
+  }
+
+  .signout-item .nav-icon {
+    opacity: 0.5;
+  }
+
+  .signout-item:hover .nav-icon {
+    opacity: 1;
+    color: var(--color-error);
+  }
+
   .sidebar-footer {
     padding: var(--space-1-5) 0;
     border-top: 1px solid var(--color-border);
@@ -322,6 +385,10 @@
       opacity: 0;
     }
 
+    .sidebar-footer {
+      display: none;
+    }
+
     .nav-item {
       padding: var(--space-3) var(--space-4);
       font-size: var(--text-base);
@@ -342,10 +409,6 @@
 
     .nav-icon {
       display: block;
-    }
-
-    .sidebar-footer {
-      display: none;
     }
   }
 </style>
