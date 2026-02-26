@@ -15,7 +15,7 @@ export interface JobRow {
   attempts: number;
   max_attempts: number;
   timeout: number;
-  cron_job_id: number | null;
+  cron_job_uid: string | null;
   run_at: string | null;
   started_at: string | null;
   completed_at: string | null;
@@ -31,12 +31,12 @@ export interface CreateJobOptions {
   maxAttempts?: number;
   timeout?: number;
   delaySeconds?: number;
-  cronJobId?: number;
+  cronJobUid?: string;
 }
 
 export interface ListJobsFilters {
   status?: string;
-  cronJobId?: number;
+  cronJobUid?: string;
   name?: string;
 }
 
@@ -53,12 +53,12 @@ export function createJob(options: CreateJobOptions): JobRow {
   const priority = options.priority ?? 'normal';
   const maxAttempts = options.maxAttempts ?? 1;
   const timeout = options.timeout ?? 1800;
-  const cronJobId = options.cronJobId ?? null;
+  const cronJobUid = options.cronJobUid ?? null;
 
   if (options.delaySeconds) {
     return getDb()
       .prepare(
-        `INSERT INTO jobs (name, payload, priority, max_attempts, timeout, cron_job_id, run_at)
+        `INSERT INTO jobs (name, payload, priority, max_attempts, timeout, cron_job_uid, run_at)
          VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+' || ? || ' seconds'))
          RETURNING *`,
       )
@@ -68,18 +68,18 @@ export function createJob(options: CreateJobOptions): JobRow {
         priority,
         maxAttempts,
         timeout,
-        cronJobId,
+        cronJobUid,
         options.delaySeconds,
       ) as unknown as JobRow;
   }
 
   return getDb()
     .prepare(
-      `INSERT INTO jobs (name, payload, priority, max_attempts, timeout, cron_job_id)
+      `INSERT INTO jobs (name, payload, priority, max_attempts, timeout, cron_job_uid)
        VALUES (?, ?, ?, ?, ?, ?)
        RETURNING *`,
     )
-    .get(options.name, payload, priority, maxAttempts, timeout, cronJobId) as unknown as JobRow;
+    .get(options.name, payload, priority, maxAttempts, timeout, cronJobUid) as unknown as JobRow;
 }
 
 /**
@@ -153,11 +153,11 @@ export function failStaleJobs(): number {
 
   const staleRows = d
     .prepare(
-      `SELECT id, cron_job_id FROM jobs
+      `SELECT id, cron_job_uid FROM jobs
        WHERE status = 'running'
          AND started_at < datetime('now', '-' || timeout || ' seconds')`,
     )
-    .all() as unknown as Array<{ id: number; cron_job_id: number | null }>;
+    .all() as unknown as Array<{ id: number; cron_job_uid: string | null }>;
 
   if (staleRows.length === 0) return 0;
 
@@ -167,18 +167,18 @@ export function failStaleJobs(): number {
   );
   const updateRun = d.prepare(
     `UPDATE cron_runs SET status = 'error', error = 'timeout', finished_at = datetime('now')
-     WHERE job_id = ? AND status = 'running'`,
+     WHERE job_uid = ? AND status = 'running'`,
   );
   const updateBird = d.prepare(
     `UPDATE cron_jobs SET last_status = 'failed', failure_count = failure_count + 1
-     WHERE id = ?`,
+     WHERE uid = ?`,
   );
 
   for (const row of staleRows) {
     updateJob.run(row.id);
-    if (row.cron_job_id != null) {
-      updateRun.run(row.cron_job_id);
-      updateBird.run(row.cron_job_id);
+    if (row.cron_job_uid != null) {
+      updateRun.run(row.cron_job_uid);
+      updateBird.run(row.cron_job_uid);
     }
   }
 
@@ -210,9 +210,9 @@ export function listJobs(
     conditions.push('status = ?');
     params.push(filters.status);
   }
-  if (filters.cronJobId != null) {
-    conditions.push('cron_job_id = ?');
-    params.push(filters.cronJobId);
+  if (filters.cronJobUid != null) {
+    conditions.push('cron_job_uid = ?');
+    params.push(filters.cronJobUid);
   }
   if (filters.name) {
     conditions.push('name LIKE ?');
@@ -279,11 +279,11 @@ export function clearJobs(status: 'completed' | 'failed'): number {
 }
 
 /** Returns true if the given cron job has a pending or running job in the queue. */
-export function hasPendingCronJob(cronJobId: number): boolean {
+export function hasPendingCronJob(cronJobUid: string): boolean {
   const row = getDb()
     .prepare(
-      `SELECT 1 FROM jobs WHERE cron_job_id = ? AND status IN ('pending', 'running') LIMIT 1`,
+      `SELECT 1 FROM jobs WHERE cron_job_uid = ? AND status IN ('pending', 'running') LIMIT 1`,
     )
-    .get(cronJobId) as unknown | undefined;
+    .get(cronJobUid) as unknown | undefined;
   return row != null;
 }

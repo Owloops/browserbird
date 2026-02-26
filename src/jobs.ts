@@ -32,7 +32,7 @@ export interface QueueOptions {
   maxAttempts?: number;
   timeout?: number;
   delaySeconds?: number;
-  cronJobId?: number;
+  cronJobUid?: string;
 }
 
 export function enqueue(name: string, payload?: unknown, options?: QueueOptions): JobRow {
@@ -43,7 +43,7 @@ export function enqueue(name: string, payload?: unknown, options?: QueueOptions)
     maxAttempts: options?.maxAttempts,
     timeout: options?.timeout,
     delaySeconds: options?.delaySeconds,
-    cronJobId: options?.cronJobId,
+    cronJobUid: options?.cronJobUid,
   };
   const job = createJob(jobOptions);
   logger.debug(`enqueued job ${job.id}: ${name}`);
@@ -58,8 +58,8 @@ async function processJob(job: JobRow): Promise<void> {
     return;
   }
 
-  const isCronRun = job.cron_job_id != null;
-  const cronRun = isCronRun ? createCronRun(job.cron_job_id!) : null;
+  const isCronRun = job.cron_job_uid != null;
+  const cronRun = isCronRun ? createCronRun(job.cron_job_uid!) : null;
 
   let finalStatus = 'completed';
   let resultText: string | undefined;
@@ -79,23 +79,23 @@ async function processJob(job: JobRow): Promise<void> {
   } finally {
     if (cronRun != null) {
       completeCronRun(
-        cronRun.id,
+        cronRun.uid,
         finalStatus === 'completed' ? 'success' : 'error',
         resultText,
         errorText,
       );
     }
-    if (isCronRun && job.cron_job_id != null) {
-      const cronJob = getCronJob(job.cron_job_id);
+    if (isCronRun && job.cron_job_uid != null) {
+      const cronJob = getCronJob(job.cron_job_uid);
       if (cronJob != null) {
         const newFailureCount =
           finalStatus === 'failed' ? cronJob.failure_count + 1 : cronJob.failure_count;
-        updateCronJobStatus(job.cron_job_id, finalStatus, newFailureCount);
+        updateCronJobStatus(job.cron_job_uid, finalStatus, newFailureCount);
       }
     }
     const resource = isCronRun ? 'birds' : 'sessions';
-    const invalidatePayload: { resource: string; cronJobId?: number } = { resource };
-    if (job.cron_job_id != null) invalidatePayload.cronJobId = job.cron_job_id;
+    const invalidatePayload: { resource: string; cronJobUid?: string } = { resource };
+    if (job.cron_job_uid != null) invalidatePayload.cronJobUid = job.cron_job_uid;
     broadcastSSE('invalidate', invalidatePayload);
   }
 }

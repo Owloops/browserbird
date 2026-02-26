@@ -10,9 +10,10 @@ import {
   DEFAULT_PER_PAGE,
   MAX_PER_PAGE,
 } from './core.ts';
+import { generateUid, UID_PREFIX } from '../core/uid.ts';
 
 export interface SessionRow {
-  id: number;
+  uid: string;
   channel_id: string;
   thread_id: string | null;
   agent_id: string;
@@ -33,23 +34,24 @@ export function createSession(
   agentId: string,
   providerSessionId: string,
 ): SessionRow {
+  const uid = generateUid(UID_PREFIX.session);
   const stmt = getDb().prepare(
-    `INSERT INTO sessions (channel_id, thread_id, agent_id, provider_session_id)
-     VALUES (?, ?, ?, ?)
+    `INSERT INTO sessions (uid, channel_id, thread_id, agent_id, provider_session_id)
+     VALUES (?, ?, ?, ?, ?)
      RETURNING *`,
   );
-  return stmt.get(channelId, threadId, agentId, providerSessionId) as unknown as SessionRow;
+  return stmt.get(uid, channelId, threadId, agentId, providerSessionId) as unknown as SessionRow;
 }
 
-export function touchSession(id: number, messageCountDelta = 1): void {
+export function touchSession(uid: string, messageCountDelta = 1): void {
   const stmt = getDb().prepare(
-    `UPDATE sessions SET last_active = datetime('now'), message_count = message_count + ? WHERE id = ?`,
+    `UPDATE sessions SET last_active = datetime('now'), message_count = message_count + ? WHERE uid = ?`,
   );
-  stmt.run(messageCountDelta, id);
+  stmt.run(messageCountDelta, uid);
 }
 
 const SESSION_SORT_COLUMNS = new Set([
-  'id',
+  'uid',
   'channel_id',
   'agent_id',
   'message_count',
@@ -73,8 +75,8 @@ export function listSessions(
   });
 }
 
-export function getSession(id: number): SessionRow | undefined {
-  return getDb().prepare('SELECT * FROM sessions WHERE id = ?').get(id) as unknown as
+export function getSession(uid: string): SessionRow | undefined {
+  return getDb().prepare('SELECT * FROM sessions WHERE uid = ?').get(uid) as unknown as
     | SessionRow
     | undefined;
 }
@@ -149,8 +151,8 @@ export function deleteStaleSessions(ttlHours: number): number {
   return Number(result.changes);
 }
 
-export function updateSessionProviderId(id: number, providerSessionId: string): void {
+export function updateSessionProviderId(uid: string, providerSessionId: string): void {
   getDb()
-    .prepare('UPDATE sessions SET provider_session_id = ? WHERE id = ?')
-    .run(providerSessionId, id);
+    .prepare('UPDATE sessions SET provider_session_id = ? WHERE uid = ?')
+    .run(providerSessionId, uid);
 }
