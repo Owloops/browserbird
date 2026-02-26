@@ -58,7 +58,7 @@ export function createHandler(
     events: AsyncIterable<StreamEvent>,
     channelId: string,
     threadTs: string,
-    sessionId: number,
+    sessionUid: string,
     teamId: string,
     userId: string,
     meta: { birdName?: string },
@@ -74,7 +74,7 @@ export function createHandler(
 
       switch (event.type) {
         case 'init':
-          db.updateSessionProviderId(sessionId, event.sessionId);
+          db.updateSessionProviderId(sessionUid, event.sessionId);
           break;
 
         case 'text_delta':
@@ -175,7 +175,7 @@ export function createHandler(
     lock.processing = true;
     activeSpawns++;
 
-    let sessionId: number | undefined;
+    let sessionUid: string | undefined;
     try {
       const resolved = resolveSession(channelId, threadTs, config);
       if (!resolved) {
@@ -187,12 +187,12 @@ export function createHandler(
       }
 
       const { session, agent, isNew } = resolved;
-      sessionId = session.id;
+      sessionUid = session.uid;
 
       for (const msg of messages) {
         db.logMessage(channelId, threadTs, msg.userId, 'in', msg.text);
       }
-      db.touchSession(session.id, messages.length + 1);
+      db.touchSession(session.uid, messages.length + 1);
       broadcastSSE('invalidate', { resource: 'sessions' });
 
       const prompt = formatPrompt(messages);
@@ -220,7 +220,7 @@ export function createHandler(
         client.setTitle?.(channelId, threadTs, title).catch(() => {});
       }
 
-      await streamToChannel(events, channelId, threadTs, session.id, getTeamId(), userId, {
+      await streamToChannel(events, channelId, threadTs, session.uid, getTeamId(), userId, {
         birdName: agent.name,
       });
     } catch (err) {
@@ -228,7 +228,7 @@ export function createHandler(
       logger.error(`handler error: ${errMsg}`);
       db.insertLog('error', 'handler', errMsg, channelId);
       try {
-        const blocks = sessionErrorBlocks(errMsg, { sessionId });
+        const blocks = sessionErrorBlocks(errMsg, { sessionUid });
         await client.postMessage(channelId, threadTs, `Something went wrong: ${errMsg}`, {
           blocks,
         });

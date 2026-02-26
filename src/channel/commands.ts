@@ -57,16 +57,18 @@ export async function handleSlashCommand(
     });
   }
 
-  function findBird(nameOrId: string): db.CronJobRow | undefined {
+  function findBird(nameOrUid: string): db.CronJobRow | undefined {
+    const byUid = db.resolveByUid<db.CronJobRow>('cron_jobs', nameOrUid);
+    if (byUid && 'row' in byUid) return byUid.row;
     const result = db.listCronJobs(1, 100, false);
-    return result.items.find((b) => b.name === nameOrId || String(b.id) === nameOrId);
+    return result.items.find((b) => b.name === nameOrUid);
   }
 
   switch (subcommand) {
     case 'list': {
       const result = db.listCronJobs(1, 20, false);
       const birds = result.items.map((b) => ({
-        id: b.id,
+        uid: b.uid,
         name: b.name,
         schedule: b.schedule,
         enabled: b.enabled === 1,
@@ -97,12 +99,12 @@ export async function handleSlashCommand(
       enqueue(
         'cron_run',
         {
-          cronJobId: bird.id,
+          cronJobUid: bird.uid,
           prompt: bird.prompt,
           channelId: bird.target_channel_id,
           agentId: bird.agent_id,
         },
-        { maxAttempts: config.birds.maxAttempts, timeout: 600, cronJobId: bird.id },
+        { maxAttempts: config.birds.maxAttempts, timeout: 600, cronJobUid: bird.uid },
       );
 
       const blocks = birdFlyBlocks(bird.name, body.user_id);
@@ -132,7 +134,7 @@ export async function handleSlashCommand(
         return;
       }
 
-      db.setCronJobEnabled(bird.id, enabling);
+      db.setCronJobEnabled(bird.uid, enabling);
       const icon = enabling ? ':large_green_circle:' : ':white_circle:';
       await say({ text: `${icon} *${bird.name}* ${subcommand}d.` });
       logger.info(`/bird ${subcommand}: ${bird.name} by ${body.user_id}`);
@@ -152,14 +154,14 @@ export async function handleSlashCommand(
         return;
       }
 
-      const flights = db.listFlights(1, 5, { birdId: bird.id });
+      const flights = db.listFlights(1, 5, { birdUid: bird.uid });
       const mapped = flights.items.map((f) => {
         const durationMs =
           f.finished_at && f.started_at
             ? new Date(f.finished_at).getTime() - new Date(f.started_at).getTime()
             : undefined;
         return {
-          id: f.id,
+          uid: f.uid,
           status: f.status,
           startedAt: f.started_at,
           durationMs,

@@ -6,6 +6,7 @@ import type { CronSchedule } from './parse.ts';
 import type { StreamEventCompletion } from '../provider/stream.ts';
 
 import { logger } from '../core/logger.ts';
+import { shortUid } from '../core/uid.ts';
 import {
   SYSTEM_CRON_PREFIX,
   getEnabledCronJobs,
@@ -30,14 +31,14 @@ const TICK_INTERVAL_MS = 60_000;
 const MAX_SCHEDULE_ERRORS = 3;
 
 interface CronRunPayload {
-  cronJobId: number;
+  cronJobUid: string;
   prompt: string;
   channelId: string | null;
   agentId: string;
 }
 
 interface SystemCronPayload {
-  cronJobId: number;
+  cronJobUid: string;
   cronName: string;
 }
 
@@ -104,7 +105,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
         completion = event;
       } else if (event.type === 'rate_limit') {
         logger.debug(
-          `bird #${payload.cronJobId} rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
+          `bird ${shortUid(payload.cronJobUid)} rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
         );
       } else if (event.type === 'error') {
         if (payload.channelId && deps?.postToSlack) {
@@ -116,7 +117,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     }
 
     if (!result) {
-      logger.info(`bird #${payload.cronJobId} completed (no output)`);
+      logger.info(`bird ${shortUid(payload.cronJobUid)} completed (no output)`);
       return 'completed (no output)';
     }
 
@@ -129,9 +130,9 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       } else {
         await deps.postToSlack(payload.channelId, result);
       }
-      logger.info(`bird #${payload.cronJobId} result posted to ${payload.channelId}`);
+      logger.info(`bird ${shortUid(payload.cronJobUid)} result posted to ${payload.channelId}`);
     } else {
-      logger.info(`bird #${payload.cronJobId} completed (${result.length} chars)`);
+      logger.info(`bird ${shortUid(payload.cronJobUid)} completed (${result.length} chars)`);
     }
 
     return result;
@@ -148,8 +149,8 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     return result ?? undefined;
   });
 
-  const scheduleCache = new Map<number, CronSchedule>();
-  const scheduleErrors = new Map<number, number>();
+  const scheduleCache = new Map<string, CronSchedule>();
+  const scheduleErrors = new Map<string, number>();
 
   const tick = () => {
     if (signal.aborted) return;
@@ -158,24 +159,24 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     const jobs = getEnabledCronJobs();
 
     for (const job of jobs) {
-      let schedule = scheduleCache.get(job.id);
+      let schedule = scheduleCache.get(job.uid);
       if (!schedule) {
         try {
           schedule = parseCron(job.schedule);
-          scheduleCache.set(job.id, schedule);
-          scheduleErrors.delete(job.id);
+          scheduleCache.set(job.uid, schedule);
+          scheduleErrors.delete(job.uid);
         } catch {
-          const count = (scheduleErrors.get(job.id) ?? 0) + 1;
-          scheduleErrors.set(job.id, count);
+          const count = (scheduleErrors.get(job.uid) ?? 0) + 1;
+          scheduleErrors.set(job.uid, count);
           if (count >= MAX_SCHEDULE_ERRORS) {
             logger.warn(
-              `bird #${job.id}: invalid expression "${job.schedule}" (${count} consecutive failures), disabling`,
+              `bird ${shortUid(job.uid)}: invalid expression "${job.schedule}" (${count} consecutive failures), disabling`,
             );
-            setCronJobEnabled(job.id, false);
-            scheduleErrors.delete(job.id);
+            setCronJobEnabled(job.uid, false);
+            scheduleErrors.delete(job.uid);
           } else {
             logger.warn(
-              `bird #${job.id}: invalid expression "${job.schedule}" (attempt ${count}/${MAX_SCHEDULE_ERRORS})`,
+              `bird ${shortUid(job.uid)}: invalid expression "${job.schedule}" (attempt ${count}/${MAX_SCHEDULE_ERRORS})`,
             );
           }
           continue;
@@ -185,30 +186,30 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       if (!matchesCron(schedule, now, job.timezone)) continue;
 
       if (!isWithinActiveHours(job.active_hours_start, job.active_hours_end, now, job.timezone)) {
-        logger.debug(`bird #${job.id} skipped: outside active hours`);
+        logger.debug(`bird ${shortUid(job.uid)} skipped: outside active hours`);
         continue;
       }
 
-      if (hasPendingCronJob(job.id)) {
-        logger.debug(`bird #${job.id} skipped: previous run still pending or running`);
+      if (hasPendingCronJob(job.uid)) {
+        logger.debug(`bird ${shortUid(job.uid)} skipped: previous run still pending or running`);
         continue;
       }
 
       const isSystem = job.name.startsWith(SYSTEM_CRON_PREFIX);
 
-      logger.info(`bird #${job.id} triggered: "${job.schedule}"`);
+      logger.info(`bird ${shortUid(job.uid)} triggered: "${job.schedule}"`);
 
       if (isSystem) {
         enqueue(
           'system_cron_run',
-          { cronJobId: job.id, cronName: job.name } satisfies SystemCronPayload,
-          { maxAttempts: 3, timeout: 300, cronJobId: job.id },
+          { cronJobUid: job.uid, cronName: job.name } satisfies SystemCronPayload,
+          { maxAttempts: 3, timeout: 300, cronJobUid: job.uid },
         );
       } else {
         enqueue(
           'cron_run',
           {
-            cronJobId: job.id,
+            cronJobUid: job.uid,
             prompt: job.prompt,
             channelId: job.target_channel_id,
             agentId: job.agent_id,
@@ -216,13 +217,13 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
           {
             maxAttempts: config.birds.maxAttempts,
             timeout: 600,
-            cronJobId: job.id,
+            cronJobUid: job.uid,
           },
         );
       }
 
-      updateCronJobStatus(job.id, 'triggered', job.failure_count);
-      broadcastSSE('invalidate', { resource: 'birds', cronJobId: job.id });
+      updateCronJobStatus(job.uid, 'triggered', job.failure_count);
+      broadcastSSE('invalidate', { resource: 'birds', cronJobUid: job.uid });
     }
   };
 

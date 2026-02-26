@@ -2,6 +2,7 @@
 
 import type { StreamEventCompletion } from '../provider/stream.ts';
 import { formatDuration } from '../core/utils.ts';
+import { shortUid } from '../core/uid.ts';
 
 /**
  * Slack Block Kit block types used throughout the channel layer.
@@ -246,7 +247,7 @@ export function sessionCompleteBlocks(
 export function sessionErrorBlocks(
   errorMessage: string,
   opts?: {
-    sessionId?: number;
+    sessionUid?: string;
     birdName?: string;
     durationMs?: number;
   },
@@ -258,13 +259,13 @@ export function sessionErrorBlocks(
     text: mrkdwn(`:x: *${truncate(errorMessage, 200)}*`),
   };
 
-  if (opts?.sessionId) {
+  if (opts?.sessionUid) {
     sectionBlock.accessory = {
       type: 'overflow',
       action_id: 'session_error_overflow',
       options: [
-        { text: plain('Retry'), value: `retry:${opts.sessionId}` },
-        { text: plain('View Logs'), value: `logs:${opts.sessionId}` },
+        { text: plain('Retry'), value: `retry:${opts.sessionUid}` },
+        { text: plain('View Logs'), value: `logs:${opts.sessionUid}` },
       ],
     };
   }
@@ -381,7 +382,7 @@ export function birdCreateModal(defaults?: {
 
 export function birdListBlocks(
   birds: Array<{
-    id: number;
+    uid: string;
     name: string;
     schedule: string;
     enabled: boolean;
@@ -416,7 +417,7 @@ export function birdListBlocks(
 export function birdLogsBlocks(
   birdName: string,
   flights: Array<{
-    id: number;
+    uid: string;
     status: string;
     startedAt: string;
     durationMs?: number;
@@ -442,7 +443,7 @@ export function birdLogsBlocks(
     const duration = f.durationMs ? formatDuration(f.durationMs) : '—';
     const age = formatAge(f.startedAt);
     const detail = f.error ? truncate(f.error, 80) : duration;
-    return `${icon}  #${f.id} \`${detail}\` — ${age} ago`;
+    return `${icon}  ${shortUid(f.uid)} \`${detail}\` — ${age} ago`;
   });
 
   blocks.push(section(lines.join('\n')));

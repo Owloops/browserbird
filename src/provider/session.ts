@@ -42,7 +42,7 @@ export function resolveSession(
       (Date.now() - new Date(existing.last_active + 'Z').getTime()) / (1000 * 60 * 60);
 
     if (ageHours > config.sessions.ttlHours) {
-      logger.info(`session ${existing.id} expired (${ageHours.toFixed(1)}h old), starting fresh`);
+      logger.info(`session ${existing.uid} expired (${ageHours.toFixed(1)}h old), starting fresh`);
       return { session: existing, agent, isNew: true };
     }
 
@@ -51,7 +51,7 @@ export function resolveSession(
 
   const session = db.createSession(channelId, threadTs, agent.id, '');
   logger.info(
-    `created session ${session.id} for channel=${channelId} thread=${threadTs ?? 'none'} agent=${agent.id}`,
+    `created session ${session.uid} for channel=${channelId} thread=${threadTs ?? 'none'} agent=${agent.id}`,
   );
   return { session, agent, isNew: true };
 }

@@ -329,9 +329,9 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
         if (!selected) continue;
 
         if (selected.startsWith('retry:')) {
-          const sessionId = Number(selected.slice('retry:'.length));
-          if (!Number.isFinite(sessionId)) continue;
-          await handleSessionRetry(sessionId, channel, user ?? 'unknown', config, handler);
+          const sessionUid = selected.slice('retry:'.length);
+          if (!sessionUid) continue;
+          await handleSessionRetry(sessionUid, channel, user ?? 'unknown', config, handler);
         }
       }
     }
@@ -507,7 +507,7 @@ async function handleBirdCreateSubmission(
       defaultTimezone,
     );
     if (enabledValue !== 'enabled') {
-      setCronJobEnabled(bird.id, false);
+      setCronJobEnabled(bird.uid, false);
     }
 
     await webClient.chat.postMessage({
@@ -524,7 +524,7 @@ async function handleBirdCreateSubmission(
 }
 
 async function handleSessionRetry(
-  sessionId: number,
+  sessionUid: string,
   channelId: string,
   userId: string,
   config: Config,
@@ -532,15 +532,15 @@ async function handleSessionRetry(
 ): Promise<void> {
   try {
     const { getSession, getLastInboundMessage } = await import('../db/index.ts');
-    const session = getSession(sessionId);
+    const session = getSession(sessionUid);
     if (!session) {
-      logger.warn(`retry: session #${sessionId} not found`);
+      logger.warn(`retry: session ${sessionUid} not found`);
       return;
     }
 
     const lastMsg = getLastInboundMessage(session.channel_id, session.thread_id);
     if (!lastMsg) {
-      logger.warn(`retry: no inbound message for session #${sessionId}`);
+      logger.warn(`retry: no inbound message for session ${sessionUid}`);
       return;
     }
 
@@ -552,7 +552,7 @@ async function handleSessionRetry(
       })
       .catch(logDispatchError);
 
-    logger.info(`retry: session #${sessionId} re-dispatched by ${userId}`);
+    logger.info(`retry: session ${sessionUid} re-dispatched by ${userId}`);
   } catch (err) {
     logger.error(`retry error: ${err instanceof Error ? err.message : String(err)}`);
   }
