@@ -10,7 +10,7 @@
     FlightRow,
   } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
-  import { formatAge, formatUptime, flightDuration } from '../lib/format.ts';
+  import { formatAge, formatUptime, flightDuration, shortUid } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import Badge from '../components/Badge.svelte';
 
@@ -25,7 +25,7 @@
   let recentErrors: LogRow[] = $state([]);
   let jobStats: JobStats | null = $state(null);
   let systemBirds: CronJobRow[] = $state([]);
-  let systemFlights: Record<number, FlightRow[]> = $state({});
+  let systemFlights: Record<string, FlightRow[]> = $state({});
   let loading = $state(true);
   let activeTab: 'config' | 'database' = $state('config');
 
@@ -52,15 +52,15 @@
     return () => ac.abort();
   });
 
-  async function loadSystemFlights(birdId: number): Promise<void> {
-    if (systemFlights[birdId]) return;
+  async function loadSystemFlights(birdUid: string): Promise<void> {
+    if (systemFlights[birdUid]) return;
     try {
       const result = await api<PaginatedResult<FlightRow>>(
-        `/api/birds/${birdId}/flights?perPage=5`,
+        `/api/birds/${birdUid}/flights?perPage=5`,
       );
-      systemFlights = { ...systemFlights, [birdId]: result.items };
+      systemFlights = { ...systemFlights, [birdUid]: result.items };
     } catch {
-      systemFlights = { ...systemFlights, [birdId]: [] };
+      systemFlights = { ...systemFlights, [birdUid]: [] };
     }
   }
 
@@ -111,13 +111,13 @@
     }
   }
 
-  async function flySystemBird(id: number, name: string): Promise<void> {
+  async function flySystemBird(uid: string, name: string): Promise<void> {
     try {
-      const result = await api<{ success: boolean; jobId: number }>(`/api/birds/${id}/fly`, {
+      const result = await api<{ success: boolean; jobId: number }>(`/api/birds/${uid}/fly`, {
         method: 'POST',
       });
       showToast(`${name} sent on a flight (job #${result.jobId})`, 'success');
-      const { [id]: _, ...rest } = systemFlights;
+      const { [uid]: _, ...rest } = systemFlights;
       systemFlights = rest;
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
@@ -410,7 +410,7 @@
           </div>
         </div>
       {:else}
-        {#each systemBirds as bird (bird.id)}
+        {#each systemBirds as bird (bird.uid)}
           <div class="system-bird-card">
             <div class="system-bird-header">
               <span class="system-bird-name">{bird.name}</span>
@@ -418,7 +418,7 @@
                 <span class="mono system-bird-schedule">{bird.schedule}</span>
                 <button
                   class="btn btn-outline btn-sm"
-                  onclick={() => flySystemBird(bird.id, bird.name)}>Fly</button
+                  onclick={() => flySystemBird(bird.uid, bird.name)}>Fly</button
                 >
               </div>
             </div>
@@ -439,24 +439,24 @@
               <div class="field">
                 <span class="field-label">Recent Flights</span>
                 <span class="field-value">
-                  {#if !systemFlights[bird.id]}
+                  {#if !systemFlights[bird.uid]}
                     <button
                       class="btn btn-outline btn-sm"
-                      onclick={() => loadSystemFlights(bird.id)}>Load</button
+                      onclick={() => loadSystemFlights(bird.uid)}>Load</button
                     >
-                  {:else if systemFlights[bird.id]!.length === 0}
+                  {:else if systemFlights[bird.uid]!.length === 0}
                     <span class="field-dim">No flights</span>
                   {:else}
-                    <span class="field-dim">{systemFlights[bird.id]!.length} flight(s)</span>
+                    <span class="field-dim">{systemFlights[bird.uid]!.length} flight(s)</span>
                   {/if}
                 </span>
               </div>
             </div>
-            {#if systemFlights[bird.id]?.length}
+            {#if systemFlights[bird.uid]?.length}
               <div class="system-flights">
-                {#each systemFlights[bird.id] as flight (flight.id)}
+                {#each systemFlights[bird.uid] as flight (flight.uid)}
                   <div class="system-flight-row">
-                    <span class="mono system-flight-id">{flight.id}</span>
+                    <span class="mono system-flight-id">{shortUid(flight.uid)}</span>
                     <Badge status={flight.status} />
                     <span class="mono">{flightDuration(flight.started_at, flight.finished_at)}</span
                     >

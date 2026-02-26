@@ -7,13 +7,13 @@
     FlightRow,
   } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
-  import { formatAge, flightDuration } from '../lib/format.ts';
+  import { formatAge, flightDuration, shortUid } from '../lib/format.ts';
   import { onInvalidate } from '../lib/invalidate.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
 
   const sessionColumns: ColumnDef[] = [
-    { key: 'id', label: 'ID' },
+    { key: 'uid', label: 'ID' },
     { key: 'channel_id', label: 'Channel' },
     { key: 'agent_id', label: 'Agent' },
     { key: 'message_count', label: 'Messages' },
@@ -21,7 +21,7 @@
   ];
 
   const flightColumns: ColumnDef[] = [
-    { key: 'id', label: 'ID' },
+    { key: 'uid', label: 'ID' },
     { key: 'bird_name', label: 'Bird' },
     { key: 'status', label: 'Status' },
     { key: 'duration', label: 'Duration' },
@@ -123,14 +123,14 @@
       isEmpty={sessions.length === 0}
       emptyMessage="No active sessions"
     >
-      {#each sessions.slice(0, 5) as s (s.id)}
+      {#each sessions.slice(0, 5) as s (s.uid)}
         <tr
           class="clickable-row"
           onclick={() => {
-            window.location.hash = `#/session-detail?id=${s.id}`;
+            window.location.hash = `#/session-detail?id=${s.uid}`;
           }}
         >
-          <td class="mono">{s.id}</td>
+          <td class="mono">{shortUid(s.uid)}</td>
           <td class="mono">{s.channel_id}</td>
           <td>{s.agent_id}</td>
           <td>{s.message_count}</td>
@@ -150,14 +150,14 @@
       isEmpty={flights.length === 0}
       emptyMessage="No flights recorded"
     >
-      {#each flights.slice(0, 5) as f (f.id)}
+      {#each flights.slice(0, 5) as f (f.uid)}
         <tr
           class="clickable-row"
           onclick={() => {
-            window.location.hash = `#/flights?search=${encodeURIComponent(f.bird_name)}`;
+            window.location.hash = `#/flights?birdUid=${f.bird_uid}`;
           }}
         >
-          <td class="mono">{f.id}</td>
+          <td class="mono">{shortUid(f.uid)}</td>
           <td>{f.bird_name}</td>
           <td><Badge status={f.status} /></td>
           <td class="mono">{flightDuration(f.started_at, f.finished_at)}</td>

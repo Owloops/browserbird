@@ -1,13 +1,15 @@
 <script lang="ts">
   import type { ColumnDef, FlightRow } from '../lib/types.ts';
-  import { api } from '../lib/api.ts';
+  import { api, getHashParams } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge, flightDuration } from '../lib/format.ts';
+  import { formatAge, flightDuration, shortUid } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
+  import FilterChip from '../components/FilterChip.svelte';
+
   const columns: ColumnDef[] = [
-    { key: 'id', label: 'ID', sortable: true },
+    { key: 'uid', label: 'ID', sortable: true },
     { key: 'bird_name', label: 'Bird', sortable: true },
     { key: 'status', label: 'Status', sortable: true },
     { key: 'started_at', label: 'Duration', sortable: false },
@@ -17,24 +19,51 @@
   ];
 
   let statusFilter = $state('');
-  let expandedId: number | null = $state(null);
+  let expandedUid: string | null = $state(null);
+
+  let birdUidFilter = $state(getHashParams().get('birdUid') ?? '');
+  let birdFilterName = $state('');
 
   const table = createDataTable<FlightRow>({
     endpoint: '/api/flights',
     columns,
-    defaultSort: '-id',
+    defaultSort: '-started_at',
     invalidateOn: 'birds',
     buildParams: () => {
       const p: Record<string, string> = {};
       if (statusFilter) p['status'] = statusFilter;
+      if (birdUidFilter) p['birdUid'] = birdUidFilter;
       return p;
     },
-    watchExtras: () => statusFilter,
+    watchExtras: () => [statusFilter, birdUidFilter],
+    onResponse: (raw) => {
+      if (birdUidFilter && !birdFilterName && raw.items.length > 0) {
+        birdFilterName = raw.items[0]!.bird_name;
+      }
+    },
   });
+
+  $effect(() => {
+    const hash = window.location.hash;
+    const qIndex = hash.indexOf('?');
+    const basePath = qIndex === -1 ? hash : hash.slice(0, qIndex);
+    const params = new URLSearchParams(qIndex === -1 ? '' : hash.slice(qIndex + 1));
+    if (birdUidFilter) params.set('birdUid', birdUidFilter);
+    else params.delete('birdUid');
+    const qs = params.toString();
+    const newHash = qs ? `${basePath}?${qs}` : basePath;
+    if (newHash !== hash) history.replaceState(null, '', newHash);
+  });
+
+  function clearBirdFilter(): void {
+    birdUidFilter = '';
+    birdFilterName = '';
+    table.setPage(1);
+  }
 
   async function retryFlight(flight: FlightRow): Promise<void> {
     try {
-      await api(`/api/birds/${flight.cron_job_id}/fly`, { method: 'POST' });
+      await api(`/api/birds/${flight.bird_uid}/fly`, { method: 'POST' });
       showToast(`Retrying ${flight.bird_name}`, 'success');
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
@@ -71,20 +100,27 @@
         <option value="error">Error</option>
         <option value="running">Running</option>
       </select>
+      {#if birdUidFilter}
+        <FilterChip
+          label="Bird"
+          value={birdFilterName || shortUid(birdUidFilter)}
+          onClear={clearBirdFilter}
+        />
+      {/if}
     {/snippet}
-    {#each table.items as flight (flight.id)}
+    {#each table.items as flight (flight.uid)}
       <tr
         class="flight-row"
-        class:flight-expanded={expandedId === flight.id}
+        class:flight-expanded={expandedUid === flight.uid}
         onclick={() => {
-          expandedId = expandedId === flight.id ? null : flight.id;
+          expandedUid = expandedUid === flight.uid ? null : flight.uid;
         }}
       >
-        <td class="mono">{flight.id}</td>
+        <td class="mono">{shortUid(flight.uid)}</td>
         <td>
           <a
             class="bird-link"
-            href="#/birds?search={encodeURIComponent(flight.bird_name)}"
+            href="#/birds?search={encodeURIComponent(shortUid(flight.bird_uid))}"
             onclick={(e) => e.stopPropagation()}>{flight.bird_name}</a
           >
         </td>
@@ -104,7 +140,7 @@
           {/if}
         </td>
       </tr>
-      {#if expandedId === flight.id && (flight.result || flight.error)}
+      {#if expandedUid === flight.uid && (flight.result || flight.error)}
         <tr class="detail-row">
           <td colspan="7">
             <div class="detail-content">

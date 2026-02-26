@@ -1,5 +1,11 @@
 /** @fileoverview Display formatting utilities. */
 
+export function shortUid(uid: string): string {
+  const i = uid.indexOf('_');
+  if (i === -1) return uid.slice(0, 10);
+  return uid.slice(0, i + 1 + 7);
+}
+
 export function formatUptime(ms: number): string {
   const totalMinutes = Math.floor(ms / 60_000);
   const days = Math.floor(totalMinutes / 1440);

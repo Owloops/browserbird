@@ -1,11 +1,11 @@
 <script lang="ts">
   import type { ColumnDef, SessionRow } from '../lib/types.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge } from '../lib/format.ts';
+  import { formatAge, shortUid } from '../lib/format.ts';
   import DataTable from '../components/DataTable.svelte';
 
   const columns: ColumnDef[] = [
-    { key: 'id', label: 'ID', sortable: true },
+    { key: 'uid', label: 'ID', sortable: true },
     { key: 'channel_id', label: 'Channel', sortable: true },
     { key: 'thread_id', label: 'Thread' },
     { key: 'agent_id', label: 'Agent', sortable: true },
@@ -39,14 +39,14 @@
     onSortChange={table.setSort}
     onSearchChange={table.setSearch}
   >
-    {#each table.items as s (s.id)}
+    {#each table.items as s (s.uid)}
       <tr
         class="clickable-row"
         onclick={() => {
-          window.location.hash = `#/session-detail?id=${s.id}`;
+          window.location.hash = `#/session-detail?id=${s.uid}`;
         }}
       >
-        <td class="mono">{s.id}</td>
+        <td class="mono">{shortUid(s.uid)}</td>
         <td class="mono">{s.channel_id}</td>
         <td class="mono">{s.thread_id ?? '-'}</td>
         <td>{s.agent_id}</td>

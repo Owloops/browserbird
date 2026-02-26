@@ -66,7 +66,7 @@ export interface ConfigResponse {
 }
 
 export interface SessionRow {
-  id: number;
+  uid: string;
   channel_id: string;
   thread_id: string | null;
   agent_id: string;
@@ -105,7 +105,7 @@ export interface JobRow {
   attempts: number;
   max_attempts: number;
   timeout: number;
-  cron_job_id: number | null;
+  cron_job_uid: string | null;
   run_at: string | null;
   started_at: string | null;
   completed_at: string | null;
@@ -123,7 +123,7 @@ export interface JobStats {
 }
 
 export interface CronJobRow {
-  id: number;
+  uid: string;
   name: string;
   agent_id: string;
   schedule: string;
@@ -144,9 +144,9 @@ export interface CreateCronRequest {
 }
 
 export interface FlightRow {
-  id: number;
-  job_id: number;
-  cron_job_id: number;
+  uid: string;
+  job_uid: string;
+  bird_uid: string;
   bird_name: string;
   started_at: string;
   finished_at: string | null;
@@ -157,7 +157,7 @@ export interface FlightRow {
 
 export interface InvalidateEvent {
   resource: 'sessions' | 'birds';
-  cronJobId?: number;
+  cronJobUid?: string;
 }
 
 export interface DoctorResponse {

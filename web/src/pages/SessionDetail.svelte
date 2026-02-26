@@ -2,12 +2,12 @@
   import type { ColumnDef, SessionDetail, SessionRow, MessageRow } from '../lib/types.ts';
   import { getHashParams } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge } from '../lib/format.ts';
+  import { formatAge, shortUid } from '../lib/format.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import StatCard from '../components/StatCard.svelte';
 
-  const sessionId = Number(getHashParams().get('id'));
+  const sessionUid = getHashParams().get('id') ?? '';
 
   const columns: ColumnDef[] = [
     { key: 'direction', label: 'Dir' },
@@ -22,9 +22,9 @@
   let stats: { totalTokensIn: number; totalTokensOut: number } | null = $state(null);
   let error = $state('');
 
-  const table = Number.isFinite(sessionId)
+  const table = sessionUid
     ? createDataTable<MessageRow, SessionDetail>({
-        endpoint: `/api/sessions/${sessionId}`,
+        endpoint: `/api/sessions/${sessionUid}`,
         columns,
         defaultSort: 'created_at',
         invalidateOn: 'sessions',
@@ -64,7 +64,7 @@
       </svg>
       Sessions
     </button>
-    <h2 class="session-title">Session #{session.id}</h2>
+    <h2 class="session-title">Session {shortUid(session.uid)}</h2>
     <span class="session-meta">
       <span class="mono">{session.channel_id}</span>
       <span class="meta-sep"></span>

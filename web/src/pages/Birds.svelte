@@ -2,28 +2,29 @@
   import type { ColumnDef, CronJobRow, CreateCronRequest } from '../lib/types.ts';
   import { api } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
-  import { formatAge, timeStamp } from '../lib/format.ts';
+  import { formatAge, timeStamp, shortUid } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import { showConfirm } from '../lib/confirm.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
   import Badge from '../components/Badge.svelte';
   import Toggle from '../components/Toggle.svelte';
 
-  type EditableField = 'schedule' | 'prompt' | 'agent_id';
+  type EditableField = 'schedule' | 'prompt' | 'agent_id' | 'target_channel_id';
 
   interface EditingCell {
-    id: number;
+    uid: string;
     field: EditableField;
     value: string;
     original: string;
   }
 
   const columns: ColumnDef[] = [
-    { key: 'id', label: 'ID', sortable: true },
+    { key: 'uid', label: 'ID', sortable: true },
     { key: 'name', label: 'Name', sortable: true },
     { key: 'schedule', label: 'Schedule', sortable: true },
     { key: 'prompt', label: 'Prompt' },
     { key: 'agent_id', label: 'Agent', sortable: true },
+    { key: 'target_channel_id', label: 'Channel' },
     { key: 'enabled', label: 'Enabled', sortable: true },
     { key: 'last_run', label: 'Last Run', sortable: true },
     { key: 'actions', label: 'Actions' },
@@ -34,7 +35,7 @@
   const table = createDataTable<CronJobRow>({
     endpoint: '/api/birds',
     columns,
-    defaultSort: 'id',
+    defaultSort: 'created_at',
     invalidateOn: 'birds',
     onResponse: () => {
       lastUpdated = timeStamp();
@@ -51,11 +52,11 @@
   let editing: EditingCell | null = $state(null);
   let saving = $state(false);
 
-  async function toggleCron(id: number, currentlyEnabled: boolean): Promise<void> {
+  async function toggleCron(uid: string, currentlyEnabled: boolean): Promise<void> {
     const action = currentlyEnabled ? 'disable' : 'enable';
     try {
-      await api(`/api/birds/${id}/${action}`, { method: 'PATCH' });
-      showToast(`Bird #${id} ${action}d`, 'success');
+      await api(`/api/birds/${uid}/${action}`, { method: 'PATCH' });
+      showToast(`Bird ${shortUid(uid)} ${action}d`, 'success');
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
@@ -98,8 +99,8 @@
 
   function startCellEdit(job: CronJobRow, field: EditableField): void {
     if (job.name.startsWith('__bb_')) return;
-    const value = field === 'agent_id' ? job.agent_id : job[field];
-    editing = { id: job.id, field, value, original: value };
+    const value = job[field] ?? '';
+    editing = { uid: job.uid, field, value, original: value };
   }
 
   function cancelCellEdit(): void {
@@ -113,7 +114,8 @@
       editing = null;
       return;
     }
-    if (!trimmed) {
+    const clearable = editing.field === 'target_channel_id';
+    if (!trimmed && !clearable) {
       showToast('Value cannot be empty', 'error');
       return;
     }
@@ -122,11 +124,12 @@
       schedule: 'schedule',
       prompt: 'prompt',
       agent_id: 'agent',
+      target_channel_id: 'channel',
     };
     try {
-      await api(`/api/birds/${editing.id}`, {
+      await api(`/api/birds/${editing.uid}`, {
         method: 'PATCH',
-        body: { [fieldMap[editing.field]]: trimmed },
+        body: { [fieldMap[editing.field]]: trimmed || null },
       });
       showToast(`Updated ${editing.field.replace('_', ' ')}`, 'success');
       editing = null;
@@ -149,27 +152,27 @@
     }
   }
 
-  function isEditingCell(id: number, field: EditableField): boolean {
-    return editing != null && editing.id === id && editing.field === field;
+  function isEditingCell(uid: string, field: EditableField): boolean {
+    return editing != null && editing.uid === uid && editing.field === field;
   }
 
-  async function runCron(id: number): Promise<void> {
+  async function runCron(uid: string): Promise<void> {
     try {
-      const result = await api<{ success: boolean; jobId: number }>(`/api/birds/${id}/fly`, {
+      const result = await api<{ success: boolean; jobId: number }>(`/api/birds/${uid}/fly`, {
         method: 'POST',
       });
-      showToast(`Bird #${id} sent on a flight (job #${result.jobId})`, 'success');
+      showToast(`Bird ${shortUid(uid)} sent on a flight (job #${result.jobId})`, 'success');
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
   }
 
-  async function deleteCron(id: number, name: string): Promise<void> {
+  async function deleteCron(uid: string, name: string): Promise<void> {
     if (!(await showConfirm(`Delete bird "${name}"? This will also remove all flight history.`)))
       return;
     try {
-      await api(`/api/birds/${id}`, { method: 'DELETE' });
-      showToast(`Bird #${id} deleted`, 'success');
+      await api(`/api/birds/${uid}`, { method: 'DELETE' });
+      showToast(`Bird ${shortUid(uid)} deleted`, 'success');
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
@@ -289,16 +292,16 @@
       <div class="filter-spacer"></div>
       <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}
-    {#each table.items as j (j.id)}
+    {#each table.items as j (j.uid)}
       {@const isSystem = j.name.startsWith('__bb_')}
       <tr>
-        <td class="mono">{j.id}</td>
+        <td class="mono">{shortUid(j.uid)}</td>
         <td>{j.name}</td>
         <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'schedule')}>
-          <span class="mono cell-text" class:cell-text-hidden={isEditingCell(j.id, 'schedule')}
+          <span class="mono cell-text" class:cell-text-hidden={isEditingCell(j.uid, 'schedule')}
             >{j.schedule}</span
           >
-          {#if isEditingCell(j.id, 'schedule')}
+          {#if isEditingCell(j.uid, 'schedule')}
             <div class="cell-edit-overlay">
               <input
                 class="cell-input mono"
@@ -313,10 +316,10 @@
         <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'prompt')}>
           <span
             class="cell-text prompt-text"
-            class:cell-text-hidden={isEditingCell(j.id, 'prompt')}
+            class:cell-text-hidden={isEditingCell(j.uid, 'prompt')}
             title={j.prompt}>{j.prompt.slice(0, 60)}{j.prompt.length > 60 ? '...' : ''}</span
           >
-          {#if isEditingCell(j.id, 'prompt')}
+          {#if isEditingCell(j.uid, 'prompt')}
             <div class="cell-edit-overlay">
               <textarea
                 class="cell-input cell-textarea"
@@ -328,10 +331,10 @@
           {/if}
         </td>
         <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'agent_id')}>
-          <span class="cell-text" class:cell-text-hidden={isEditingCell(j.id, 'agent_id')}
+          <span class="cell-text" class:cell-text-hidden={isEditingCell(j.uid, 'agent_id')}
             >{j.agent_id}</span
           >
-          {#if isEditingCell(j.id, 'agent_id')}
+          {#if isEditingCell(j.uid, 'agent_id')}
             <div class="cell-edit-overlay">
               <input
                 class="cell-input"
@@ -343,8 +346,27 @@
             </div>
           {/if}
         </td>
+        <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'target_channel_id')}>
+          <span
+            class="mono cell-text"
+            class:cell-text-hidden={isEditingCell(j.uid, 'target_channel_id')}
+            >{j.target_channel_id ?? '-'}</span
+          >
+          {#if isEditingCell(j.uid, 'target_channel_id')}
+            <div class="cell-edit-overlay">
+              <input
+                class="cell-input mono"
+                type="text"
+                placeholder="Channel ID"
+                bind:value={editing!.value}
+                onkeydown={handleCellKeydown}
+              />
+              {@render cellActions()}
+            </div>
+          {/if}
+        </td>
         <td>
-          <Toggle active={!!j.enabled} onToggle={() => toggleCron(j.id, !!j.enabled)} />
+          <Toggle active={!!j.enabled} onToggle={() => toggleCron(j.uid, !!j.enabled)} />
         </td>
         <td class="last-run-cell">
           {#if j.last_run}
@@ -358,12 +380,10 @@
         </td>
         <td>
           <div class="actions-cell">
-            <a class="btn btn-outline btn-sm" href="#/flights?search={encodeURIComponent(j.name)}"
-              >Flights</a
-            >
-            <button class="btn btn-outline btn-sm" onclick={() => runCron(j.id)}>Fly</button>
+            <a class="btn btn-outline btn-sm" href="#/flights?birdUid={j.uid}">Flights</a>
+            <button class="btn btn-outline btn-sm" onclick={() => runCron(j.uid)}>Fly</button>
             {#if !isSystem}
-              <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.id, j.name)}
+              <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.uid, j.name)}
                 >Delete</button
               >
             {/if}
