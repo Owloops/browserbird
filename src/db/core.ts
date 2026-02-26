@@ -96,12 +96,12 @@ export function paginate<T>(
     resolvedOrderBy = parseSort(
       opts.sort,
       opts.allowedSortColumns ?? new Set<string>(),
-      opts.defaultSort ?? 'id DESC',
+      opts.defaultSort ?? 'created_at DESC',
     );
   } else {
     where = whereOrOptions ?? '';
     allParams = params ?? [];
-    resolvedOrderBy = orderBy ?? 'id DESC';
+    resolvedOrderBy = orderBy ?? 'created_at DESC';
   }
 
   const pp = Math.min(Math.max(perPage, 1), MAX_PER_PAGE);
@@ -139,7 +139,7 @@ const MIGRATIONS: Migration[] = [
     up(d) {
       d.exec(`
         CREATE TABLE IF NOT EXISTS sessions (
-          id INTEGER PRIMARY KEY,
+          uid TEXT PRIMARY KEY,
           channel_id TEXT NOT NULL,
           thread_id TEXT,
           agent_id TEXT NOT NULL DEFAULT 'default',
@@ -151,7 +151,7 @@ const MIGRATIONS: Migration[] = [
         );
 
         CREATE TABLE IF NOT EXISTS cron_jobs (
-          id INTEGER PRIMARY KEY,
+          uid TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           agent_id TEXT NOT NULL DEFAULT 'default',
           schedule TEXT NOT NULL,
@@ -168,8 +168,8 @@ const MIGRATIONS: Migration[] = [
         );
 
         CREATE TABLE IF NOT EXISTS cron_runs (
-          id INTEGER PRIMARY KEY,
-          job_id INTEGER NOT NULL REFERENCES cron_jobs(id),
+          uid TEXT PRIMARY KEY,
+          job_uid TEXT NOT NULL REFERENCES cron_jobs(uid),
           started_at TEXT NOT NULL DEFAULT (datetime('now')),
           finished_at TEXT,
           status TEXT NOT NULL DEFAULT 'running',
@@ -198,7 +198,7 @@ const MIGRATIONS: Migration[] = [
           attempts INTEGER NOT NULL DEFAULT 0,
           max_attempts INTEGER NOT NULL DEFAULT 1,
           timeout INTEGER NOT NULL DEFAULT 1800,
-          cron_job_id INTEGER REFERENCES cron_jobs(id),
+          cron_job_uid TEXT REFERENCES cron_jobs(uid),
           run_at TEXT,
           started_at TEXT,
           completed_at TEXT,
@@ -224,14 +224,14 @@ const MIGRATIONS: Migration[] = [
           ON messages(channel_id, thread_id);
         CREATE INDEX IF NOT EXISTS idx_messages_created_at
           ON messages(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_cron_runs_job_id
-          ON cron_runs(job_id, started_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_cron_runs_job_uid
+          ON cron_runs(job_uid, started_at DESC);
         CREATE INDEX IF NOT EXISTS idx_cron_jobs_enabled
           ON cron_jobs(enabled);
         CREATE INDEX IF NOT EXISTS idx_jobs_poll
           ON jobs(status, priority, run_at, created_at);
-        CREATE INDEX IF NOT EXISTS idx_jobs_cron_job_id
-          ON jobs(cron_job_id);
+        CREATE INDEX IF NOT EXISTS idx_jobs_cron_job_uid
+          ON jobs(cron_job_uid);
         CREATE INDEX IF NOT EXISTS idx_jobs_stale
           ON jobs(status, started_at);
         CREATE INDEX IF NOT EXISTS idx_logs_created_at
@@ -318,6 +318,35 @@ export function optimizeDatabase(): void {
   const d = getDb();
   d.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   d.exec('PRAGMA optimize');
+}
+
+/**
+ * Resolves a row by UID or UID prefix, like git's short SHA resolution.
+ * Exact match first (fast path), then prefix scan via LIKE.
+ */
+export function resolveByUid<T>(
+  table: string,
+  uidPrefix: string,
+): { row: T } | { ambiguous: true; count: number } | undefined {
+  const input = uidPrefix.toLowerCase();
+  const d = getDb();
+
+  const exact = d.prepare(`SELECT * FROM ${table} WHERE uid = ?`).get(input) as unknown as
+    | T
+    | undefined;
+  if (exact) return { row: exact };
+
+  const rows = d
+    .prepare(`SELECT * FROM ${table} WHERE uid LIKE ? LIMIT 2`)
+    .all(`${input}%`) as unknown as T[];
+  if (rows.length === 0) return undefined;
+  if (rows.length > 1) {
+    const countRow = d
+      .prepare(`SELECT COUNT(*) as count FROM ${table} WHERE uid LIKE ?`)
+      .get(`${input}%`) as unknown as { count: number };
+    return { ambiguous: true, count: countRow.count };
+  }
+  return { row: rows[0]! };
 }
 
 /** Wraps a function in BEGIN/COMMIT with automatic ROLLBACK on error. */
