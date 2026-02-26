@@ -243,7 +243,7 @@
     border-bottom: none;
   }
 
-  .table :global(tr:not(.flight-history-row):not(.detail-row):hover td) {
+  .table :global(tr:hover td) {
     background: var(--color-bg-elevated);
   }
 

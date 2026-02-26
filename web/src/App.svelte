@@ -2,6 +2,7 @@
   import type { StatusResponse } from './lib/types.ts';
   import {
     getPageFromHash,
+    getHashParams,
     checkAuthRequired,
     verifyToken,
     getAuthToken,
@@ -19,7 +20,6 @@
   import Status from './pages/Status.svelte';
   import Sessions from './pages/Sessions.svelte';
   import Birds from './pages/Birds.svelte';
-  import Flights from './pages/Flights.svelte';
   import Browser from './pages/Browser.svelte';
   import Settings from './pages/Settings.svelte';
   import SessionDetail from './pages/SessionDetail.svelte';
@@ -29,7 +29,6 @@
     sessions: 'Sessions',
     'session-detail': 'Session Detail',
     birds: 'Birds',
-    flights: 'Flights',
     browser: 'Browser',
     settings: 'Settings',
   };
@@ -63,6 +62,12 @@
     };
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
+  });
+
+  $effect(() => {
+    if (currentPage !== 'flights') return;
+    const birdUid = getHashParams().get('birdUid');
+    window.location.hash = birdUid ? `#/birds?expand=${birdUid}` : '#/birds';
   });
 
   $effect(() => {
@@ -212,8 +217,6 @@
           <SessionDetail />
         {:else if currentPage === 'birds'}
           <Birds />
-        {:else if currentPage === 'flights'}
-          <Flights />
         {:else if currentPage === 'browser'}
           <Browser {status} />
         {:else if currentPage === 'settings'}

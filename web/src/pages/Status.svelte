@@ -218,7 +218,7 @@
           <tr
             class="clickable-row"
             onclick={() => {
-              window.location.hash = `#/flights?birdUid=${f.bird_uid}`;
+              window.location.hash = `#/birds?expand=${f.bird_uid}`;
             }}
           >
             <td class="mono">{shortUid(f.uid)}</td>
@@ -258,7 +258,7 @@
   <div class="section">
     <div class="section-header">
       <h2 class="section-title">Recent Flights</h2>
-      <a href="#/flights" class="section-link">View all</a>
+      <a href="#/birds" class="section-link">View all</a>
     </div>
     <DataTable
       columns={flightColumns}
@@ -269,7 +269,7 @@
         <tr
           class="clickable-row"
           onclick={() => {
-            window.location.hash = `#/flights?birdUid=${f.bird_uid}`;
+            window.location.hash = `#/birds?expand=${f.bird_uid}`;
           }}
         >
           <td class="mono">{shortUid(f.uid)}</td>

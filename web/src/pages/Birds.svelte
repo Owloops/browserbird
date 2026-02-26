@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { ColumnDef, CronJobRow, CreateCronRequest } from '../lib/types.ts';
-  import { api } from '../lib/api.ts';
+  import { api, getHashParams } from '../lib/api.ts';
   import { createDataTable } from '../lib/data-table.svelte.ts';
   import { formatAge, timeStamp, shortUid } from '../lib/format.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import { showConfirm } from '../lib/confirm.svelte.ts';
   import DataTable from '../components/DataTable.svelte';
+  import BirdDrawer from '../components/BirdDrawer.svelte';
   import Badge from '../components/Badge.svelte';
   import Toggle from '../components/Toggle.svelte';
 
@@ -51,6 +52,33 @@
 
   let editing: EditingCell | null = $state(null);
   let saving = $state(false);
+
+  let selectedBirdUid: string | null = $state(null);
+  const selectedBird = $derived(
+    selectedBirdUid ? (table.items.find((b) => b.uid === selectedBirdUid) ?? null) : null,
+  );
+
+  $effect(() => {
+    if (table.loading) return;
+    const expand = getHashParams().get('expand');
+    if (!expand) return;
+    const match = table.items.find((b) => b.uid === expand);
+    if (match) {
+      selectedBirdUid = match.uid;
+      const hash = window.location.hash;
+      const qIndex = hash.indexOf('?');
+      const basePath = qIndex === -1 ? hash : hash.slice(0, qIndex);
+      const params = new URLSearchParams(qIndex === -1 ? '' : hash.slice(qIndex + 1));
+      params.delete('expand');
+      const qs = params.toString();
+      history.replaceState(null, '', qs ? `${basePath}?${qs}` : basePath);
+    }
+  });
+
+  function handleRowClick(e: MouseEvent, bird: CronJobRow): void {
+    if ((e.target as HTMLElement).closest('.cell-editable, .actions-cell, .toggle-wrapper')) return;
+    selectedBirdUid = bird.uid;
+  }
 
   async function toggleCron(uid: string, currentlyEnabled: boolean): Promise<void> {
     const action = currentlyEnabled ? 'disable' : 'enable';
@@ -294,7 +322,7 @@
     {/snippet}
     {#each table.items as j (j.uid)}
       {@const isSystem = j.name.startsWith('__bb_')}
-      <tr>
+      <tr class="bird-row" onclick={(e) => handleRowClick(e, j)}>
         <td class="mono">{shortUid(j.uid)}</td>
         <td>{j.name}</td>
         <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'schedule')}>
@@ -366,7 +394,9 @@
           {/if}
         </td>
         <td>
-          <Toggle active={!!j.enabled} onToggle={() => toggleCron(j.uid, !!j.enabled)} />
+          <div class="toggle-wrapper">
+            <Toggle active={!!j.enabled} onToggle={() => toggleCron(j.uid, !!j.enabled)} />
+          </div>
         </td>
         <td class="last-run-cell">
           {#if j.last_run}
@@ -380,7 +410,6 @@
         </td>
         <td>
           <div class="actions-cell">
-            <a class="btn btn-outline btn-sm" href="#/flights?birdUid={j.uid}">Flights</a>
             <button class="btn btn-outline btn-sm" onclick={() => runCron(j.uid)}>Fly</button>
             {#if !isSystem}
               <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.uid, j.name)}
@@ -392,6 +421,15 @@
       </tr>
     {/each}
   </DataTable>
+
+  {#if selectedBird}
+    <BirdDrawer
+      bird={selectedBird}
+      onclose={() => {
+        selectedBirdUid = null;
+      }}
+    />
+  {/if}
 {/if}
 
 <style>
@@ -601,6 +639,14 @@
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .bird-row {
+    cursor: pointer;
+  }
+
+  .toggle-wrapper {
+    display: inline-flex;
   }
 
   @media (max-width: 768px) {
