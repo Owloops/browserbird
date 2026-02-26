@@ -22,6 +22,7 @@
 
   let config: ConfigResponse | null = $state(null);
   let doctor: DoctorResponse | null = $state(null);
+  let doctorLoading = $state(true);
   let recentErrors: LogRow[] = $state([]);
   let jobStats: JobStats | null = $state(null);
   let systemBirds: CronJobRow[] = $state([]);
@@ -33,15 +34,13 @@
     const ac = new AbortController();
     Promise.all([
       api<ConfigResponse>('/api/config'),
-      api<DoctorResponse>('/api/doctor'),
       api<PaginatedResult<LogRow>>('/api/logs?level=error&perPage=10'),
       api<JobStats>('/api/jobs/stats'),
       api<PaginatedResult<CronJobRow>>('/api/birds?system=true&perPage=100'),
     ])
-      .then(([c, d, logs, js, birds]) => {
+      .then(([c, logs, js, birds]) => {
         if (ac.signal.aborted) return;
         config = c;
-        doctor = d;
         recentErrors = logs.items;
         jobStats = js;
         systemBirds = birds.items.filter((b) => b.name.startsWith('__bb_'));
@@ -50,6 +49,23 @@
         if (!ac.signal.aborted) loading = false;
       });
     return () => ac.abort();
+  });
+
+  $effect(() => {
+    const ac = new AbortController();
+    api<DoctorResponse>('/api/doctor')
+      .then((d) => {
+        if (!ac.signal.aborted) doctor = d;
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) doctorLoading = false;
+      });
+    return () => ac.abort();
+  });
+
+  const configuredProviders = $derived.by(() => {
+    const providers = config?.agents.map((a) => a.provider);
+    return new Set(providers ?? []);
   });
 
   async function loadSystemFlights(birdUid: string): Promise<void> {
@@ -167,31 +183,42 @@
           <span class="field-label">Auth</span>
           <span class="field-value">{config.web.authEnabled ? 'Enabled' : 'Disabled'}</span>
         </div>
+        <div class="field">
+          <span class="field-label">Agent CLI</span>
+          <span class="field-value">
+            {#if doctorLoading}
+              {@const claude = configuredProviders.has('claude')}
+              {@const opencode = configuredProviders.has('opencode')}
+              {#if claude}
+                <span class="cli-pill"><span class="dot dot-muted"></span> claude ...</span>
+              {/if}
+              {#if opencode}
+                <span class="cli-pill"><span class="dot dot-muted"></span> opencode ...</span>
+              {/if}
+              {#if !claude && !opencode}
+                <span class="field-dim">Checking...</span>
+              {/if}
+            {:else if doctor}
+              {#each [{ key: 'claude', info: doctor.claude }, { key: 'opencode', info: doctor.opencode }] as { key, info }}
+                {@const configured = configuredProviders.has(key)}
+                {#if configured && info.available}
+                  <span class="cli-pill cli-pill-ok"
+                    ><span class="dot dot-on"></span> {key} {info.version}</span
+                  >
+                {:else if configured && !info.available}
+                  <span class="cli-pill cli-pill-err"
+                    ><span class="dot dot-off"></span> {key} not found</span
+                  >
+                {:else if !configured && info.available}
+                  <span class="cli-pill"
+                    ><span class="dot dot-muted"></span> {key} {info.version}</span
+                  >
+                {/if}
+              {/each}
+            {/if}
+          </span>
+        </div>
         {#if doctor}
-          <div class="field">
-            <span class="field-label">Claude CLI</span>
-            <span class="field-value">
-              {#if doctor.claude.available}
-                <span class="dot dot-on"></span>
-                <span class="mono">{doctor.claude.version}</span>
-              {:else}
-                <span class="dot dot-off"></span>
-                Not found
-              {/if}
-            </span>
-          </div>
-          <div class="field">
-            <span class="field-label">OpenCode CLI</span>
-            <span class="field-value">
-              {#if doctor.opencode.available}
-                <span class="dot dot-on"></span>
-                <span class="mono">{doctor.opencode.version}</span>
-              {:else}
-                <span class="dot dot-off"></span>
-                Not found
-              {/if}
-            </span>
-          </div>
           <div class="field">
             <span class="field-label">Node.js</span>
             <span class="field-value mono">{doctor.node}</span>
@@ -666,6 +693,35 @@
   .dot-off {
     background: var(--color-error);
     box-shadow: 0 0 4px var(--color-error);
+  }
+
+  .dot-muted {
+    background: var(--color-text-muted);
+  }
+
+  .cli-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    color: var(--color-text-muted);
+  }
+
+  .cli-pill-ok {
+    border-color: rgba(62, 201, 122, 0.3);
+    background: var(--color-success-bg);
+    color: var(--color-success);
+  }
+
+  .cli-pill-err {
+    border-color: rgba(224, 92, 92, 0.3);
+    background: var(--color-error-bg);
+    color: var(--color-error);
   }
 
   .system-bird-card {
