@@ -28,6 +28,7 @@ export interface StatusResponse {
   jobs: JobStats;
   flights: FlightStats;
   messages: { totalMessages: number; totalTokensIn: number; totalTokensOut: number };
+  sessions: { total: number };
   web: { enabled: boolean; port: number };
   agent: { available: boolean };
   browser: { enabled: boolean; connected: boolean };

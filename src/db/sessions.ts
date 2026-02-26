@@ -143,6 +143,13 @@ export function getSessionTokenStats(
     .get(channelId, threadId) as unknown as { totalTokensIn: number; totalTokensOut: number };
 }
 
+export function getSessionCount(): number {
+  const row = getDb().prepare('SELECT COUNT(*) as count FROM sessions').get() as unknown as {
+    count: number;
+  };
+  return row.count;
+}
+
 export function deleteStaleSessions(ttlHours: number): number {
   const stmt = getDb().prepare(
     `DELETE FROM sessions WHERE last_active < datetime('now', ? || ' hours')`,

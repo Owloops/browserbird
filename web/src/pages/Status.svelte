@@ -119,55 +119,62 @@
 {#if !status}
   <div class="loading">Loading...</div>
 {:else}
-  <div class="health-bar">
-    <div class="health-item">
-      <span class="health-dot" class:dot-ok={agentOk} class:dot-err={!agentOk}></span>
-      <span class="health-label">Agent CLI</span>
-      <span class="health-detail mono">{agentOk ? 'ready' : 'unavailable'}</span>
+  <div class="svc-row">
+    <div class="svc-card" class:svc-ok={agentOk} class:svc-err={!agentOk}>
+      <span class="svc-dot" class:dot-ok={agentOk} class:dot-err={!agentOk}></span>
+      <span class="svc-label">Agent CLI</span>
+      <span class="svc-detail mono">{agentOk ? 'ready' : 'unavailable'}</span>
     </div>
-    <div class="health-item">
-      <span class="health-dot" class:dot-ok={slackOk} class:dot-err={!slackOk}></span>
-      <span class="health-label">Slack</span>
-      <span class="health-detail mono">{slackOk ? 'connected' : 'disconnected'}</span>
+    <div class="svc-card" class:svc-ok={slackOk} class:svc-err={!slackOk}>
+      <span class="svc-dot" class:dot-ok={slackOk} class:dot-err={!slackOk}></span>
+      <span class="svc-label">Slack</span>
+      <span class="svc-detail mono">{slackOk ? 'connected' : 'disconnected'}</span>
     </div>
     {#if browserEnabled}
-      <div class="health-item">
-        <span class="health-dot" class:dot-ok={browserOk} class:dot-err={!browserOk}></span>
-        <span class="health-label">Browser</span>
-        <span class="health-detail mono">{browserOk ? 'connected' : 'unreachable'}</span>
+      <div class="svc-card" class:svc-ok={browserOk} class:svc-err={!browserOk}>
+        <span class="svc-dot" class:dot-ok={browserOk} class:dot-err={!browserOk}></span>
+        <span class="svc-label">Browser</span>
+        <span class="svc-detail mono">{browserOk ? 'connected' : 'unreachable'}</span>
       </div>
     {/if}
-    <div class="health-spacer"></div>
-    <div class="health-item">
-      <span class="health-label">Processes</span>
-      <span class="health-detail mono"
-        >{status.processes.active}/{status.processes.maxConcurrent}</span
-      >
-    </div>
   </div>
 
-  <div class="stat-strip">
-    <div class="stat-item">
-      <span class="stat-value">{status.flights.running}<span class="stat-dim"> active</span></span>
-      <span class="stat-sub">{status.flights.completed} done · {status.flights.failed} failed</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-value"
-        >{status.messages.totalMessages}<span class="stat-dim"> msgs</span></span
-      >
-    </div>
-    <div class="stat-item">
-      <span class="stat-value"
-        >{(status.messages.totalTokensIn + status.messages.totalTokensOut).toLocaleString()}<span
-          class="stat-dim"
+  <div class="num-grid">
+    <div class="num-card num-card-accent">
+      <div class="num-head">
+        <span class="num-label">Flights</span>
+        <span class="num-badge mono"
+          >{status.processes.active}/{status.processes.maxConcurrent} processes</span
         >
-          tokens</span
-        ></span
-      >
-      <span class="stat-sub"
-        >{status.messages.totalTokensIn.toLocaleString()} in / {status.messages.totalTokensOut.toLocaleString()}
-        out</span
-      >
+      </div>
+      <div class="num-value">{status.flights.running}</div>
+      <div class="num-sub">
+        <span>{status.flights.completed} done</span>
+        <span class="num-sep"></span>
+        <span>{status.flights.failed} failed</span>
+      </div>
+    </div>
+    <div class="num-card num-card-neutral">
+      <div class="num-head">
+        <span class="num-label">Messages</span>
+      </div>
+      <div class="num-value">{status.messages.totalMessages}</div>
+      <div class="num-sub">
+        <span>{status.sessions.total} {status.sessions.total === 1 ? 'session' : 'sessions'}</span>
+      </div>
+    </div>
+    <div class="num-card num-card-warm">
+      <div class="num-head">
+        <span class="num-label">Tokens</span>
+      </div>
+      <div class="num-value">
+        {(status.messages.totalTokensIn + status.messages.totalTokensOut).toLocaleString()}
+      </div>
+      <div class="num-sub">
+        <span>{status.messages.totalTokensIn.toLocaleString()} in</span>
+        <span class="num-sep"></span>
+        <span>{status.messages.totalTokensOut.toLocaleString()} out</span>
+      </div>
     </div>
   </div>
 
@@ -304,87 +311,186 @@
 {/if}
 
 <style>
-  .health-bar {
+  /* Service health row */
+  .svc-row {
     display: flex;
-    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  .svc-card {
+    display: flex;
     align-items: center;
-    gap: var(--space-4);
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-surface);
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--space-4);
+    border-radius: var(--radius-full);
+    transition: all var(--transition-normal);
   }
 
-  .health-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1-5);
+  .svc-ok {
+    border-color: rgba(62, 201, 122, 0.2);
+    background: rgba(62, 201, 122, 0.04);
   }
 
-  .health-dot {
-    width: 6px;
-    height: 6px;
+  .svc-err {
+    border-color: rgba(224, 92, 92, 0.2);
+    background: rgba(224, 92, 92, 0.04);
+  }
+
+  .svc-dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .dot-ok {
     background: var(--color-success);
-    box-shadow: 0 0 4px var(--color-success);
+    box-shadow: 0 0 6px rgba(62, 201, 122, 0.5);
   }
 
   .dot-err {
     background: var(--color-error);
-    box-shadow: 0 0 4px var(--color-error);
+    box-shadow: 0 0 6px rgba(224, 92, 92, 0.5);
   }
 
-  .health-label {
+  .svc-label {
     font-size: var(--text-sm);
+    font-weight: 500;
     color: var(--color-text-secondary);
   }
 
-  .health-detail {
+  .svc-detail {
     font-size: var(--text-xs);
     color: var(--color-text-muted);
   }
 
-  .health-spacer {
-    flex: 1;
-  }
-
-  .stat-strip {
-    display: flex;
-    gap: var(--space-6);
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+  /* Stat cards grid */
+  .num-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
     margin-bottom: var(--space-4);
   }
 
-  .stat-item {
+  .num-card {
+    position: relative;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-4) var(--space-3);
+    overflow: hidden;
+    transition:
+      border-color var(--transition-normal),
+      box-shadow var(--transition-normal);
+  }
+
+  .num-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+
+  .num-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    filter: blur(50px);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    pointer-events: none;
+  }
+
+  .num-card:hover {
+    border-color: var(--color-border-subtle);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .num-card:hover::after {
+    opacity: 1;
+  }
+
+  .num-card-accent::before {
+    background: linear-gradient(90deg, var(--color-accent), transparent);
+  }
+
+  .num-card-accent::after {
+    background: rgba(91, 140, 240, 0.06);
+  }
+
+  .num-card-neutral::before {
+    background: linear-gradient(90deg, var(--color-text-muted), transparent);
+  }
+
+  .num-card-neutral::after {
+    background: rgba(136, 145, 160, 0.04);
+  }
+
+  .num-card-warm::before {
+    background: linear-gradient(90deg, var(--color-warning), transparent);
+  }
+
+  .num-card-warm::after {
+    background: rgba(232, 168, 62, 0.06);
+  }
+
+  .num-head {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
   }
 
-  .stat-value {
-    font-family: var(--font-mono);
-    font-size: var(--text-md);
-    font-weight: 600;
-    color: var(--color-text-primary);
-    white-space: nowrap;
-  }
-
-  .stat-dim {
+  .num-label {
+    font-size: var(--text-xs);
+    font-weight: 500;
     color: var(--color-text-muted);
-    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
-  .stat-sub {
+  .num-badge {
+    font-size: var(--text-xs);
+    color: var(--color-accent);
+    background: var(--color-accent-bg);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
+  }
+
+  .num-value {
+    font-family: var(--font-mono);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: var(--space-1);
+  }
+
+  .num-sub {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     font-size: var(--text-xs);
     color: var(--color-text-muted);
+  }
+
+  .num-sep {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--color-border-subtle);
+    flex-shrink: 0;
   }
 
   .section {
@@ -455,26 +561,26 @@
   }
 
   @media (max-width: 768px) {
-    .health-bar {
-      gap: var(--space-2-5);
-      padding: var(--space-2-5) var(--space-3);
-    }
-
-    .stat-strip {
+    .svc-row {
       flex-wrap: wrap;
-      gap: var(--space-4);
-      padding: var(--space-2-5) var(--space-3);
     }
 
-    .health-spacer {
-      display: none;
+    .num-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 
   @media (max-width: 480px) {
-    .stat-strip {
-      flex-direction: column;
-      gap: var(--space-2);
+    .num-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .num-card {
+      padding: var(--space-3);
+    }
+
+    .num-value {
+      font-size: var(--text-xl);
     }
   }
 </style>
