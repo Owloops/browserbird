@@ -13,6 +13,8 @@ import {
   readJsonBody,
 } from './http.ts';
 import { broadcastSSE } from './sse.ts';
+import { resolveByUid } from '../db/core.ts';
+import type { CronJobRow } from '../db/birds.ts';
 import {
   SYSTEM_CRON_PREFIX,
   listSessions,
@@ -34,7 +36,6 @@ import {
   createCronJob,
   updateCronJob,
   deleteCronJob,
-  getCronJob,
 } from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
 import { deriveBirdName } from '../core/utils.ts';
@@ -59,6 +60,31 @@ export function buildStatusPayload(config: Config, startedAt: number, deps: WebS
     browser: { enabled: config.browser.enabled, connected: health.browser.connected },
     slack: { connected: deps.slackConnected() },
   };
+}
+
+function resolveBirdParam(
+  params: Record<string, string>,
+  res: import('node:http').ServerResponse,
+): CronJobRow | null {
+  const uid = params['id'];
+  if (!uid) {
+    jsonError(res, 'Missing bird ID', 400);
+    return null;
+  }
+  const result = resolveByUid<CronJobRow>('cron_jobs', uid);
+  if (!result) {
+    jsonError(res, `Bird ${uid} not found`, 404);
+    return null;
+  }
+  if ('ambiguous' in result) {
+    jsonError(
+      res,
+      `Ambiguous bird ID "${uid}" matches ${result.count} birds. Use a longer prefix.`,
+      400,
+    );
+    return null;
+  }
+  return result.row;
 }
 
 export function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Route[] {
@@ -137,14 +163,14 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'GET',
       pattern: pathToRegex('/api/sessions/:id'),
       handler(req, res, params) {
-        const id = Number(params['id']);
-        if (!Number.isFinite(id)) {
-          jsonError(res, 'Invalid session ID', 400);
+        const uid = params['id'];
+        if (!uid) {
+          jsonError(res, 'Missing session ID', 400);
           return;
         }
-        const session = getSession(id);
+        const session = getSession(uid);
         if (!session) {
-          jsonError(res, `Session #${id} not found`, 404);
+          jsonError(res, `Session ${uid} not found`, 404);
           return;
         }
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
@@ -197,15 +223,14 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
         const status = url.searchParams.get('status') ?? undefined;
-        const cronJobIdParam = url.searchParams.get('cronJobId');
-        const cronJobId = cronJobIdParam ? Number(cronJobIdParam) : undefined;
+        const cronJobUid = url.searchParams.get('cronJobUid') ?? undefined;
         const name = url.searchParams.get('name') ?? undefined;
         json(
           res,
           listJobs(
             page,
             perPage,
-            { status, cronJobId, name },
+            { status, cronJobUid, name },
             parseSortParam(url),
             parseSearchParam(url),
           ),
@@ -266,34 +291,22 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'PATCH',
       pattern: pathToRegex('/api/birds/:id/enable'),
       handler(_req, res, params) {
-        const id = Number(params['id']);
-        if (!Number.isFinite(id)) {
-          jsonError(res, 'Invalid bird ID', 400);
-          return;
-        }
-        if (setCronJobEnabled(id, true)) {
-          broadcastSSE('invalidate', { resource: 'birds' });
-          json(res, { success: true });
-        } else {
-          jsonError(res, `Bird #${id} not found`, 404);
-        }
+        const bird = resolveBirdParam(params, res);
+        if (!bird) return;
+        setCronJobEnabled(bird.uid, true);
+        broadcastSSE('invalidate', { resource: 'birds' });
+        json(res, { success: true });
       },
     },
     {
       method: 'PATCH',
       pattern: pathToRegex('/api/birds/:id/disable'),
       handler(_req, res, params) {
-        const id = Number(params['id']);
-        if (!Number.isFinite(id)) {
-          jsonError(res, 'Invalid bird ID', 400);
-          return;
-        }
-        if (setCronJobEnabled(id, false)) {
-          broadcastSSE('invalidate', { resource: 'birds' });
-          json(res, { success: true });
-        } else {
-          jsonError(res, `Bird #${id} not found`, 404);
-        }
+        const bird = resolveBirdParam(params, res);
+        if (!bird) return;
+        setCronJobEnabled(bird.uid, false);
+        broadcastSSE('invalidate', { resource: 'birds' });
+        json(res, { success: true });
       },
     },
     {
@@ -341,11 +354,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'PATCH',
       pattern: pathToRegex('/api/birds/:id'),
       async handler(req, res, params) {
-        const id = Number(params['id']);
-        if (!Number.isFinite(id)) {
-          jsonError(res, 'Invalid bird ID', 400);
-          return;
-        }
+        const bird = resolveBirdParam(params, res);
+        if (!bird) return;
         let body: {
           schedule?: string;
           prompt?: string;
@@ -361,7 +371,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           jsonError(res, 'Invalid JSON body', 400);
           return;
         }
-        const updated = updateCronJob(id, {
+        const updated = updateCronJob(bird.uid, {
           schedule: body.schedule?.trim() || undefined,
           prompt: body.prompt?.trim() || undefined,
           name: body.prompt ? deriveBirdName(body.prompt) : undefined,
@@ -377,7 +387,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           broadcastSSE('invalidate', { resource: 'birds' });
           json(res, updated);
         } else {
-          jsonError(res, `Bird #${id} not found`, 404);
+          jsonError(res, `Bird ${bird.uid} not found`, 404);
         }
       },
     },
@@ -385,21 +395,13 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'DELETE',
       pattern: pathToRegex('/api/birds/:id'),
       handler(_req, res, params) {
-        const id = Number(params['id']);
-        if (!Number.isFinite(id)) {
-          jsonError(res, 'Invalid bird ID', 400);
-          return;
-        }
-        const cronJob = getCronJob(id);
-        if (!cronJob) {
-          jsonError(res, `Bird #${id} not found`, 404);
-          return;
-        }
-        if (cronJob.name.startsWith(SYSTEM_CRON_PREFIX)) {
+        const bird = resolveBirdParam(params, res);
+        if (!bird) return;
+        if (bird.name.startsWith(SYSTEM_CRON_PREFIX)) {
           jsonError(res, 'System birds cannot be deleted', 403);
           return;
         }
-        deleteCronJob(id);
+        deleteCronJob(bird.uid);
         broadcastSSE('invalidate', { resource: 'birds' });
         json(res, { success: true });
       },
@@ -408,32 +410,24 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'POST',
       pattern: pathToRegex('/api/birds/:id/fly'),
       handler(_req, res, params) {
-        const id = Number(params['id']);
-        if (!Number.isFinite(id)) {
-          jsonError(res, 'Invalid bird ID', 400);
-          return;
-        }
-        const cronJob = getCronJob(id);
-        if (!cronJob) {
-          jsonError(res, `Bird #${id} not found`, 404);
-          return;
-        }
-        const isSystem = cronJob.name.startsWith(SYSTEM_CRON_PREFIX);
+        const bird = resolveBirdParam(params, res);
+        if (!bird) return;
+        const isSystem = bird.name.startsWith(SYSTEM_CRON_PREFIX);
         const job = isSystem
           ? enqueue(
               'system_cron_run',
-              { cronJobId: cronJob.id, cronName: cronJob.name },
-              { maxAttempts: 3, timeout: 300, cronJobId: cronJob.id },
+              { cronJobUid: bird.uid, cronName: bird.name },
+              { maxAttempts: 3, timeout: 300, cronJobUid: bird.uid },
             )
           : enqueue(
               'cron_run',
               {
-                cronJobId: cronJob.id,
-                prompt: cronJob.prompt,
-                channelId: cronJob.target_channel_id,
-                agentId: cronJob.agent_id,
+                cronJobUid: bird.uid,
+                prompt: bird.prompt,
+                channelId: bird.target_channel_id,
+                agentId: bird.agent_id,
               },
-              { cronJobId: cronJob.id },
+              { cronJobUid: bird.uid },
             );
         json(res, { success: true, jobId: job.id });
       },
@@ -445,15 +439,14 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
         const status = url.searchParams.get('status') ?? undefined;
-        const birdIdParam = url.searchParams.get('birdId');
-        const birdId = birdIdParam ? Number(birdIdParam) : undefined;
+        const birdUid = url.searchParams.get('birdUid') ?? undefined;
         const system = parseSystemFlag(url);
         json(
           res,
           listFlights(
             page,
             perPage,
-            { status, birdId, system },
+            { status, birdUid, system },
             parseSortParam(url),
             parseSearchParam(url),
           ),
@@ -464,11 +457,8 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'GET',
       pattern: pathToRegex('/api/birds/:id/flights'),
       handler(req, res, params) {
-        const id = Number(params['id']);
-        if (!Number.isFinite(id)) {
-          jsonError(res, 'Invalid bird ID', 400);
-          return;
-        }
+        const bird = resolveBirdParam(params, res);
+        if (!bird) return;
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
         json(
@@ -476,7 +466,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           listFlights(
             page,
             perPage,
-            { birdId: id, system: true },
+            { birdUid: bird.uid, system: true },
             parseSortParam(url),
             parseSearchParam(url),
           ),
