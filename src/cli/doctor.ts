@@ -27,7 +27,7 @@ function checkCli(binary: string, versionArgs: string[]): CliStatus {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
-    const version = output.trim().split('\n')[0] ?? null;
+    const version = (output.trim().split('\n')[0] ?? '').replace(/\s*\(.*\)$/, '') || null;
     return { available: true, version };
   } catch {
     return { available: false, version: null };
