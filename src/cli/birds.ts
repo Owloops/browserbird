@@ -3,18 +3,20 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
+import { shortUid } from '../core/uid.ts';
 import { formatDuration, deriveBirdName, printTable, unknownSubcommand } from '../core/utils.ts';
 import {
   openDatabase,
   closeDatabase,
+  resolveByUid,
   listCronJobs,
   createCronJob,
-  getCronJob,
   updateCronJob,
   setCronJobEnabled,
   deleteCronJob,
   listFlights,
 } from '../db/index.ts';
+import type { CronJobRow } from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
 
 export const BIRDS_HELP = `
@@ -26,12 +28,12 @@ subcommands:
 
   list                         list all birds
   add <schedule> <prompt>      add a new bird
-  edit <id>                    edit a bird
-  remove <id>                  remove a bird
-  enable <id>                  enable a bird
-  disable <id>                 disable a bird
-  fly <id>                     trigger a bird manually
-  logs <id>                    show flight history for a bird
+  edit <uid>                   edit a bird
+  remove <uid>                 remove a bird
+  enable <uid>                 enable a bird
+  disable <uid>                disable a bird
+  fly <uid>                    trigger a bird manually
+  logs <uid>                   show flight history for a bird
 
 options:
 
@@ -49,6 +51,23 @@ function parseActiveHours(raw: string): { start: string; end: string } | null {
   const match = raw.match(/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
   if (!match) return null;
   return { start: match[1]!, end: match[2]! };
+}
+
+function resolveBird(uidPrefix: string): CronJobRow | undefined {
+  const result = resolveByUid<CronJobRow>('cron_jobs', uidPrefix);
+  if (!result) {
+    logger.error(`bird ${uidPrefix} not found`);
+    process.exitCode = 1;
+    return undefined;
+  }
+  if ('ambiguous' in result) {
+    logger.error(
+      `ambiguous bird ID "${uidPrefix}" matches ${result.count} birds, use a longer prefix`,
+    );
+    process.exitCode = 1;
+    return undefined;
+  }
+  return result.row;
 }
 
 export function handleBirds(argv: string[]): void {
@@ -84,7 +103,7 @@ export function handleBirds(argv: string[]): void {
         }
         console.log('');
         const rows = result.items.map((job) => [
-          String(job.id),
+          shortUid(job.uid),
           job.enabled ? 'enabled' : 'disabled',
           job.schedule,
           job.agent_id,
@@ -92,7 +111,7 @@ export function handleBirds(argv: string[]): void {
           job.last_status ?? '-',
           job.prompt.slice(0, 50),
         ]);
-        printTable(['id', 'status', 'schedule', 'agent', 'channel', 'last', 'prompt'], rows, [
+        printTable(['uid', 'status', 'schedule', 'agent', 'channel', 'last', 'prompt'], rows, [
           undefined,
           undefined,
           undefined,
@@ -137,19 +156,21 @@ export function handleBirds(argv: string[]): void {
           activeStart,
           activeEnd,
         );
-        logger.success(`bird #${job.id} created: "${schedule}"`);
+        logger.success(`bird ${shortUid(job.uid)} created: "${schedule}"`);
         break;
       }
 
       case 'edit': {
-        const id = Number(positionals[0]);
-        if (!Number.isFinite(id)) {
+        const uidPrefix = positionals[0];
+        if (!uidPrefix) {
           logger.error(
-            'usage: browserbird birds edit <id> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--timezone <tz>] [--active-hours <range>]',
+            'usage: browserbird birds edit <uid> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--timezone <tz>] [--active-hours <range>]',
           );
           process.exitCode = 1;
           return;
         }
+        const bird = resolveBird(uidPrefix);
+        if (!bird) return;
         const channel = values.channel as string | undefined;
         const agent = values.agent as string | undefined;
         const schedule = values.schedule as string | undefined;
@@ -185,7 +206,7 @@ export function handleBirds(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        const updated = updateCronJob(id, {
+        const updated = updateCronJob(bird.uid, {
           schedule,
           prompt,
           name: prompt ? deriveBirdName(prompt) : undefined,
@@ -196,25 +217,27 @@ export function handleBirds(argv: string[]): void {
           activeHoursEnd: editActiveEnd,
         });
         if (updated) {
-          logger.success(`bird #${id} updated`);
+          logger.success(`bird ${shortUid(bird.uid)} updated`);
         } else {
-          logger.error(`bird #${id} not found`);
+          logger.error(`bird ${shortUid(bird.uid)} not found`);
           process.exitCode = 1;
         }
         break;
       }
 
       case 'remove': {
-        const id = Number(positionals[0]);
-        if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird birds remove <id>');
+        const uidPrefix = positionals[0];
+        if (!uidPrefix) {
+          logger.error('usage: browserbird birds remove <uid>');
           process.exitCode = 1;
           return;
         }
-        if (deleteCronJob(id)) {
-          logger.success(`bird #${id} removed`);
+        const bird = resolveBird(uidPrefix);
+        if (!bird) return;
+        if (deleteCronJob(bird.uid)) {
+          logger.success(`bird ${shortUid(bird.uid)} removed`);
         } else {
-          logger.error(`bird #${id} not found`);
+          logger.error(`bird ${shortUid(bird.uid)} not found`);
           process.exitCode = 1;
         }
         break;
@@ -222,64 +245,64 @@ export function handleBirds(argv: string[]): void {
 
       case 'enable':
       case 'disable': {
-        const id = Number(positionals[0]);
-        if (!Number.isFinite(id)) {
-          logger.error(`usage: browserbird birds ${subcommand} <id>`);
+        const uidPrefix = positionals[0];
+        if (!uidPrefix) {
+          logger.error(`usage: browserbird birds ${subcommand} <uid>`);
           process.exitCode = 1;
           return;
         }
+        const bird = resolveBird(uidPrefix);
+        if (!bird) return;
         const enabled = subcommand === 'enable';
-        if (setCronJobEnabled(id, enabled)) {
-          logger.success(`bird #${id} ${enabled ? 'enabled' : 'disabled'}`);
+        if (setCronJobEnabled(bird.uid, enabled)) {
+          logger.success(`bird ${shortUid(bird.uid)} ${enabled ? 'enabled' : 'disabled'}`);
         } else {
-          logger.error(`bird #${id} not found`);
+          logger.error(`bird ${shortUid(bird.uid)} not found`);
           process.exitCode = 1;
         }
         break;
       }
 
       case 'fly': {
-        const id = Number(positionals[0]);
-        if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird birds fly <id>');
+        const uidPrefix = positionals[0];
+        if (!uidPrefix) {
+          logger.error('usage: browserbird birds fly <uid>');
           process.exitCode = 1;
           return;
         }
-        const cronJob = getCronJob(id);
-        if (!cronJob) {
-          logger.error(`bird #${id} not found`);
-          process.exitCode = 1;
-          return;
-        }
+        const cronJob = resolveBird(uidPrefix);
+        if (!cronJob) return;
         const enqueuedJob = enqueue(
           'cron_run',
           {
-            cronJobId: cronJob.id,
+            cronJobUid: cronJob.uid,
             prompt: cronJob.prompt,
             channelId: cronJob.target_channel_id,
             agentId: cronJob.agent_id,
           },
-          { cronJobId: cronJob.id },
+          { cronJobUid: cronJob.uid },
         );
-        logger.success(`enqueued job #${enqueuedJob.id} for bird #${id}`);
+        logger.success(`enqueued job #${enqueuedJob.id} for bird ${shortUid(cronJob.uid)}`);
         break;
       }
 
       case 'logs': {
-        const id = Number(positionals[0]);
-        if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird birds logs <id>');
+        const uidPrefix = positionals[0];
+        if (!uidPrefix) {
+          logger.error('usage: browserbird birds logs <uid>');
           process.exitCode = 1;
           return;
         }
+        const bird = resolveBird(uidPrefix);
+        if (!bird) return;
         const perPage = values.limit != null ? Number(values.limit) : 10;
         if (!Number.isFinite(perPage) || perPage < 1) {
           logger.error('--limit must be a positive number');
           process.exitCode = 1;
           return;
         }
-        const result = listFlights(1, perPage, { birdId: id });
-        console.log(`flight history for bird #${id} (${result.totalItems} total):`);
+        const result = listFlights(1, perPage, { birdUid: bird.uid });
+        console.log(`flight history for bird ${shortUid(bird.uid)} (${result.totalItems} total):`);
         if (result.items.length === 0) {
           console.log('\n  no flights recorded');
           return;
@@ -291,7 +314,7 @@ export function handleBirds(argv: string[]): void {
             : null;
           const duration = durationMs == null ? '-' : formatDuration(durationMs);
           return [
-            String(flight.id),
+            shortUid(flight.uid),
             flight.status,
             duration,
             flight.started_at.slice(0, 19),

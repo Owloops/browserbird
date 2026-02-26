@@ -3,15 +3,17 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
+import { shortUid } from '../core/uid.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
 import {
   openDatabase,
   closeDatabase,
+  resolveByUid,
   listSessions,
-  getSession,
   getSessionMessages,
   getSessionTokenStats,
 } from '../db/index.ts';
+import type { SessionRow } from '../db/index.ts';
 
 export const SESSIONS_HELP = `
 usage: browserbird sessions <subcommand> [options]
@@ -21,7 +23,7 @@ manage claude sessions.
 subcommands:
 
   list          list recent sessions
-  logs <id>     show session detail and message history
+  logs <uid>    show session detail and message history
 
 options:
 
@@ -45,13 +47,13 @@ export function handleSessions(argv: string[]): void {
       }
       console.log('');
       const rows = items.map((s) => [
-        String(s.id),
+        shortUid(s.uid),
         s.channel_id,
         s.agent_id,
         String(s.message_count),
         s.last_active.slice(0, 19),
       ]);
-      printTable(['id', 'channel', 'agent', 'messages', 'last active'], rows);
+      printTable(['uid', 'channel', 'agent', 'messages', 'last active'], rows);
     } finally {
       closeDatabase();
     }
@@ -70,9 +72,9 @@ export function handleSessions(argv: string[]): void {
     strict: false,
   });
 
-  const id = Number(positionals[0]);
-  if (!Number.isFinite(id)) {
-    logger.error('usage: browserbird sessions logs <id>');
+  const uidPrefix = positionals[0];
+  if (!uidPrefix) {
+    logger.error('usage: browserbird sessions logs <uid>');
     process.exitCode = 1;
     return;
   }
@@ -80,17 +82,26 @@ export function handleSessions(argv: string[]): void {
   openDatabase(dbPath);
 
   try {
-    const session = getSession(id);
-    if (!session) {
-      logger.error(`session #${id} not found`);
+    const result = resolveByUid<SessionRow>('sessions', uidPrefix);
+    if (!result) {
+      logger.error(`session ${uidPrefix} not found`);
       process.exitCode = 1;
       return;
     }
+    if ('ambiguous' in result) {
+      logger.error(
+        `ambiguous session ID "${uidPrefix}" matches ${result.count} sessions, use a longer prefix`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+    const session = result.row;
 
     const tokenStats = getSessionTokenStats(session.channel_id, session.thread_id);
 
-    console.log(`session #${id}`);
+    console.log(`session ${shortUid(session.uid)}`);
     console.log('------------------');
+    console.log(`uid:          ${session.uid}`);
     console.log(`channel:      ${session.channel_id}`);
     console.log(`thread:       ${session.thread_id ?? '(none)'}`);
     console.log(`agent:        ${session.agent_id}`);
@@ -101,17 +112,19 @@ export function handleSessions(argv: string[]): void {
     console.log(`tokens:       ${tokenStats.totalTokensIn} in / ${tokenStats.totalTokensOut} out`);
     console.log('');
 
-    const result = getSessionMessages(session.channel_id, session.thread_id, 1, 50);
+    const msgResult = getSessionMessages(session.channel_id, session.thread_id, 1, 50);
 
-    if (result.items.length === 0) {
+    if (msgResult.items.length === 0) {
       console.log('no messages recorded.');
       return;
     }
 
-    console.log(`messages (${result.totalItems} total, showing page 1 of ${result.totalPages}):`);
+    console.log(
+      `messages (${msgResult.totalItems} total, showing page 1 of ${msgResult.totalPages}):`,
+    );
     console.log('------------------');
 
-    for (const msg of result.items) {
+    for (const msg of msgResult.items) {
       const dir = msg.direction === 'in' ? '->' : '<-';
       const tokens =
         msg.tokens_in != null || msg.tokens_out != null
