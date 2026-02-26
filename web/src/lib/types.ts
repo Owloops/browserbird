@@ -136,6 +136,14 @@ export interface CronJobRow {
   created_at: string;
 }
 
+export interface UpcomingBird {
+  uid: string;
+  name: string;
+  schedule: string;
+  agent_id: string;
+  next_run: string;
+}
+
 export interface CreateCronRequest {
   schedule: string;
   prompt: string;

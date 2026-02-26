@@ -30,6 +30,17 @@ export function timeStamp(): string {
   return new Date().toLocaleTimeString();
 }
 
+export function formatCountdown(isoDate: string): string {
+  const ms = new Date(isoDate).getTime() - Date.now();
+  if (ms <= 0) return 'now';
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainMin = minutes % 60;
+  if (hours < 24) return remainMin > 0 ? `${hours}h ${remainMin}m` : `${hours}h`;
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+}
+
 export function flightDuration(startedAt: string, finishedAt: string | null): string {
   if (!finishedAt) return '-';
   const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();

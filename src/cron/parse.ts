@@ -88,6 +88,27 @@ export function isWithinActiveHours(
   return isWithinTimeRange(start ?? '00:00', end ?? '24:00', date, timezone || 'UTC');
 }
 
+/**
+ * Returns the next Date (after `after`) that matches the cron schedule,
+ * or null if no match is found within the search window (default: 366 days).
+ */
+export function nextCronMatch(
+  schedule: CronSchedule,
+  after: Date,
+  timezone?: string,
+  maxMinutes = 527_040,
+): Date | null {
+  const candidate = new Date(after.getTime());
+  candidate.setSeconds(0, 0);
+  candidate.setTime(candidate.getTime() + 60_000);
+
+  for (let i = 0; i < maxMinutes; i++) {
+    if (matchesCron(schedule, candidate, timezone)) return candidate;
+    candidate.setTime(candidate.getTime() + 60_000);
+  }
+  return null;
+}
+
 /** Returns true if the given Date matches the cron schedule in the specified timezone. */
 export function matchesCron(schedule: CronSchedule, date: Date, timezone?: string): boolean {
   const tz = timezone || 'UTC';
