@@ -56,10 +56,41 @@ export async function api<T>(
   return res.json() as Promise<T>;
 }
 
-export async function checkAuthRequired(): Promise<boolean> {
+export async function checkAuth(): Promise<{ setupRequired: boolean; authRequired: boolean }> {
   const res = await fetch(`${API_BASE}/api/auth/check`);
-  const data = (await res.json()) as { authRequired: boolean };
-  return data.authRequired;
+  return res.json() as Promise<{ setupRequired: boolean; authRequired: boolean }>;
+}
+
+export async function login(
+  email: string,
+  password: string,
+): Promise<{ token: string; user: { id: number; email: string } }> {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({ error: 'Login failed' }))) as { error?: string };
+    throw new Error(err.error ?? 'Login failed');
+  }
+  return res.json() as Promise<{ token: string; user: { id: number; email: string } }>;
+}
+
+export async function setup(
+  email: string,
+  password: string,
+): Promise<{ token: string; user: { id: number; email: string } }> {
+  const res = await fetch(`${API_BASE}/api/auth/setup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({ error: 'Setup failed' }))) as { error?: string };
+    throw new Error(err.error ?? 'Setup failed');
+  }
+  return res.json() as Promise<{ token: string; user: { id: number; email: string } }>;
 }
 
 export async function verifyToken(): Promise<boolean> {

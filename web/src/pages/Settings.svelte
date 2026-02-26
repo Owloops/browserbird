@@ -180,10 +180,6 @@
           <span class="field-value mono">{config.web.port}</span>
         </div>
         <div class="field">
-          <span class="field-label">Auth</span>
-          <span class="field-value">{config.web.authEnabled ? 'Enabled' : 'Disabled'}</span>
-        </div>
-        <div class="field">
           <span class="field-label">Agent CLI</span>
           <span class="field-value">
             {#if doctorLoading}

@@ -3,12 +3,14 @@
   import {
     getPageFromHash,
     getHashParams,
-    checkAuthRequired,
+    checkAuth,
     verifyToken,
     getAuthToken,
     setAuthToken,
     clearAuthToken,
     setUnauthorizedCallback,
+    login,
+    setup,
     api,
   } from './lib/api.ts';
   import { connectSSE, disconnectSSE, isSSEConnected } from './lib/sse.ts';
@@ -33,17 +35,22 @@
     settings: 'Settings',
   };
 
+  type AuthState = 'checking' | 'setup' | 'login' | 'authenticated';
+
   let currentPage = $state(getPageFromHash());
-  let authenticated = $state(false);
-  let authChecking = $state(true);
+  let authState: AuthState = $state('checking');
   let status: StatusResponse | null = $state(null);
   let connectionState: 'connected' | 'disconnected' | 'connecting' = $state('connecting');
   let sidebarCollapsed = $state(localStorage.getItem('sidebar-collapsed') === 'true');
 
-  let authEnabled = $state(false);
   let mobileNavOpen = $state(false);
-  let loginToken = $state('');
+  let loginEmail = $state('');
+  let loginPassword = $state('');
   let loginError = $state('');
+  let setupEmail = $state('');
+  let setupPassword = $state('');
+  let setupConfirmPassword = $state('');
+  let setupError = $state('');
 
   const pageTitle = $derived(PAGE_TITLES[currentPage] ?? 'Status');
 
@@ -53,7 +60,7 @@
   }
 
   setUnauthorizedCallback(() => {
-    authenticated = false;
+    authState = 'login';
   });
 
   $effect(() => {
@@ -72,19 +79,22 @@
   });
 
   $effect(() => {
-    void checkAuthRequired().then(async (required) => {
-      authEnabled = required;
-      if (!required) {
-        authenticated = true;
+    void checkAuth().then(async (result) => {
+      if (result.setupRequired) {
+        authState = 'setup';
+      } else if (!result.authRequired) {
+        authState = 'authenticated';
       } else if (getAuthToken()) {
-        authenticated = await verifyToken();
+        const valid = await verifyToken();
+        authState = valid ? 'authenticated' : 'login';
+      } else {
+        authState = 'login';
       }
-      authChecking = false;
     });
   });
 
   $effect(() => {
-    if (!authenticated) return;
+    if (authState !== 'authenticated') return;
 
     connectSSE(
       (data) => {
@@ -126,23 +136,53 @@
 
   function handleSignOut(): void {
     clearAuthToken();
-    authenticated = false;
+    authState = 'login';
   }
 
   async function handleLogin(e: SubmitEvent): Promise<void> {
     e.preventDefault();
-    const token = loginToken.trim();
-    if (!token) return;
+    const email = loginEmail.trim();
+    const password = loginPassword;
+    if (!email || !password) return;
 
-    setAuthToken(token);
     try {
-      await api<{ valid: boolean }>('/api/auth/verify', { method: 'POST' });
+      const result = await login(email, password);
+      setAuthToken(result.token);
       loginError = '';
-      loginToken = '';
-      authenticated = true;
-    } catch {
-      clearAuthToken();
-      loginError = 'Invalid token';
+      loginEmail = '';
+      loginPassword = '';
+      authState = 'authenticated';
+    } catch (err) {
+      loginError = (err as Error).message;
+    }
+  }
+
+  async function handleSetup(e: SubmitEvent): Promise<void> {
+    e.preventDefault();
+    const email = setupEmail.trim();
+    const password = setupPassword;
+    const confirm = setupConfirmPassword;
+    if (!email || !password) return;
+
+    if (password !== confirm) {
+      setupError = 'Passwords do not match';
+      return;
+    }
+    if (password.length < 8) {
+      setupError = 'Password must be at least 8 characters';
+      return;
+    }
+
+    try {
+      const result = await setup(email, password);
+      setAuthToken(result.token);
+      setupError = '';
+      setupEmail = '';
+      setupPassword = '';
+      setupConfirmPassword = '';
+      authState = 'authenticated';
+    } catch (err) {
+      setupError = (err as Error).message;
     }
   }
 </script>
@@ -150,9 +190,54 @@
 <Toast />
 <ConfirmDialog />
 
-{#if authChecking}
+{#if authState === 'checking'}
   <div class="loading">Loading...</div>
-{:else if !authenticated}
+{:else if authState === 'setup'}
+  <div class="login-overlay">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="/logo.svg" alt="BrowserBird" class="login-logo" />
+      </div>
+      <h2 class="login-heading">Create your account</h2>
+      <form onsubmit={handleSetup}>
+        <label class="form-label">
+          Email
+          <input
+            type="email"
+            class="form-input"
+            placeholder="you@example.com"
+            autocomplete="email"
+            bind:value={setupEmail}
+          />
+        </label>
+        <label class="form-label">
+          Password
+          <input
+            type="password"
+            class="form-input"
+            placeholder="At least 8 characters"
+            autocomplete="new-password"
+            bind:value={setupPassword}
+          />
+        </label>
+        <label class="form-label">
+          Confirm Password
+          <input
+            type="password"
+            class="form-input"
+            placeholder="Repeat password"
+            autocomplete="new-password"
+            bind:value={setupConfirmPassword}
+          />
+        </label>
+        {#if setupError}
+          <div class="login-error">{setupError}</div>
+        {/if}
+        <button type="submit" class="btn btn-primary login-submit">Create Account</button>
+      </form>
+    </div>
+  </div>
+{:else if authState === 'login'}
   <div class="login-overlay">
     <div class="login-card">
       <div class="login-brand">
@@ -160,19 +245,29 @@
       </div>
       <form onsubmit={handleLogin}>
         <label class="form-label">
-          Auth Token
+          Email
+          <input
+            type="email"
+            class="form-input"
+            placeholder="you@example.com"
+            autocomplete="email"
+            bind:value={loginEmail}
+          />
+        </label>
+        <label class="form-label">
+          Password
           <input
             type="password"
             class="form-input"
-            placeholder="Enter auth token"
+            placeholder="Enter password"
             autocomplete="current-password"
-            bind:value={loginToken}
+            bind:value={loginPassword}
           />
         </label>
         {#if loginError}
           <div class="login-error">{loginError}</div>
         {/if}
-        <button type="submit" class="btn btn-primary login-submit">Authenticate</button>
+        <button type="submit" class="btn btn-primary login-submit">Sign In</button>
       </form>
     </div>
   </div>
@@ -182,7 +277,6 @@
       {currentPage}
       collapsed={sidebarCollapsed}
       mobileOpen={mobileNavOpen}
-      {authEnabled}
       ontoggle={toggleSidebar}
       onmobileclose={() => {
         mobileNavOpen = false;
@@ -326,6 +420,14 @@
   .login-brand :global(.login-logo) {
     height: 44px;
     width: auto;
+  }
+
+  .login-heading {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin-bottom: var(--space-4);
   }
 
   .login-error {

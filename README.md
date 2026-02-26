@@ -42,7 +42,7 @@ Run on a headless server with everything pre-wired: virtual display, VNC, noVNC,
 
 ```bash
 cp .env.example .env
-# Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, BROWSERBIRD_AUTH_TOKEN, and agent auth (see below)
+# Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, and agent auth (see below)
 
 docker compose -f oci/compose.yml up -d
 # or: podman-compose -f oci/compose.yml up -d
@@ -136,7 +136,6 @@ cp browserbird.example.json browserbird.json
     "enabled": true,
     "host": "127.0.0.1",
     "port": 18800,
-    "authToken": "env:BROWSERBIRD_AUTH_TOKEN",
     "corsOrigin": ""
   }
 }
@@ -236,8 +235,9 @@ Each bird also supports per-bird `active_hours_start` and `active_hours_end` (HH
 | `enabled`    | `true`        | Enable the web dashboard and API                               |
 | `host`       | `"127.0.0.1"` | Bind address (`0.0.0.0` for Docker/remote)                     |
 | `port`       | `18800`       | Web UI and REST API port                                       |
-| `authToken`  | none          | Bearer token for API auth (optional but recommended)           |
 | `corsOrigin` | none          | Allowed origin for CORS headers (for cross-origin SPA hosting) |
+
+Authentication is handled via the web UI. On first visit, you create an email + password account. All subsequent visits require login.
 
 </details>
 
@@ -249,7 +249,6 @@ Any string value in `browserbird.json` can reference an environment variable wit
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                                                                |
 | `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
-| `BROWSERBIRD_AUTH_TOKEN`      | Web UI auth token                                                                                                   |
 | `BROWSER_MODE`                | `persistent` (default) or `isolated`. Passed to the VM container to control Playwright MCP context mode             |
 | `ANTHROPIC_API_KEY`           | Anthropic API key. Used by both claude and opencode providers. Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
 | `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. See note below |

@@ -63,7 +63,7 @@ export interface ConfigResponse {
     novncPort: number;
   };
   database: { retentionDays: number };
-  web: { port: number; authEnabled: boolean };
+  web: { port: number };
 }
 
 export interface SessionRow {
