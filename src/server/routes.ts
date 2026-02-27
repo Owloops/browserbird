@@ -41,6 +41,8 @@ import {
   getUserCount,
   getUserByEmail,
   createUser,
+  getSetting,
+  setSetting,
 } from '../db/index.ts';
 import {
   hashPassword,
@@ -53,8 +55,16 @@ import { enqueue } from '../jobs.ts';
 import { deriveBirdName } from '../core/utils.ts';
 import { checkDoctor } from '../cli/index.ts';
 import { parseCron, nextCronMatch } from '../cron/parse.ts';
+import { DEFAULTS, loadRawConfig, saveConfig, saveEnvFile } from '../config.ts';
+import { resolve } from 'node:path';
 
-export function buildStatusPayload(config: Config, startedAt: number, deps: WebServerDeps): object {
+export function buildStatusPayload(
+  getConfig: () => Config,
+  startedAt: number,
+  getDeps: () => WebServerDeps,
+): object {
+  const config = getConfig();
+  const deps = getDeps();
   const jobs = getJobStats();
   const flights = getFlightStats();
   const messages = getMessageStats();
@@ -74,6 +84,11 @@ export function buildStatusPayload(config: Config, startedAt: number, deps: WebS
     browser: { enabled: config.browser.enabled, connected: health.browser.connected },
     slack: { connected: deps.slackConnected() },
   };
+}
+
+export interface RouteOptions {
+  configPath: string;
+  onLaunch: () => Promise<void>;
 }
 
 function resolveBirdParam(
@@ -101,7 +116,12 @@ function resolveBirdParam(
   return result.row;
 }
 
-export function buildRoutes(config: Config, startedAt: number, deps: WebServerDeps): Route[] {
+export function buildRoutes(
+  getConfig: () => Config,
+  startedAt: number,
+  getDeps: () => WebServerDeps,
+  options: RouteOptions,
+): Route[] {
   return [
     {
       method: 'GET',
@@ -109,7 +129,11 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       skipAuth: true,
       handler(_req, res) {
         const count = getUserCount();
-        json(res, { setupRequired: count === 0, authRequired: count > 0 });
+        json(res, {
+          setupRequired: count === 0,
+          authRequired: count > 0,
+          onboardingRequired: count > 0 && getSetting('onboarding_completed') !== 'true',
+        });
       },
     },
     {
@@ -194,13 +218,14 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
       method: 'GET',
       pattern: pathToRegex('/api/status'),
       handler(_req, res) {
-        json(res, buildStatusPayload(config, startedAt, deps));
+        json(res, buildStatusPayload(getConfig, startedAt, getDeps));
       },
     },
     {
       method: 'GET',
       pattern: pathToRegex('/api/config'),
       handler(_req, res) {
+        const config = getConfig();
         json(res, {
           timezone: config.timezone,
           agents: config.agents.map((a: AgentConfig) => ({
@@ -457,7 +482,7 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           body.prompt.trim(),
           body.channel?.trim() || undefined,
           body.agent?.trim() || undefined,
-          body.timezone?.trim() || config.timezone,
+          body.timezone?.trim() || getConfig().timezone,
           body.activeHoursStart?.trim() || undefined,
           body.activeHoursEnd?.trim() || undefined,
         );
@@ -607,6 +632,211 @@ export function buildRoutes(config: Config, startedAt: number, deps: WebServerDe
           res,
           getRecentLogs(page, perPage, level, source, parseSortParam(url), parseSearchParam(url)),
         );
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/onboarding/defaults'),
+      handler(_req, res) {
+        const doctor = checkDoctor();
+        const defaultAgent = DEFAULTS.agents[0]!;
+        json(res, {
+          agent: {
+            name: defaultAgent.name,
+            provider: defaultAgent.provider,
+            model: defaultAgent.model,
+            systemPrompt: defaultAgent.systemPrompt,
+            maxTurns: defaultAgent.maxTurns,
+            channels: defaultAgent.channels,
+          },
+          browser: {
+            enabled: DEFAULTS.browser.enabled,
+            mode: DEFAULTS.browser.mode,
+          },
+          doctor,
+        });
+      },
+    },
+    {
+      method: 'POST',
+      pattern: pathToRegex('/api/onboarding/slack'),
+      async handler(req, res) {
+        let body: { botToken?: string; appToken?: string };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        if (!body.botToken || typeof body.botToken !== 'string' || !body.botToken.trim()) {
+          jsonError(res, '"botToken" is required', 400);
+          return;
+        }
+        if (!body.appToken || typeof body.appToken !== 'string' || !body.appToken.trim()) {
+          jsonError(res, '"appToken" is required', 400);
+          return;
+        }
+
+        const botToken = body.botToken.trim();
+        const appToken = body.appToken.trim();
+
+        const { WebClient } = await import('@slack/web-api');
+
+        let authResult: Awaited<ReturnType<InstanceType<typeof WebClient>['auth']['test']>>;
+        try {
+          const client = new WebClient(botToken);
+          authResult = await client.auth.test();
+        } catch {
+          jsonError(res, 'Invalid bot token. Check that you copied the full xoxb- token.', 400);
+          return;
+        }
+
+        try {
+          const appClient = new WebClient(appToken);
+          await appClient.apiCall('apps.connections.open');
+        } catch {
+          jsonError(
+            res,
+            'Invalid app token. Check that you created an app-level token with the connections:write scope.',
+            400,
+          );
+          return;
+        }
+
+        try {
+          const envPath = resolve('.env');
+          saveEnvFile(envPath, {
+            SLACK_BOT_TOKEN: botToken,
+            SLACK_APP_TOKEN: appToken,
+          });
+
+          const configPath = options.configPath;
+          const raw = loadRawConfig(configPath);
+          const slack = (raw['slack'] ?? {}) as Record<string, unknown>;
+          slack['botToken'] = 'env:SLACK_BOT_TOKEN';
+          slack['appToken'] = 'env:SLACK_APP_TOKEN';
+          raw['slack'] = slack;
+          saveConfig(configPath, raw);
+
+          json(res, {
+            valid: true,
+            team: authResult.team ?? '',
+            botUser: authResult.user ?? '',
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          jsonError(res, `Failed to save Slack config: ${msg}`, 500);
+        }
+      },
+    },
+    {
+      method: 'POST',
+      pattern: pathToRegex('/api/onboarding/agent'),
+      async handler(req, res) {
+        let body: {
+          name?: string;
+          provider?: string;
+          model?: string;
+          systemPrompt?: string;
+          maxTurns?: number;
+          channels?: string[];
+        };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        if (!body.name || typeof body.name !== 'string') {
+          jsonError(res, '"name" is required', 400);
+          return;
+        }
+        if (!body.provider || typeof body.provider !== 'string') {
+          jsonError(res, '"provider" is required', 400);
+          return;
+        }
+        if (!body.model || typeof body.model !== 'string') {
+          jsonError(res, '"model" is required', 400);
+          return;
+        }
+
+        const configPath = options.configPath;
+        const raw = loadRawConfig(configPath);
+        raw['agents'] = [
+          {
+            id: 'default',
+            name: body.name.trim(),
+            provider: body.provider.trim(),
+            model: body.model.trim(),
+            maxTurns: body.maxTurns ?? DEFAULTS.agents[0]!.maxTurns,
+            systemPrompt: body.systemPrompt?.trim() ?? DEFAULTS.agents[0]!.systemPrompt,
+            channels: body.channels ?? ['*'],
+          },
+        ];
+        saveConfig(configPath, raw);
+        json(res, { agents: raw['agents'] });
+      },
+    },
+    {
+      method: 'POST',
+      pattern: pathToRegex('/api/onboarding/auth'),
+      async handler(req, res) {
+        let body: { provider?: string; apiKey?: string; envVar?: string };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        if (!body.provider || typeof body.provider !== 'string') {
+          jsonError(res, '"provider" is required', 400);
+          return;
+        }
+        if (!body.apiKey || typeof body.apiKey !== 'string' || !body.apiKey.trim()) {
+          jsonError(res, '"apiKey" is required', 400);
+          return;
+        }
+
+        const envVar = body.envVar?.trim() || 'ANTHROPIC_API_KEY';
+        const envPath = resolve('.env');
+        saveEnvFile(envPath, { [envVar]: body.apiKey.trim() });
+        json(res, { valid: true });
+      },
+    },
+    {
+      method: 'POST',
+      pattern: pathToRegex('/api/onboarding/browser'),
+      async handler(req, res) {
+        let body: { enabled?: boolean; mode?: string };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+
+        const configPath = options.configPath;
+        const raw = loadRawConfig(configPath);
+        const browser = (raw['browser'] ?? {}) as Record<string, unknown>;
+        if (body.enabled !== undefined) browser['enabled'] = body.enabled;
+        if (body.mode) browser['mode'] = body.mode;
+        raw['browser'] = browser;
+        saveConfig(configPath, raw);
+        json(res, { browser: raw['browser'] });
+      },
+    },
+    {
+      method: 'POST',
+      pattern: pathToRegex('/api/onboarding/complete'),
+      async handler(_req, res) {
+        try {
+          await options.onLaunch();
+          setSetting('onboarding_completed', 'true');
+          json(res, { success: true });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          jsonError(res, `Launch failed: ${msg}`, 500);
+        }
       },
     },
   ];

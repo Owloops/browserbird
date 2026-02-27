@@ -8,12 +8,13 @@ import { insertLog } from '../db/index.ts';
 import type { WebServerDeps, WebServerHandle } from './http.ts';
 import { checkAuth, jsonError } from './http.ts';
 import { buildRoutes } from './routes.ts';
+import type { RouteOptions } from './routes.ts';
 import { handleSSE, closeAllSSE } from './sse.ts';
 import { serveStatic } from './static.ts';
 import { handleVncUpgrade } from './vnc-proxy.ts';
 
-function setCorsHeaders(config: Config, res: ServerResponse): void {
-  const origin = config.web.corsOrigin;
+function setCorsHeaders(getConfig: () => Config, res: ServerResponse): void {
+  const origin = getConfig().web.corsOrigin;
   if (!origin) return;
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -22,12 +23,13 @@ function setCorsHeaders(config: Config, res: ServerResponse): void {
 }
 
 export function createWebServer(
-  config: Config,
+  getConfig: () => Config,
   signal: AbortSignal,
-  deps: WebServerDeps,
+  getDeps: () => WebServerDeps,
+  options: RouteOptions,
 ): WebServerHandle {
   const startedAt = Date.now();
-  const routes = buildRoutes(config, startedAt, deps);
+  const routes = buildRoutes(getConfig, startedAt, getDeps, options);
   let server: Server | null = null;
 
   const requestHandler = async (req: IncomingMessage, res: ServerResponse) => {
@@ -37,7 +39,7 @@ export function createWebServer(
     const qIndex = urlPath.indexOf('?');
     const pathOnly = qIndex !== -1 ? urlPath.slice(0, qIndex) : urlPath;
 
-    setCorsHeaders(config, res);
+    setCorsHeaders(getConfig, res);
 
     if (method === 'OPTIONS') {
       res.writeHead(204);
@@ -46,7 +48,7 @@ export function createWebServer(
     }
 
     if (method === 'GET' && pathOnly === '/api/events') {
-      handleSSE(config, startedAt, deps, req, res);
+      handleSSE(getConfig, startedAt, getDeps, req, res);
       return;
     }
 
@@ -95,7 +97,7 @@ export function createWebServer(
           const url = req.url ?? '/';
           const pathOnly = url.indexOf('?') !== -1 ? url.slice(0, url.indexOf('?')) : url;
           if (pathOnly === '/vnc') {
-            handleVncUpgrade(config, req, socket, head);
+            handleVncUpgrade(getConfig, req, socket, head);
           } else {
             socket.destroy();
           }
@@ -105,6 +107,7 @@ export function createWebServer(
           reject(err);
         });
 
+        const config = getConfig();
         server.listen(config.web.port, config.web.host, () => {
           logger.info(`web server listening on http://${config.web.host}:${config.web.port}`);
           resolve();

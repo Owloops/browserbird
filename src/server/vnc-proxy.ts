@@ -22,11 +22,12 @@ function checkUpgradeAuth(req: IncomingMessage): boolean {
 }
 
 export function handleVncUpgrade(
-  config: Config,
+  getConfig: () => Config,
   req: IncomingMessage,
   socket: Duplex,
   head: Buffer,
 ): void {
+  const config = getConfig();
   if (!config.browser.enabled) {
     destroyWithStatus(socket, 404, 'Not Found');
     return;

@@ -9,9 +9,9 @@ import { buildStatusPayload } from './routes.ts';
 const sseConnections = new Set<ServerResponse>();
 
 export function handleSSE(
-  config: Config,
+  getConfig: () => Config,
   startedAt: number,
-  deps: WebServerDeps,
+  getDeps: () => WebServerDeps,
   req: IncomingMessage,
   res: ServerResponse,
 ): void {
@@ -27,7 +27,7 @@ export function handleSSE(
   sseConnections.add(res);
 
   const send = () => {
-    const data = JSON.stringify(buildStatusPayload(config, startedAt, deps));
+    const data = JSON.stringify(buildStatusPayload(getConfig, startedAt, getDeps));
     res.write(`event: status\ndata: ${data}\n\n`);
   };
 
