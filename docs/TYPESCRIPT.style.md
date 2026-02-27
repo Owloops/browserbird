@@ -2,7 +2,7 @@
 
 Based on [Google's TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html), adapted for the BrowserBird project.
 
-**Runtime constraint:** This project uses `erasableSyntaxOnly: true` for native TypeScript execution on Node.js 24+. Only syntax that can be erased (stripped) is allowed — no enums, namespaces, parameter properties, or decorators.
+**Runtime constraint:** This project uses `erasableSyntaxOnly: true` for native TypeScript execution on Node.js 22.21+. Only syntax that can be erased (stripped) is allowed — no enums, namespaces, parameter properties, or decorators.
 
 ## Table of Contents
 

@@ -41,7 +41,7 @@ npm install -g @owloops/browserbird
 browserbird
 ```
 
-Requires Node.js 24+ and at least one agent CLI installed ([claude](https://docs.anthropic.com/en/docs/claude-code/overview) or [opencode](https://github.com/anomalyco/opencode)). Open `http://localhost:18800` to begin onboarding.
+Requires Node.js 22.21+ and at least one agent CLI installed ([claude](https://docs.anthropic.com/en/docs/claude-code/overview) or [opencode](https://github.com/anomalyco/opencode)). Open `http://localhost:18800` to begin onboarding.
 
 ## Slack
 
