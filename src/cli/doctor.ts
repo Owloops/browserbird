@@ -2,9 +2,10 @@
 
 import { execFileSync } from 'node:child_process';
 import { logger } from '../core/logger.ts';
+import { c } from './style.ts';
 
 export const DOCTOR_HELP = `
-usage: browserbird doctor
+${c('cyan', 'usage:')} browserbird doctor
 
 check system dependencies (agent clis, node.js).
 `.trim();
@@ -44,8 +45,8 @@ export function checkDoctor(): DoctorResult {
 
 export function handleDoctor(): void {
   const result = checkDoctor();
-  console.log('doctor');
-  console.log('------');
+  console.log(c('cyan', 'doctor'));
+  console.log(c('dim', '------'));
   if (result.claude.available) {
     logger.success(`claude cli: ${result.claude.version}`);
   } else {

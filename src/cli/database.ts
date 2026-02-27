@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
+import { c } from './style.ts';
 import {
   openDatabase,
   closeDatabase,
@@ -17,30 +18,30 @@ import {
 } from '../db/index.ts';
 
 export const DATABASE_HELP = `
-usage: browserbird database <subcommand> [options]
+${c('cyan', 'usage:')} browserbird database <subcommand> [options]
 
 database maintenance and inspection.
 
-subcommands:
+${c('dim', 'subcommands:')}
 
-  logs             show recent log entries (default: error level)
-  jobs             list raw job queue entries
-  jobs stats       show job queue statistics
-  jobs retry <id>  retry a failed job (or --all-failed)
-  jobs delete <id> delete a job
-  jobs clear       clear completed or failed jobs
+  ${c('cyan', 'logs')}             show recent log entries (default: error level)
+  ${c('cyan', 'jobs')}             list raw job queue entries
+  ${c('cyan', 'jobs stats')}       show job queue statistics
+  ${c('cyan', 'jobs retry')} <id>  retry a failed job (or --all-failed)
+  ${c('cyan', 'jobs delete')} <id> delete a job
+  ${c('cyan', 'jobs clear')}       clear completed or failed jobs
 
-options:
+${c('dim', 'options:')}
 
-  --level <lvl>    filter by level: error, warn, info (with logs, default: error)
-  --limit <n>      number of entries to show (with logs, default: 20)
-  --status <s>     filter by status: pending, running, completed, failed (with jobs)
-  --name <s>       filter by job name (with jobs)
-  --all-failed     retry all failed jobs (with jobs retry)
-  --completed      clear completed jobs (with jobs clear)
-  --failed         clear failed jobs (with jobs clear)
-  --config <path>  config file path
-  -h, --help       show this help
+  ${c('yellow', '--level')} <lvl>    filter by level: error, warn, info (with logs, default: error)
+  ${c('yellow', '--limit')} <n>      number of entries to show (with logs, default: 20)
+  ${c('yellow', '--status')} <s>     filter by status: pending, running, completed, failed (with jobs)
+  ${c('yellow', '--name')} <s>       filter by job name (with jobs)
+  ${c('yellow', '--all-failed')}     retry all failed jobs (with jobs retry)
+  ${c('yellow', '--completed')}      clear completed jobs (with jobs clear)
+  ${c('yellow', '--failed')}         clear failed jobs (with jobs clear)
+  ${c('yellow', '--config')} <path>  config file path
+  ${c('yellow', '-h, --help')}       show this help
 `.trim();
 
 export function handleDatabase(argv: string[]): void {

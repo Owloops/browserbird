@@ -52,6 +52,13 @@ function parseHHMM(s: string): number {
   return h * 60 + m;
 }
 
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*m/g;
+
+function visibleLength(s: string): number {
+  return s.replace(ANSI_RE, '').length;
+}
+
 /** Print a formatted table with auto-calculated column widths to stdout. */
 export function printTable(
   headers: string[],
@@ -62,7 +69,7 @@ export function printTable(
 
   for (const row of rows) {
     for (let i = 0; i < row.length; i++) {
-      const cellLen = (row[i] ?? '').length;
+      const cellLen = visibleLength(row[i] ?? '');
       const maxW = maxWidths?.[i];
       const capped = maxW != null ? Math.min(cellLen, maxW) : cellLen;
       widths[i] = Math.max(widths[i] ?? 0, capped);
@@ -70,8 +77,10 @@ export function printTable(
   }
 
   function pad(s: string, width: number, max?: number): string {
-    const truncated = max != null && s.length > max ? s.slice(0, max - 3) + '...' : s;
-    return truncated.padEnd(width);
+    const vis = visibleLength(s);
+    const truncated = max != null && vis > max ? s.slice(0, max - 3) + '...' : s;
+    const padLen = width - visibleLength(truncated);
+    return padLen > 0 ? truncated + ' '.repeat(padLen) : truncated;
   }
 
   const indent = '  ';

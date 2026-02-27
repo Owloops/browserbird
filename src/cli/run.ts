@@ -6,6 +6,7 @@ import { COMMANDS } from '../core/types.ts';
 import { logger } from '../core/logger.ts';
 import { startDaemon } from '../daemon.ts';
 import { BANNER, VERSION } from './banner.ts';
+import { c } from './style.ts';
 import { handleSessions } from './sessions.ts';
 import { SESSIONS_HELP } from './sessions.ts';
 import { handleBirds } from './birds.ts';
@@ -20,22 +21,22 @@ import { DOCTOR_HELP } from './doctor.ts';
 const MAIN_HELP =
   BANNER +
   `
-usage: browserbird [command] [options]
+${c('cyan', 'usage:')} browserbird [command] [options]
 
-commands:
+${c('dim', 'commands:')}
 
-  sessions    manage sessions
-  birds       manage scheduled birds
-  config      view configuration
-  database    database maintenance and inspection
-  doctor      check system dependencies
+  ${c('cyan', 'sessions')}    manage sessions
+  ${c('cyan', 'birds')}       manage scheduled birds
+  ${c('cyan', 'config')}      view configuration
+  ${c('cyan', 'database')}    database maintenance and inspection
+  ${c('cyan', 'doctor')}      check system dependencies
 
-options:
+${c('dim', 'options:')}
 
-  -h, --help     show this help
-  -v, --version  show version
-  --verbose      enable debug logging
-  --config       config file path
+  ${c('yellow', '-h, --help')}     show this help
+  ${c('yellow', '-v, --version')}  show version
+  ${c('yellow', '--verbose')}      enable debug logging
+  ${c('yellow', '--config')}       config file path
 
 run 'browserbird <command> --help' for command-specific options.`.trimEnd();
 

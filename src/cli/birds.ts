@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { shortUid } from '../core/uid.ts';
 import { formatDuration, deriveBirdName, printTable, unknownSubcommand } from '../core/utils.ts';
+import { c } from './style.ts';
 import {
   openDatabase,
   closeDatabase,
@@ -20,32 +21,47 @@ import type { CronJobRow } from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
 
 export const BIRDS_HELP = `
-usage: browserbird birds <subcommand> [options]
+${c('cyan', 'usage:')} browserbird birds <subcommand> [options]
 
 manage scheduled birds.
 
-subcommands:
+${c('dim', 'subcommands:')}
 
-  list                         list all birds
-  add <schedule> <prompt>      add a new bird
-  edit <uid>                   edit a bird
-  remove <uid>                 remove a bird
-  enable <uid>                 enable a bird
-  disable <uid>                disable a bird
-  fly <uid>                    trigger a bird manually
-  flights <uid>                show flight history for a bird
+  ${c('cyan', 'list')}                         list all birds
+  ${c('cyan', 'add')} <schedule> <prompt>      add a new bird
+  ${c('cyan', 'edit')} <uid>                   edit a bird
+  ${c('cyan', 'remove')} <uid>                 remove a bird
+  ${c('cyan', 'enable')} <uid>                 enable a bird
+  ${c('cyan', 'disable')} <uid>                disable a bird
+  ${c('cyan', 'fly')} <uid>                    trigger a bird manually
+  ${c('cyan', 'flights')} <uid>                show flight history for a bird
 
-options:
+${c('dim', 'options:')}
 
-  --channel <id>       target slack channel
-  --agent <id>         target agent id
-  --schedule <expr>    cron schedule expression
-  --prompt <text>      prompt text
-  --timezone <tz>      IANA timezone (default: UTC)
-  --active-hours <range>  restrict runs to a time window (e.g. "09:00-17:00")
-  --limit <n>          number of flights to show (default: 10)
-  -h, --help           show this help
+  ${c('yellow', '--channel')} <id>       target slack channel
+  ${c('yellow', '--agent')} <id>         target agent id
+  ${c('yellow', '--schedule')} <expr>    cron schedule expression
+  ${c('yellow', '--prompt')} <text>      prompt text
+  ${c('yellow', '--timezone')} <tz>      IANA timezone (default: UTC)
+  ${c('yellow', '--active-hours')} <range>  restrict runs to a time window (e.g. "09:00-17:00")
+  ${c('yellow', '--limit')} <n>          number of flights to show (default: 10)
+  ${c('yellow', '-h, --help')}           show this help
 `.trim();
+
+function statusColor(status: string | null | undefined): string {
+  if (status == null) return '-';
+  switch (status) {
+    case 'success':
+    case 'completed':
+      return c('green', status);
+    case 'running':
+      return c('blue', status);
+    case 'failed':
+      return c('red', status);
+    default:
+      return status;
+  }
+}
 
 function parseActiveHours(raw: string): { start: string; end: string } | null {
   const match = raw.match(/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
@@ -103,12 +119,12 @@ export function handleBirds(argv: string[]): void {
         }
         console.log('');
         const rows = result.items.map((job) => [
-          shortUid(job.uid),
-          job.enabled ? 'enabled' : 'disabled',
+          c('dim', shortUid(job.uid)),
+          job.enabled ? c('green', 'enabled') : c('yellow', 'disabled'),
           job.schedule,
           job.agent_id,
           job.target_channel_id ?? '-',
-          job.last_status ?? '-',
+          statusColor(job.last_status),
           job.prompt.slice(0, 50),
         ]);
         printTable(['uid', 'status', 'schedule', 'agent', 'channel', 'last', 'prompt'], rows, [
@@ -314,8 +330,8 @@ export function handleBirds(argv: string[]): void {
             : null;
           const duration = durationMs == null ? '-' : formatDuration(durationMs);
           return [
-            shortUid(flight.uid),
-            flight.status,
+            c('dim', shortUid(flight.uid)),
+            statusColor(flight.status),
             duration,
             flight.started_at.slice(0, 19),
             flight.error ?? flight.result?.slice(0, 60) ?? '',

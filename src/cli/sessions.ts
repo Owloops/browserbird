@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { shortUid } from '../core/uid.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
+import { c } from './style.ts';
 import {
   openDatabase,
   closeDatabase,
@@ -16,18 +17,18 @@ import {
 import type { SessionRow } from '../db/index.ts';
 
 export const SESSIONS_HELP = `
-usage: browserbird sessions <subcommand> [options]
+${c('cyan', 'usage:')} browserbird sessions <subcommand> [options]
 
 manage sessions.
 
-subcommands:
+${c('dim', 'subcommands:')}
 
-  list          list recent sessions
-  logs <uid>    show session detail and message history
+  ${c('cyan', 'list')}          list recent sessions
+  ${c('cyan', 'logs')} <uid>    show session detail and message history
 
-options:
+${c('dim', 'options:')}
 
-  -h, --help   show this help
+  ${c('yellow', '-h, --help')}   show this help
 `.trim();
 
 export function handleSessions(argv: string[]): void {
@@ -47,7 +48,7 @@ export function handleSessions(argv: string[]): void {
       }
       console.log('');
       const rows = items.map((s) => [
-        shortUid(s.uid),
+        c('dim', shortUid(s.uid)),
         s.channel_id,
         s.agent_id,
         String(s.message_count),
@@ -99,17 +100,19 @@ export function handleSessions(argv: string[]): void {
 
     const tokenStats = getSessionTokenStats(session.channel_id, session.thread_id);
 
-    console.log(`session ${shortUid(session.uid)}`);
-    console.log('------------------');
-    console.log(`uid:          ${session.uid}`);
-    console.log(`channel:      ${session.channel_id}`);
-    console.log(`thread:       ${session.thread_id ?? '(none)'}`);
-    console.log(`agent:        ${session.agent_id}`);
-    console.log(`provider id:  ${session.provider_session_id}`);
-    console.log(`created:      ${session.created_at}`);
-    console.log(`last active:  ${session.last_active}`);
-    console.log(`messages:     ${session.message_count}`);
-    console.log(`tokens:       ${tokenStats.totalTokensIn} in / ${tokenStats.totalTokensOut} out`);
+    console.log(`session ${c('cyan', shortUid(session.uid))}`);
+    console.log(c('dim', '------------------'));
+    console.log(`${c('dim', 'uid:')}          ${session.uid}`);
+    console.log(`${c('dim', 'channel:')}      ${session.channel_id}`);
+    console.log(`${c('dim', 'thread:')}       ${session.thread_id ?? '(none)'}`);
+    console.log(`${c('dim', 'agent:')}        ${session.agent_id}`);
+    console.log(`${c('dim', 'provider id:')}  ${session.provider_session_id}`);
+    console.log(`${c('dim', 'created:')}      ${session.created_at}`);
+    console.log(`${c('dim', 'last active:')}  ${session.last_active}`);
+    console.log(`${c('dim', 'messages:')}     ${session.message_count}`);
+    console.log(
+      `${c('dim', 'tokens:')}       ${tokenStats.totalTokensIn} in / ${tokenStats.totalTokensOut} out`,
+    );
     console.log('');
 
     const msgResult = getSessionMessages(session.channel_id, session.thread_id, 1, 50);
@@ -125,7 +128,7 @@ export function handleSessions(argv: string[]): void {
     console.log('------------------');
 
     for (const msg of msgResult.items) {
-      const dir = msg.direction === 'in' ? '->' : '<-';
+      const dir = msg.direction === 'in' ? c('green', '->') : c('cyan', '<-');
       const tokens =
         msg.tokens_in != null || msg.tokens_out != null
           ? `  [in:${msg.tokens_in ?? 0} out:${msg.tokens_out ?? 0}]`
