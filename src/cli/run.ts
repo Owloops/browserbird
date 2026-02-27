@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import type { Command } from '../core/types.ts';
 import { COMMANDS } from '../core/types.ts';
 import { logger } from '../core/logger.ts';
+import { unknownSubcommand } from '../core/utils.ts';
 import { startDaemon } from '../daemon.ts';
 import { BANNER, VERSION } from './banner.ts';
 import { c } from './style.ts';
@@ -107,9 +108,7 @@ export async function run(argv: string[]): Promise<void> {
       handleDoctor();
       break;
     default:
-      logger.error(`unknown command: ${command}`);
-      process.stderr.write(`run 'browserbird --help' for usage\n`);
-      process.exitCode = 1;
+      unknownSubcommand(command, '', ['sessions', 'birds', 'config', 'database', 'doctor']);
   }
 }
 

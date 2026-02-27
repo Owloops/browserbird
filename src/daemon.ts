@@ -85,8 +85,10 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     currentConfig = config;
     setupMode = false;
 
+    logger.info('connecting to slack...');
     slackHandle = createSlackChannel(config, controller.signal);
 
+    logger.info('starting scheduler...');
     startScheduler(config, controller.signal, {
       postToSlack: (channel, text, opts) => slackHandle!.postMessage(channel, text, opts),
     });
@@ -139,6 +141,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   let webServer: Awaited<ReturnType<typeof createWebServer>> | null = null;
   const webConfig = getConfig();
   if (webConfig.web.enabled) {
+    logger.info(`starting web server on port ${webConfig.web.port}...`);
     webServer = createWebServer(getConfig, controller.signal, getDeps, {
       configPath,
       onLaunch,

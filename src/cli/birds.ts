@@ -45,6 +45,7 @@ ${c('dim', 'options:')}
   ${c('yellow', '--timezone')} <tz>      IANA timezone (default: UTC)
   ${c('yellow', '--active-hours')} <range>  restrict runs to a time window (e.g. "09:00-17:00")
   ${c('yellow', '--limit')} <n>          number of flights to show (default: 10)
+  ${c('yellow', '--json')}              output as JSON (with list, flights)
   ${c('yellow', '-h, --help')}           show this help
 `.trim();
 
@@ -100,6 +101,7 @@ export function handleBirds(argv: string[]): void {
       timezone: { type: 'string' },
       'active-hours': { type: 'string' },
       limit: { type: 'string' },
+      json: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: false,
@@ -112,6 +114,10 @@ export function handleBirds(argv: string[]): void {
     switch (subcommand) {
       case 'list': {
         const result = listCronJobs(1, 100);
+        if (values.json) {
+          console.log(JSON.stringify(result.items, null, 2));
+          break;
+        }
         console.log(`birds (${result.totalItems} total):`);
         if (result.items.length === 0) {
           console.log('\n  no birds configured');
@@ -173,6 +179,10 @@ export function handleBirds(argv: string[]): void {
           activeEnd,
         );
         logger.success(`bird ${shortUid(job.uid)} created: "${schedule}"`);
+        process.stderr.write(
+          c('dim', `  hint: run 'browserbird birds fly ${shortUid(job.uid)}' to trigger it now`) +
+            '\n',
+        );
         break;
       }
 
@@ -234,6 +244,9 @@ export function handleBirds(argv: string[]): void {
         });
         if (updated) {
           logger.success(`bird ${shortUid(bird.uid)} updated`);
+          process.stderr.write(
+            c('dim', `  hint: run 'browserbird birds list' to see updated birds`) + '\n',
+          );
         } else {
           logger.error(`bird ${shortUid(bird.uid)} not found`);
           process.exitCode = 1;
@@ -272,6 +285,14 @@ export function handleBirds(argv: string[]): void {
         const enabled = subcommand === 'enable';
         if (setCronJobEnabled(bird.uid, enabled)) {
           logger.success(`bird ${shortUid(bird.uid)} ${enabled ? 'enabled' : 'disabled'}`);
+          if (enabled) {
+            process.stderr.write(
+              c(
+                'dim',
+                `  hint: run 'browserbird birds fly ${shortUid(bird.uid)}' to trigger it now`,
+              ) + '\n',
+            );
+          }
         } else {
           logger.error(`bird ${shortUid(bird.uid)} not found`);
           process.exitCode = 1;
@@ -299,6 +320,12 @@ export function handleBirds(argv: string[]): void {
           { cronJobUid: cronJob.uid },
         );
         logger.success(`enqueued job #${enqueuedJob.id} for bird ${shortUid(cronJob.uid)}`);
+        process.stderr.write(
+          c(
+            'dim',
+            `  hint: run 'browserbird birds flights ${shortUid(cronJob.uid)}' to check results`,
+          ) + '\n',
+        );
         break;
       }
 
@@ -318,6 +345,10 @@ export function handleBirds(argv: string[]): void {
           return;
         }
         const result = listFlights(1, perPage, { birdUid: bird.uid });
+        if (values.json) {
+          console.log(JSON.stringify(result.items, null, 2));
+          break;
+        }
         console.log(`flight history for bird ${shortUid(bird.uid)} (${result.totalItems} total):`);
         if (result.items.length === 0) {
           console.log('\n  no flights recorded');
@@ -348,7 +379,16 @@ export function handleBirds(argv: string[]): void {
       }
 
       default:
-        unknownSubcommand(subcommand, 'birds');
+        unknownSubcommand(subcommand, 'birds', [
+          'list',
+          'add',
+          'edit',
+          'remove',
+          'enable',
+          'disable',
+          'fly',
+          'flights',
+        ]);
     }
   } finally {
     closeDatabase();

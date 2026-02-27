@@ -93,8 +93,45 @@ export function printTable(
   }
 }
 
-export function unknownSubcommand(subcommand: string, command: string): void {
-  process.stderr.write(`error: unknown subcommand: ${subcommand}\n`);
-  process.stderr.write(`run 'browserbird ${command} --help' for usage\n`);
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () =>
+    Array.from({ length: n + 1 }, () => 0),
+  );
+  for (let i = 0; i <= m; i++) dp[i]![0] = i;
+  for (let j = 0; j <= n; j++) dp[0]![j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i]![j] = Math.min(dp[i - 1]![j]! + 1, dp[i]![j - 1]! + 1, dp[i - 1]![j - 1]! + cost);
+    }
+  }
+  return dp[m]![n]!;
+}
+
+export function unknownSubcommand(
+  subcommand: string,
+  command: string,
+  validCommands?: string[],
+): void {
+  const label = command ? 'subcommand' : 'command';
+  process.stderr.write(`error: unknown ${label}: ${subcommand}\n`);
+  if (validCommands && validCommands.length > 0) {
+    let bestMatch = '';
+    let bestDist = Infinity;
+    for (const cmd of validCommands) {
+      const dist = levenshtein(subcommand, cmd);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestMatch = cmd;
+      }
+    }
+    if (bestDist <= 2 && bestMatch) {
+      process.stderr.write(`did you mean '${bestMatch}'?\n`);
+    }
+  }
+  const helpCmd = command ? `browserbird ${command} --help` : 'browserbird --help';
+  process.stderr.write(`run '${helpCmd}' for usage\n`);
   process.exitCode = 1;
 }

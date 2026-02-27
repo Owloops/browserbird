@@ -28,6 +28,7 @@ ${c('dim', 'subcommands:')}
 
 ${c('dim', 'options:')}
 
+  ${c('yellow', '--json')}       output as JSON (with list, logs)
   ${c('yellow', '-h, --help')}   show this help
 `.trim();
 
@@ -37,10 +38,23 @@ export function handleSessions(argv: string[]): void {
 
   const dbPath = resolve('.browserbird', 'browserbird.db');
 
+  const { values, positionals } = parseArgs({
+    args,
+    options: {
+      json: { type: 'boolean', default: false },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+
   if (subcommand === 'list') {
     openDatabase(dbPath);
     try {
       const { items, totalItems } = listSessions(1, 20);
+      if (values.json) {
+        console.log(JSON.stringify(items, null, 2));
+        return;
+      }
       console.log(`sessions (${totalItems} total):`);
       if (items.length === 0) {
         console.log('\n  no sessions found');
@@ -62,16 +76,9 @@ export function handleSessions(argv: string[]): void {
   }
 
   if (subcommand !== 'logs') {
-    unknownSubcommand(subcommand, 'sessions');
+    unknownSubcommand(subcommand, 'sessions', ['list', 'logs']);
     return;
   }
-
-  const { positionals } = parseArgs({
-    args,
-    options: {},
-    allowPositionals: true,
-    strict: false,
-  });
 
   const uidPrefix = positionals[0];
   if (!uidPrefix) {
@@ -99,6 +106,12 @@ export function handleSessions(argv: string[]): void {
     const session = result.row;
 
     const tokenStats = getSessionTokenStats(session.channel_id, session.thread_id);
+
+    if (values.json) {
+      const msgResult = getSessionMessages(session.channel_id, session.thread_id, 1, 50);
+      console.log(JSON.stringify({ session, messages: msgResult.items }, null, 2));
+      return;
+    }
 
     console.log(`session ${c('cyan', shortUid(session.uid))}`);
     console.log(c('dim', '------------------'));

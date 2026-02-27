@@ -40,6 +40,7 @@ ${c('dim', 'options:')}
   ${c('yellow', '--all-failed')}     retry all failed jobs (with jobs retry)
   ${c('yellow', '--completed')}      clear completed jobs (with jobs clear)
   ${c('yellow', '--failed')}         clear failed jobs (with jobs clear)
+  ${c('yellow', '--json')}          output as JSON (with logs, jobs, jobs stats)
   ${c('yellow', '--config')} <path>  config file path
   ${c('yellow', '-h, --help')}       show this help
 `.trim();
@@ -62,6 +63,7 @@ export function handleDatabase(argv: string[]): void {
       'all-failed': { type: 'boolean', default: false },
       completed: { type: 'boolean', default: false },
       failed: { type: 'boolean', default: false },
+      json: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: false,
@@ -80,6 +82,10 @@ export function handleDatabase(argv: string[]): void {
       openDatabase(dbPath);
       try {
         const result = getRecentLogs(1, perPage, level ?? 'error');
+        if (values.json) {
+          console.log(JSON.stringify(result.items, null, 2));
+          break;
+        }
         console.log(`logs (${result.totalItems} total, showing ${result.items.length}):`);
         if (result.items.length === 0) {
           console.log('\n  no logs recorded');
@@ -115,6 +121,10 @@ export function handleDatabase(argv: string[]): void {
               status: values.status as string | undefined,
               name: values.name as string | undefined,
             });
+            if (values.json) {
+              console.log(JSON.stringify(result.items, null, 2));
+              break;
+            }
             console.log(`jobs (${result.totalItems} total):`);
             if (result.items.length === 0) {
               console.log('\n  no jobs found');
@@ -141,6 +151,10 @@ export function handleDatabase(argv: string[]): void {
           }
           case 'stats': {
             const stats = getJobStats();
+            if (values.json) {
+              console.log(JSON.stringify(stats, null, 2));
+              break;
+            }
             console.log('job queue statistics');
             console.log('');
             console.log(`  pending:    ${stats.pending}`);
@@ -199,7 +213,12 @@ export function handleDatabase(argv: string[]): void {
             break;
           }
           default:
-            unknownSubcommand(jobSubcommand, 'database jobs');
+            unknownSubcommand(jobSubcommand, 'database jobs', [
+              'stats',
+              'retry',
+              'delete',
+              'clear',
+            ]);
         }
       } finally {
         closeDatabase();
@@ -208,6 +227,6 @@ export function handleDatabase(argv: string[]): void {
     }
 
     default:
-      unknownSubcommand(subcommand, 'database');
+      unknownSubcommand(subcommand, 'database', ['logs', 'jobs']);
   }
 }
