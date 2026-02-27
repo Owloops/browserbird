@@ -168,8 +168,21 @@ export interface FlightRow {
 }
 
 export interface InvalidateEvent {
-  resource: 'sessions' | 'birds' | 'config';
+  resource: 'sessions' | 'birds' | 'config' | 'secrets';
   cronJobUid?: string;
+}
+
+export interface SecretHint {
+  set: boolean;
+  hint: string;
+}
+
+export interface SecretsResponse {
+  slack: {
+    botToken: SecretHint;
+    appToken: SecretHint;
+  };
+  anthropic: SecretHint;
 }
 
 export interface DoctorResponse {

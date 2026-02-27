@@ -55,7 +55,14 @@ import { enqueue } from '../jobs.ts';
 import { deriveBirdName } from '../core/utils.ts';
 import { checkDoctor } from '../cli/index.ts';
 import { parseCron, nextCronMatch } from '../cron/parse.ts';
-import { DEFAULTS, loadRawConfig, saveConfig, saveEnvFile, deepMerge } from '../config.ts';
+import {
+  DEFAULTS,
+  loadRawConfig,
+  saveConfig,
+  saveEnvFile,
+  loadDotEnv,
+  deepMerge,
+} from '../config.ts';
 import { resolve } from 'node:path';
 
 export function buildStatusPayload(
@@ -119,6 +126,14 @@ function resolveBirdParam(
 
 const VALID_PROVIDERS = new Set(['claude', 'opencode']);
 const VALID_BROWSER_MODES = new Set(['persistent', 'isolated']);
+
+function maskSecret(value: string | undefined): { set: boolean; hint: string } {
+  if (!value) return { set: false, hint: '' };
+  const prefixes = ['xoxb-', 'xapp-', 'sk-ant-api', 'sk-ant-oat'];
+  const prefix = prefixes.find((p) => value.startsWith(p)) ?? '';
+  const tail = value.length > 4 ? value.slice(-4) : '';
+  return { set: true, hint: prefix ? `${prefix}...${tail}` : `...${tail}` };
+}
 const HH_MM_RE = /^\d{2}:\d{2}$/;
 
 const ALLOWED_TOP_LEVEL_KEYS = new Set([
@@ -420,6 +435,132 @@ export function buildRoutes(
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           jsonError(res, `Failed to save config: ${msg}`, 500);
+        }
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/secrets'),
+      handler(_req, res) {
+        const activeAnthropicValue =
+          process.env['CLAUDE_CODE_OAUTH_TOKEN'] || process.env['ANTHROPIC_API_KEY'];
+
+        json(res, {
+          slack: {
+            botToken: maskSecret(process.env['SLACK_BOT_TOKEN']),
+            appToken: maskSecret(process.env['SLACK_APP_TOKEN']),
+          },
+          anthropic: maskSecret(activeAnthropicValue),
+        });
+      },
+    },
+    {
+      method: 'PUT',
+      pattern: pathToRegex('/api/secrets/slack'),
+      async handler(req, res) {
+        let body: { botToken?: string; appToken?: string };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+
+        const botToken = body.botToken?.trim();
+        const appToken = body.appToken?.trim();
+
+        if (!botToken && !appToken) {
+          jsonError(res, 'Provide "botToken" and/or "appToken"', 400);
+          return;
+        }
+
+        const { WebClient } = await import('@slack/web-api');
+        const envVars: Record<string, string> = {};
+
+        if (botToken) {
+          if (!botToken.startsWith('xoxb-')) {
+            jsonError(res, 'Bot token must start with xoxb-', 400);
+            return;
+          }
+          try {
+            const client = new WebClient(botToken);
+            await client.auth.test();
+          } catch {
+            jsonError(res, 'Invalid bot token. Check that you copied the full xoxb- token.', 400);
+            return;
+          }
+          envVars['SLACK_BOT_TOKEN'] = botToken;
+        }
+
+        if (appToken) {
+          if (!appToken.startsWith('xapp-')) {
+            jsonError(res, 'App token must start with xapp-', 400);
+            return;
+          }
+          try {
+            const appClient = new WebClient(appToken);
+            await appClient.apiCall('apps.connections.open');
+          } catch {
+            jsonError(
+              res,
+              'Invalid app token. Check that you created an app-level token with the connections:write scope.',
+              400,
+            );
+            return;
+          }
+          envVars['SLACK_APP_TOKEN'] = appToken;
+        }
+
+        try {
+          const envPath = resolve('.env');
+          saveEnvFile(envPath, envVars);
+          loadDotEnv(envPath);
+          options.onConfigReload();
+          broadcastSSE('invalidate', { resource: 'secrets' });
+          json(res, { success: true, requiresRestart: true });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          jsonError(res, `Failed to save Slack tokens: ${msg}`, 500);
+        }
+      },
+    },
+    {
+      method: 'PUT',
+      pattern: pathToRegex('/api/secrets/anthropic'),
+      async handler(req, res) {
+        let body: { apiKey?: string };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        if (!body.apiKey || typeof body.apiKey !== 'string' || !body.apiKey.trim()) {
+          jsonError(res, '"apiKey" is required', 400);
+          return;
+        }
+
+        const key = body.apiKey.trim();
+        let envVar: string;
+        if (key.startsWith('sk-ant-oat')) {
+          envVar = 'CLAUDE_CODE_OAUTH_TOKEN';
+        } else if (key.startsWith('sk-ant-api')) {
+          envVar = 'ANTHROPIC_API_KEY';
+        } else {
+          jsonError(res, 'Invalid key. Expected an Anthropic key starting with sk-ant-...', 400);
+          return;
+        }
+
+        try {
+          const envPath = resolve('.env');
+          saveEnvFile(envPath, { [envVar]: key });
+          loadDotEnv(envPath);
+          options.onConfigReload();
+          broadcastSSE('invalidate', { resource: 'secrets' });
+          json(res, { success: true, requiresRestart: false });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          jsonError(res, `Failed to save Anthropic key: ${msg}`, 500);
         }
       },
     },
@@ -978,11 +1119,7 @@ export function buildRoutes(
         } else if (key.startsWith('sk-ant-api')) {
           envVar = 'ANTHROPIC_API_KEY';
         } else {
-          jsonError(
-            res,
-            'Only Anthropic keys are supported. Provide an API key (sk-ant-api...) or OAuth token (sk-ant-oat...).',
-            400,
-          );
+          jsonError(res, 'Invalid key. Expected an Anthropic key starting with sk-ant-...', 400);
           return;
         }
 
