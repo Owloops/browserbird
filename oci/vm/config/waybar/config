@@ -1,10 +1,10 @@
 {
     "layer": "top",
     "position": "bottom",
-    "height": 32,
-    "margin-bottom": 6,
-    "margin-left": 8,
-    "margin-right": 8,
+    "height": 52,
+    "margin-bottom": 8,
+    "margin-left": 10,
+    "margin-right": 10,
     "modules-left": ["custom/chromium", "custom/terminal", "sway/workspaces"],
     "modules-center": ["sway/window"],
     "modules-right": ["clock"],
@@ -12,7 +12,7 @@
         "disable-scroll": true
     },
     "sway/window": {
-        "max-length": 60
+        "max-length": 80
     },
     "clock": {
         "format": "{:%H:%M}",

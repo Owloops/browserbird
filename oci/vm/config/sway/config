@@ -1,7 +1,7 @@
 output * bg #0c0f13 solid_color
-output * resolution 1280x800
+output * resolution 1920x1080
 
-font pango:monospace 10
+font pango:monospace 15
 
 default_border none
 default_floating_border none
