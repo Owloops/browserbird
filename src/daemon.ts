@@ -58,11 +58,13 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   }
 
   const configPath = resolve(options.flags.config ?? 'browserbird.json');
+  const envPath = resolve('.env');
   const dbPath = resolve('.browserbird', 'browserbird.db');
   openDatabase(dbPath);
   startWorker(controller.signal);
 
-  let currentConfig: Config = DEFAULTS;
+  loadDotEnv(envPath);
+  let currentConfig: Config = loadConfig(configPath);
   let slackHandle: ChannelHandle | null = null;
   let setupMode = true;
 
@@ -101,7 +103,6 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   };
 
   const onLaunch = async () => {
-    const envPath = resolve('.env');
     loadDotEnv(envPath);
     const config = loadConfig(configPath);
 
@@ -113,31 +114,20 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   };
 
   const reloadConfig = (): void => {
-    const envPath = resolve('.env');
     loadDotEnv(envPath);
     currentConfig = loadConfig(configPath);
     logger.info('config reloaded');
   };
 
-  const envPath = resolve('.env');
-  loadDotEnv(envPath);
-
   if (hasSlackTokens(configPath)) {
-    const config = loadConfig(configPath);
-
-    if (!config.slack.botToken) {
+    if (!currentConfig.slack.botToken || !currentConfig.slack.appToken) {
       throw new Error(
-        'slack.botToken is required (set SLACK_BOT_TOKEN or configure in browserbird.json)',
-      );
-    }
-    if (!config.slack.appToken) {
-      throw new Error(
-        'slack.appToken is required (set SLACK_APP_TOKEN or configure in browserbird.json)',
+        'slack tokens not resolvable (set SLACK_BOT_TOKEN/SLACK_APP_TOKEN or configure in browserbird.json)',
       );
     }
 
     setSetting('onboarding_completed', 'true');
-    startFull(config);
+    startFull(currentConfig);
   } else {
     setSetting('onboarding_completed', '');
     logger.info('starting in setup mode (onboarding not completed)');

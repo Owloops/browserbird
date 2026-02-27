@@ -1,30 +1,4 @@
 {
-  "slack": {
-    "botToken": "env:SLACK_BOT_TOKEN",
-    "appToken": "env:SLACK_APP_TOKEN"
-  },
-  "agents": [
-    {
-      "id": "claude",
-      "name": "Claude",
-      "provider": "claude",
-      "model": "sonnet",
-      "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
-      "channels": [
-        "browserbird-claude"
-      ]
-    },
-    {
-      "id": "opencode",
-      "name": "OpenCode",
-      "provider": "opencode",
-      "model": "anthropic/claude-haiku-4-5",
-      "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
-      "channels": [
-        "browserbird-opencode"
-      ]
-    }
-  ],
   "browser": {
     "enabled": true,
     "mode": "persistent",

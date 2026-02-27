@@ -64,8 +64,13 @@ options:
 export async function run(argv: string[]): Promise<void> {
   const command = argv[0];
 
-  if (!command || command === '--help' || command === '-h') {
+  if (command === '--help' || command === '-h') {
     console.log(MAIN_HELP);
+    return;
+  }
+
+  if (!command) {
+    await startDaemon(parseGlobalFlags(argv));
     return;
   }
 

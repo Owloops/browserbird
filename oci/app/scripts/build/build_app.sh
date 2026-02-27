@@ -11,4 +11,7 @@ echo "Copying agent context..."
 cp oci/app/config/agent-context.md CLAUDE.md
 cp oci/app/config/agent-context.md AGENTS.md
 
+echo "Copying container config..."
+cp oci/app/config/browserbird.json browserbird.json
+
 echo "App build complete"
