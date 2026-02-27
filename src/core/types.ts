@@ -72,10 +72,9 @@ export interface Config {
 }
 
 export const COMMANDS = {
-  STATUS: 'status',
   SESSIONS: 'sessions',
   BIRDS: 'birds',
-  SETTINGS: 'settings',
+  CONFIG: 'config',
   DATABASE: 'database',
   DOCTOR: 'doctor',
 } as const;

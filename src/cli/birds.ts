@@ -33,7 +33,7 @@ subcommands:
   enable <uid>                 enable a bird
   disable <uid>                disable a bird
   fly <uid>                    trigger a bird manually
-  logs <uid>                   show flight history for a bird
+  flights <uid>                show flight history for a bird
 
 options:
 
@@ -43,7 +43,7 @@ options:
   --prompt <text>      prompt text
   --timezone <tz>      IANA timezone (default: UTC)
   --active-hours <range>  restrict runs to a time window (e.g. "09:00-17:00")
-  --limit <n>          number of flights to show (default: 10, with logs)
+  --limit <n>          number of flights to show (default: 10)
   -h, --help           show this help
 `.trim();
 
@@ -286,10 +286,10 @@ export function handleBirds(argv: string[]): void {
         break;
       }
 
-      case 'logs': {
+      case 'flights': {
         const uidPrefix = positionals[0];
         if (!uidPrefix) {
-          logger.error('usage: browserbird birds logs <uid>');
+          logger.error('usage: browserbird birds flights <uid>');
           process.exitCode = 1;
           return;
         }

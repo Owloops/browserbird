@@ -269,8 +269,8 @@ The **opencode** provider inherits standard env vars per model provider. Set `OP
 
 ```bash
 browserbird                        # Start the daemon
-browserbird status                 # Show daemon status
 browserbird doctor                 # Check agent CLIs and Node.js version
+browserbird config                 # View merged configuration
 ```
 
 ### Birds
@@ -286,7 +286,7 @@ browserbird birds enable <id>
 browserbird birds disable <id>
 browserbird birds remove <id>
 browserbird birds fly <id>
-browserbird birds logs <id>
+browserbird birds flights <id>
 ```
 
 Supported formats: standard 5-field cron (`* * * * *`) and macros (`@daily`, `@hourly`, `@weekly`, `@monthly`).
@@ -296,12 +296,6 @@ Supported formats: standard 5-field cron (`* * * * *`) and macros (`@daily`, `@h
 ```bash
 browserbird sessions list
 browserbird sessions logs <id>
-```
-
-### Settings
-
-```bash
-browserbird settings
 ```
 
 ### Database

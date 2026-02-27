@@ -1,12 +1,13 @@
-/** @fileoverview Settings command: display full configuration. */
+/** @fileoverview Config command: display merged configuration. */
 
 import { parseArgs } from 'node:util';
-import { loadConfig } from '../config.ts';
+import { loadRawConfig } from '../config.ts';
+import type { Config } from '../core/types.ts';
 
-export const SETTINGS_HELP = `
-usage: browserbird settings [options]
+export const CONFIG_HELP = `
+usage: browserbird config [options]
 
-view full configuration.
+view full configuration (defaults merged with browserbird.json).
 
 options:
 
@@ -14,21 +15,21 @@ options:
   -h, --help       show this help
 `.trim();
 
-export function handleSettings(argv: string[]): void {
+export function handleConfig(argv: string[]): void {
   const { values } = parseArgs({
     args: argv,
     options: { config: { type: 'string' } },
     allowPositionals: false,
     strict: false,
   });
-  printSettingsAll(values.config as string | undefined);
+  printConfig(values.config as string | undefined);
 }
 
-function printSettingsAll(configPath?: string): void {
-  const config = loadConfig(configPath);
+function printConfig(configPath?: string): void {
+  const config = loadRawConfig(configPath) as unknown as Config;
 
-  console.log('settings');
-  console.log('--------');
+  console.log('config');
+  console.log('------');
   console.log(`\ntimezone: ${config.timezone}`);
 
   console.log('\nagents:');
