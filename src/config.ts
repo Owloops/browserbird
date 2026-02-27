@@ -1,6 +1,6 @@
 /** @fileoverview Configuration loading from JSON with env: variable resolution. */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
@@ -8,7 +8,7 @@ import { logger } from './core/logger.ts';
 const VALID_PROVIDERS = new Set<string>(['claude', 'opencode']);
 const VALID_BROWSER_MODES = new Set<string>(['persistent', 'isolated']);
 
-const DEFAULTS: Config = {
+export const DEFAULTS: Config = {
   timezone: 'UTC',
   slack: {
     botToken: '',
@@ -79,7 +79,7 @@ function resolveEnvValues(obj: Record<string, unknown>): Record<string, unknown>
   return resolved;
 }
 
-function deepMerge(
+export function deepMerge(
   target: Record<string, unknown>,
   source: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -178,5 +178,126 @@ function validateConfig(config: Config): void {
     logger.warn(
       'persistent browser mode with maxConcurrent > 1 will cause lock contention; use "isolated" or set maxConcurrent to 1',
     );
+  }
+}
+
+/**
+ * Reads and merges JSON config with DEFAULTS but skips env: resolution.
+ * Returns raw config data suitable for reading/modifying before writing back.
+ */
+export function loadRawConfig(configPath?: string): Record<string, unknown> {
+  const filePath = configPath ?? resolve('browserbird.json');
+  if (!existsSync(filePath)) {
+    return JSON.parse(JSON.stringify(DEFAULTS)) as Record<string, unknown>;
+  }
+  const raw = readFileSync(filePath, 'utf-8');
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    throw new Error(`Failed to parse config file: ${filePath}`);
+  }
+  return deepMerge(DEFAULTS as unknown as Record<string, unknown>, parsed);
+}
+
+/**
+ * Checks whether both Slack tokens are present and resolvable.
+ * Literal strings must be non-empty; `"env:VAR"` references must point to a set env var.
+ */
+export function hasSlackTokens(configPath?: string): boolean {
+  const filePath = configPath ?? resolve('browserbird.json');
+  if (!existsSync(filePath)) return false;
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(readFileSync(filePath, 'utf-8')) as Record<string, unknown>;
+  } catch {
+    return false;
+  }
+
+  const slack = parsed['slack'] as Record<string, unknown> | undefined;
+  if (!slack) return false;
+
+  return isTokenResolvable(slack['botToken']) && isTokenResolvable(slack['appToken']);
+}
+
+function isTokenResolvable(value: unknown): boolean {
+  if (typeof value !== 'string' || !value) return false;
+  if (value.startsWith('env:')) {
+    const envKey = value.slice(4);
+    return !!process.env[envKey];
+  }
+  return true;
+}
+
+/** Atomic write: writes to a .tmp file then renames over the target. */
+export function saveConfig(configPath: string, data: Record<string, unknown>): void {
+  const tmp = configPath + '.tmp';
+  writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  renameSync(tmp, configPath);
+}
+
+/**
+ * Reads an existing .env file, updates/appends entries, and writes atomically.
+ * Preserves comments, blank lines, and ordering of existing entries.
+ */
+export function saveEnvFile(envPath: string, vars: Record<string, string>): void {
+  const remaining = new Map(Object.entries(vars));
+  const lines: string[] = [];
+
+  if (existsSync(envPath)) {
+    const content = readFileSync(envPath, 'utf-8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) {
+        lines.push(line);
+        continue;
+      }
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) {
+        lines.push(line);
+        continue;
+      }
+      const key = trimmed.slice(0, eqIdx).trim();
+      if (remaining.has(key)) {
+        lines.push(`${key}=${remaining.get(key)}`);
+        remaining.delete(key);
+      } else {
+        lines.push(line);
+      }
+    }
+  }
+
+  for (const [key, value] of remaining) {
+    lines.push(`${key}=${value}`);
+  }
+
+  const finalContent = lines.join('\n').replace(/\n{3,}/g, '\n\n');
+  const tmp = envPath + '.tmp';
+  writeFileSync(tmp, finalContent.endsWith('\n') ? finalContent : finalContent + '\n', 'utf-8');
+  renameSync(tmp, envPath);
+}
+
+/**
+ * Reads a .env file and injects entries into process.env.
+ * Handles comments, blank lines, and optionally quoted values.
+ */
+export function loadDotEnv(envPath: string): void {
+  if (!existsSync(envPath)) return;
+  const content = readFileSync(envPath, 'utf-8');
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    let value = trimmed.slice(eqIdx + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
   }
 }
