@@ -1,13 +1,17 @@
 /** @fileoverview Main orchestrator process — starts all subsystems and handles graceful shutdown. */
 
 import { logger } from './core/logger.ts';
-import { loadConfig } from './config.ts';
-import { openDatabase, closeDatabase } from './db/index.ts';
+import { loadConfig, loadDotEnv, hasSlackTokens } from './config.ts';
+import { openDatabase, closeDatabase, setSetting } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
 import { createWebServer } from './server/index.ts';
+import type { WebServerDeps } from './server/index.ts';
 import { startHealthChecks, getServiceHealth } from './server/health.ts';
+import type { Config } from './core/types.ts';
+import type { ChannelHandle } from './channel/types.ts';
+import { DEFAULTS } from './config.ts';
 import { resolve } from 'node:path';
 
 const controller = new AbortController();
@@ -40,6 +44,12 @@ interface DaemonOptions {
   flags: { verbose: boolean; config?: string };
 }
 
+const stubDeps: WebServerDeps = {
+  slackConnected: () => false,
+  activeProcessCount: () => 0,
+  serviceHealth: () => ({ agent: { available: false }, browser: { connected: false } }),
+};
+
 export async function startDaemon(options: DaemonOptions): Promise<void> {
   setupShutdown();
 
@@ -47,63 +57,109 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     logger.setLevel('debug');
   }
 
-  const config = loadConfig(options.flags.config);
-
-  if (!config.slack.botToken) {
-    throw new Error(
-      'slack.botToken is required (set SLACK_BOT_TOKEN or configure in browserbird.json)',
-    );
-  }
-  if (!config.slack.appToken) {
-    throw new Error(
-      'slack.appToken is required (set SLACK_APP_TOKEN or configure in browserbird.json)',
-    );
-  }
-
+  const configPath = resolve(options.flags.config ?? 'browserbird.json');
   const dbPath = resolve('.browserbird', 'browserbird.db');
   openDatabase(dbPath);
-
   startWorker(controller.signal);
 
-  const slackApp = createSlackChannel(config, controller.signal);
+  let currentConfig: Config = DEFAULTS;
+  let slackHandle: ChannelHandle | null = null;
+  let setupMode = true;
 
-  startScheduler(config, controller.signal, {
-    postToSlack: (channel, text, opts) => slackApp.postMessage(channel, text, opts),
-  });
+  const getConfig = (): Config => currentConfig;
+  const getDeps = (): WebServerDeps => {
+    if (setupMode) return stubDeps;
+    return {
+      slackConnected: () => slackHandle?.isConnected() ?? false,
+      activeProcessCount: () => slackHandle?.activeCount() ?? 0,
+      serviceHealth: () => getServiceHealth(currentConfig),
+    };
+  };
 
-  // Don't await Slack — Socket Mode retries indefinitely with back-off,
-  // which would block the web server and everything else from starting.
-  slackApp.start().catch((err: unknown) => {
-    logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
-  });
+  const startFull = (config: Config) => {
+    currentConfig = config;
+    setupMode = false;
 
-  startHealthChecks(config, controller.signal);
+    slackHandle = createSlackChannel(config, controller.signal);
+
+    startScheduler(config, controller.signal, {
+      postToSlack: (channel, text, opts) => slackHandle!.postMessage(channel, text, opts),
+    });
+
+    slackHandle.start().catch((err: unknown) => {
+      logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
+    });
+
+    startHealthChecks(config, controller.signal);
+
+    logger.success('browserbird orchestrator started');
+    logger.info(`agents: ${config.agents.map((a) => a.id).join(', ')}`);
+    logger.info(`max concurrent sessions: ${config.sessions.maxConcurrent}`);
+    if (config.browser.enabled) {
+      logger.info(`browser mode: ${config.browser.mode}`);
+    }
+  };
+
+  const onLaunch = async () => {
+    const envPath = resolve('.env');
+    loadDotEnv(envPath);
+    const config = loadConfig(configPath);
+
+    if (!config.slack.botToken || !config.slack.appToken) {
+      throw new Error('Slack tokens are required to launch');
+    }
+
+    startFull(config);
+  };
+
+  const envPath = resolve('.env');
+  loadDotEnv(envPath);
+
+  if (hasSlackTokens(configPath)) {
+    const config = loadConfig(configPath);
+
+    if (!config.slack.botToken) {
+      throw new Error(
+        'slack.botToken is required (set SLACK_BOT_TOKEN or configure in browserbird.json)',
+      );
+    }
+    if (!config.slack.appToken) {
+      throw new Error(
+        'slack.appToken is required (set SLACK_APP_TOKEN or configure in browserbird.json)',
+      );
+    }
+
+    setSetting('onboarding_completed', 'true');
+    startFull(config);
+  } else {
+    setSetting('onboarding_completed', '');
+    logger.info('starting in setup mode (onboarding not completed)');
+  }
 
   let webServer: Awaited<ReturnType<typeof createWebServer>> | null = null;
-  if (config.web.enabled) {
-    webServer = createWebServer(config, controller.signal, {
-      slackConnected: () => slackApp.isConnected(),
-      activeProcessCount: () => slackApp.activeCount(),
-      serviceHealth: () => getServiceHealth(config),
+  const webConfig = getConfig();
+  if (webConfig.web.enabled) {
+    webServer = createWebServer(getConfig, controller.signal, getDeps, {
+      configPath,
+      onLaunch,
     });
     await webServer.start();
   }
 
-  logger.success('browserbird orchestrator started');
-  logger.info(`agents: ${config.agents.map((a) => a.id).join(', ')}`);
-  logger.info(`max concurrent sessions: ${config.sessions.maxConcurrent}`);
-  if (config.browser.enabled) {
-    logger.info(`browser mode: ${config.browser.mode}`);
+  if (setupMode) {
+    logger.info('waiting for onboarding to complete via web UI');
   }
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolvePromise) => {
     controller.signal.addEventListener('abort', () => {
-      resolve();
+      resolvePromise();
     });
   });
 
   if (webServer) await webServer.stop();
-  await Promise.race([slackApp.stop(), new Promise<void>((resolve) => setTimeout(resolve, 3000))]);
+  if (slackHandle as ChannelHandle | null) {
+    await Promise.race([slackHandle!.stop(), new Promise<void>((r) => setTimeout(r, 3000))]);
+  }
   closeDatabase();
   logger.info('browserbird stopped');
 }
