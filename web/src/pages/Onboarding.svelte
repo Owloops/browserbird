@@ -8,6 +8,7 @@
     saveAuthConfig,
     saveBrowserConfig,
     completeOnboarding,
+    probeBrowserConnection,
   } from '../lib/api.ts';
 
   interface Props {
@@ -34,7 +35,9 @@
     channels: ['*'],
     apiKey: '',
   });
-  let browserData = $state({ enabled: false });
+  let browserData = $state({ enabled: false, novncHost: 'localhost', novncPort: 6080 });
+
+  let probeState: 'idle' | 'checking' | 'reachable' | 'unreachable' = $state('idle');
 
   let defaults: OnboardingDefaults | null = $state(null);
 
@@ -49,6 +52,8 @@
         agentData.maxTurns = d.agent.maxTurns;
         agentData.channels = d.agent.channels;
         browserData.enabled = d.browser.enabled;
+        browserData.novncHost = d.browser.novncHost;
+        browserData.novncPort = d.browser.novncPort;
       })
       .catch(() => {
         /* defaults are pre-filled, not critical */
@@ -109,8 +114,9 @@
     try {
       await saveBrowserConfig({
         enabled: browserData.enabled,
+        novncHost: browserData.enabled ? browserData.novncHost.trim() : undefined,
       });
-      step = 3;
+      await launchAndFinish();
     } catch (err) {
       error = (err as Error).message;
     } finally {
@@ -118,28 +124,57 @@
     }
   }
 
-  function skipBrowser(): void {
-    step = 3;
-  }
-
-  let launched = $state(false);
-
-  async function handleLaunch(): Promise<void> {
+  async function skipBrowser(): Promise<void> {
     loading = true;
     error = '';
     try {
-      await completeOnboarding();
-      launched = true;
+      await launchAndFinish();
     } catch (err) {
       error = (err as Error).message;
     } finally {
       loading = false;
+    }
+  }
+
+  let launched = $state(false);
+
+  async function launchAndFinish(): Promise<void> {
+    await completeOnboarding();
+    launched = true;
+    step = 3;
+  }
+
+  async function handleRetryLaunch(): Promise<void> {
+    loading = true;
+    error = '';
+    try {
+      await launchAndFinish();
+    } catch (err) {
+      error = (err as Error).message;
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleProbe(): Promise<void> {
+    const host = browserData.novncHost.trim();
+    if (!host) return;
+    probeState = 'checking';
+    try {
+      const result = await probeBrowserConnection(host, browserData.novncPort);
+      probeState = result.reachable ? 'reachable' : 'unreachable';
+    } catch {
+      probeState = 'unreachable';
     }
   }
 
   function back(): void {
     error = '';
-    step--;
+    if (step === 3 && !launched) {
+      step = 2;
+    } else {
+      step--;
+    }
   }
 </script>
 
@@ -170,7 +205,7 @@
       {:else if step === 2}
         Browser
       {:else}
-        {launched ? "You're all set" : 'Review & Launch'}
+        {launched ? "You're all set" : 'Launching...'}
       {/if}
     </h2>
 
@@ -286,23 +321,62 @@
           <span class="browser-toggle-label">Enable browser</span>
           <Toggle
             active={browserData.enabled}
-            onToggle={() => (browserData.enabled = !browserData.enabled)}
+            onToggle={() => {
+              browserData.enabled = !browserData.enabled;
+              probeState = 'idle';
+            }}
           />
         </div>
+        {#if browserData.enabled}
+          <label class="form-label">
+            VM Host
+            <div class="probe-row">
+              <input
+                type="text"
+                class="form-input"
+                placeholder="vm"
+                bind:value={browserData.novncHost}
+                oninput={() => {
+                  probeState = 'idle';
+                }}
+              />
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                disabled={probeState === 'checking' || !browserData.novncHost.trim()}
+                onclick={handleProbe}
+              >
+                {probeState === 'checking' ? 'Checking...' : 'Test Connection'}
+              </button>
+            </div>
+            <span class="form-hint">
+              Hostname of the VM container (e.g. vm, vm.internal, localhost)
+            </span>
+          </label>
+          {#if probeState === 'reachable'}
+            <div class="probe-result probe-ok">Connected</div>
+          {:else if probeState === 'unreachable'}
+            <div class="probe-result probe-fail">
+              Not reachable. Make sure the VM container is running.
+            </div>
+          {/if}
+        {/if}
         {#if error}
           <div class="login-error">{error}</div>
         {/if}
         <div class="onboarding-actions">
           <button type="button" class="btn btn-outline" onclick={back}>Back</button>
           <div class="onboarding-actions-right">
-            <button type="button" class="btn btn-outline" onclick={skipBrowser}>Skip</button>
+            <button type="button" class="btn btn-outline" disabled={loading} onclick={skipBrowser}>
+              {loading ? 'Launching...' : 'Skip'}
+            </button>
             <button type="submit" class="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : 'Save & Continue'}
+              {loading ? 'Launching...' : 'Save & Launch'}
             </button>
           </div>
         </div>
       </form>
-    {:else}
+    {:else if launched}
       <div class="launch-summary">
         <div class="summary-row">
           <span class="summary-label">Slack</span>
@@ -319,41 +393,44 @@
           <span class="summary-value">{browserData.enabled ? 'Enabled' : 'Disabled'}</span>
         </div>
       </div>
-      {#if launched}
-        <div class="done-tips">
-          <div class="done-tip">
-            <span class="done-tip-label">Mention your bot</span>
-            <span class="done-tip-detail">@{agentData.name} in any channel</span>
-          </div>
-          <div class="done-tip">
-            <span class="done-tip-label">Direct message</span>
-            <span class="done-tip-detail">Open a DM with your bot in Slack</span>
-          </div>
-          <div class="done-tip">
-            <span class="done-tip-label">Slash commands</span>
-            <span class="done-tip-detail">Type /bird in Slack to manage scheduled tasks</span>
-          </div>
-          <div class="done-tip">
-            <span class="done-tip-label">Scheduled tasks</span>
-            <span class="done-tip-detail"
-              >Create birds from the dashboard, via /bird create, or ask your bot in Slack</span
-            >
-          </div>
+      <div class="done-tips">
+        <div class="done-tip">
+          <span class="done-tip-label">Mention your bot</span>
+          <span class="done-tip-detail">@{agentData.name} in any channel</span>
         </div>
-        <button type="button" class="btn btn-primary onboarding-submit" onclick={oncomplete}>
-          Go to Dashboard
-        </button>
-      {:else}
-        {#if error}
-          <div class="login-error">{error}</div>
-        {/if}
-        <div class="onboarding-actions">
-          <button type="button" class="btn btn-outline" onclick={back}>Back</button>
-          <button type="button" class="btn btn-primary" disabled={loading} onclick={handleLaunch}>
-            {loading ? 'Starting...' : 'Start BrowserBird'}
-          </button>
+        <div class="done-tip">
+          <span class="done-tip-label">Direct message</span>
+          <span class="done-tip-detail">Open a DM with your bot in Slack</span>
         </div>
+        <div class="done-tip">
+          <span class="done-tip-label">Slash commands</span>
+          <span class="done-tip-detail">Type /bird in Slack to manage scheduled tasks</span>
+        </div>
+        <div class="done-tip">
+          <span class="done-tip-label">Scheduled tasks</span>
+          <span class="done-tip-detail"
+            >Create birds from the dashboard, via /bird create, or ask your bot in Slack</span
+          >
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary onboarding-submit" onclick={oncomplete}>
+        Go to Dashboard
+      </button>
+    {:else}
+      {#if error}
+        <div class="login-error">{error}</div>
       {/if}
+      <div class="onboarding-actions">
+        <button type="button" class="btn btn-outline" onclick={back}>Back</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          disabled={loading}
+          onclick={handleRetryLaunch}
+        >
+          {loading ? 'Launching...' : 'Retry'}
+        </button>
+      </div>
     {/if}
   </div>
 </div>
@@ -522,6 +599,30 @@
     color: var(--color-text-primary);
   }
 
+  .probe-row {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+
+  .probe-row .form-input {
+    flex: 1;
+  }
+
+  .probe-result {
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+    margin-bottom: var(--space-2);
+  }
+
+  .probe-ok {
+    color: var(--color-success);
+  }
+
+  .probe-fail {
+    color: var(--color-text-muted);
+  }
+
   .launch-summary {
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
@@ -597,6 +698,11 @@
 
     .form-row {
       grid-template-columns: 1fr;
+    }
+
+    .probe-row {
+      flex-direction: column;
+      align-items: stretch;
     }
   }
 </style>

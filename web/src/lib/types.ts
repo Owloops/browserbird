@@ -62,6 +62,7 @@ export interface ConfigResponse {
   browser: {
     enabled: boolean;
     mode: string;
+    novncHost: string;
     vncPort: number;
     novncPort: number;
   };
@@ -202,6 +203,8 @@ export interface OnboardingDefaults {
   };
   browser: {
     enabled: boolean;
+    novncHost: string;
+    novncPort: number;
   };
   doctor: DoctorResponse;
 }

@@ -128,21 +128,10 @@
       </svg>
     </div>
     <h2 class="disabled-title">Browser Not Enabled</h2>
-    <p class="disabled-text">The visible browser requires Docker with sway, wayvnc, and noVNC.</p>
-    <div class="disabled-steps">
-      <div class="step">
-        <span class="step-num">1</span>
-        <span class="step-text">Set <code>browser.enabled: true</code> in your config</span>
-      </div>
-      <div class="step">
-        <span class="step-num">2</span>
-        <span class="step-text">Run with <code>docker compose -f oci/compose.yml up</code></span>
-      </div>
-      <div class="step">
-        <span class="step-num">3</span>
-        <span class="step-text">Open this page to view the live browser</span>
-      </div>
-    </div>
+    <p class="disabled-text">
+      Enable the browser from Settings to connect to a running VM with noVNC.
+    </p>
+    <a href="#/settings" class="btn btn-outline btn-sm">Go to Settings</a>
   </div>
 {:else}
   <div class="browser-viewer">
@@ -281,48 +270,6 @@
     color: var(--color-text-muted);
     max-width: 400px;
     margin-bottom: var(--space-6);
-  }
-
-  .disabled-steps {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2-5);
-    text-align: left;
-  }
-
-  .step {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2-5);
-  }
-
-  .step-num {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    flex-shrink: 0;
-  }
-
-  .step-text {
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-  }
-
-  .step-text code {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    background: var(--color-bg-elevated);
-    padding: 0.1rem var(--space-1-5);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
   }
 
   .browser-viewer {

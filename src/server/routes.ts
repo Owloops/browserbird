@@ -54,6 +54,7 @@ import {
 import { enqueue } from '../jobs.ts';
 import { deriveBirdName } from '../core/utils.ts';
 import { checkDoctor } from '../cli/index.ts';
+import { probeBrowser } from './health.ts';
 import { parseCron, nextCronMatch } from '../cron/parse.ts';
 import {
   DEFAULTS,
@@ -173,6 +174,7 @@ function sanitizeConfig(config: Config): object {
     browser: {
       enabled: config.browser.enabled,
       mode: process.env['BROWSER_MODE'] ?? 'persistent',
+      novncHost: config.browser.novncHost,
       vncPort: config.browser.vncPort,
       novncPort: config.browser.novncPort,
     },
@@ -279,6 +281,12 @@ function validateConfigPatch(body: Record<string, unknown>): string | null {
     if (typeof br !== 'object' || br == null) return '"browser" must be an object';
     if ('enabled' in br && typeof br['enabled'] !== 'boolean') {
       return '"browser.enabled" must be a boolean';
+    }
+    if (
+      'novncHost' in br &&
+      (typeof br['novncHost'] !== 'string' || !(br['novncHost'] as string).trim())
+    ) {
+      return '"browser.novncHost" must be a non-empty string';
     }
   }
 
@@ -962,6 +970,8 @@ export function buildRoutes(
           },
           browser: {
             enabled: DEFAULTS.browser.enabled,
+            novncHost: DEFAULTS.browser.novncHost,
+            novncPort: DEFAULTS.browser.novncPort,
           },
           doctor,
         });
@@ -1130,9 +1140,30 @@ export function buildRoutes(
     },
     {
       method: 'POST',
+      pattern: pathToRegex('/api/onboarding/browser/probe'),
+      async handler(req, res) {
+        let body: { host?: string; port?: number };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        const host = body.host?.trim();
+        if (!host) {
+          jsonError(res, '"host" is required', 400);
+          return;
+        }
+        const port = body.port ?? DEFAULTS.browser.novncPort;
+        const reachable = await probeBrowser(host, port);
+        json(res, { reachable });
+      },
+    },
+    {
+      method: 'POST',
       pattern: pathToRegex('/api/onboarding/browser'),
       async handler(req, res) {
-        let body: { enabled?: boolean };
+        let body: { enabled?: boolean; novncHost?: string };
         try {
           body = await readJsonBody(req);
         } catch {
@@ -1144,6 +1175,7 @@ export function buildRoutes(
         const raw = loadRawConfig(configPath);
         const browser = (raw['browser'] ?? {}) as Record<string, unknown>;
         if (body.enabled !== undefined) browser['enabled'] = body.enabled;
+        if (body.novncHost !== undefined) browser['novncHost'] = body.novncHost.trim();
         raw['browser'] = browser;
         saveConfig(configPath, raw);
         json(res, { browser: raw['browser'] });

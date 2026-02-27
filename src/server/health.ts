@@ -30,7 +30,7 @@ function refreshAgent(config: Config): void {
   agentCheckedAt = now;
 }
 
-function probeBrowser(host: string, port: number): Promise<boolean> {
+export function probeBrowser(host: string, port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const socket = connect(port, host, () => {
       socket.destroy();

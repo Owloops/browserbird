@@ -539,6 +539,25 @@
       </div>
       {#if config.browser.enabled}
         <div class="row">
+          <span class="row-label">VM Host</span>
+          <span class="row-value">
+            {#if editor.editingField === 'browser.novncHost'}
+              <InlineEdit
+                bind:value={editValue}
+                mono
+                saving={editor.editingSaving}
+                onsave={(v) => editor.saveField('browser.novncHost', v)}
+                oncancel={editor.cancelEdit}
+              />
+            {:else}
+              <button
+                class="val-btn mono editable"
+                onclick={() => handleStartEdit('browser.novncHost', config.browser.novncHost)}
+              >{config.browser.novncHost}</button>
+            {/if}
+          </span>
+        </div>
+        <div class="row">
           <span class="row-label">Mode</span>
           <span class="row-value mono">{config.browser.mode}</span>
         </div>

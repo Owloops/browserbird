@@ -152,8 +152,18 @@ export async function saveAuthConfig(data: { apiKey: string }): Promise<{ valid:
   return api('/api/onboarding/auth', { method: 'POST', body: data });
 }
 
-export async function saveBrowserConfig(data: { enabled: boolean }): Promise<{ browser: unknown }> {
+export async function saveBrowserConfig(data: {
+  enabled: boolean;
+  novncHost?: string;
+}): Promise<{ browser: unknown }> {
   return api('/api/onboarding/browser', { method: 'POST', body: data });
+}
+
+export async function probeBrowserConnection(
+  host: string,
+  port: number,
+): Promise<{ reachable: boolean }> {
+  return api('/api/onboarding/browser/probe', { method: 'POST', body: { host, port } });
 }
 
 export async function completeOnboarding(): Promise<{ success: boolean }> {
