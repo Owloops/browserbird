@@ -56,7 +56,9 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     logger.setLevel('debug');
   }
 
-  const configPath = resolve(options.flags.config ?? 'browserbird.json');
+  const configPath = resolve(
+    options.flags.config ?? process.env['BROWSERBIRD_CONFIG'] ?? 'browserbird.json',
+  );
   const envPath = resolve('.env');
   const dbPath = resolve('.browserbird', 'browserbird.db');
   openDatabase(dbPath);

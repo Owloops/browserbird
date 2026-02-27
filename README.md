@@ -257,6 +257,7 @@ Any string value in `browserbird.json` can reference an environment variable wit
 | `BROWSER_MODE`                | `persistent` (default) or `isolated`. Controls Playwright MCP context mode across both containers. `persistent` saves logins across sessions (one agent at a time). `isolated` gives each session a fresh context (parallel agents, no saved state). Requires container restart to take effect |
 | `ANTHROPIC_API_KEY`           | Anthropic API key. Used by both claude and opencode providers. Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
 | `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. Get one at [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys). See note below |
+| `BROWSERBIRD_CONFIG`          | Path to `browserbird.json`. Overridden by `--config` flag. In Docker, defaults to the persistent volume so config survives image upgrades |
 | `NO_COLOR`                    | Disable colored output                                                                                              |
 
 The **opencode** provider inherits standard env vars per model provider. Set `OPENAI_API_KEY` for OpenAI models, `GEMINI_API_KEY` for Google, `OPENROUTER_API_KEY` for OpenRouter, etc. See the full list at [models.dev](https://models.dev).

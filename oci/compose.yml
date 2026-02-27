@@ -26,7 +26,7 @@ services:
     ports:
       - "18800:18800"
     volumes:
-      - bb-data:/home/bbuser/.browserbird
+      - bb-data:/app/.browserbird
     env_file: ../.env
     environment:
       - HOME=/home/bbuser

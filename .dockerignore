@@ -4,6 +4,7 @@ web/dist/
 .git/
 .gitignore
 .browserbird/
+browserbird.json
 .env
 .env.*
 *.local.md
