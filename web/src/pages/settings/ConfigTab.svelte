@@ -1,6 +1,14 @@
 <script lang="ts">
-  import type { StatusResponse, ConfigResponse, DoctorResponse } from '../../lib/types.ts';
+  import type {
+    StatusResponse,
+    ConfigResponse,
+    DoctorResponse,
+    SecretsResponse,
+    SecretHint,
+  } from '../../lib/types.ts';
   import type { ConfigEditor } from './types.ts';
+  import { api } from '../../lib/api.ts';
+  import { showToast } from '../../lib/toast.svelte.ts';
   import { formatUptime } from '../../lib/format.ts';
   import InlineEdit from '../../components/InlineEdit.svelte';
   import Toggle from '../../components/Toggle.svelte';
@@ -12,9 +20,11 @@
     doctor: DoctorResponse | null;
     doctorLoading: boolean;
     editor: ConfigEditor;
+    secrets: SecretsResponse | null;
+    onsecretsupdate: () => void;
   }
 
-  let { config, status, doctor, doctorLoading, editor }: Props = $props();
+  let { config, status, doctor, doctorLoading, editor, secrets, onsecretsupdate }: Props = $props();
 
   let editValue = $state('');
 
@@ -25,6 +35,64 @@
   function handleStartEdit(field: string, currentValue: string | number): void {
     editValue = String(currentValue);
     editor.startEdit(field, currentValue);
+  }
+
+  type SecretField = 'slackBotToken' | 'slackAppToken' | 'apiKey';
+
+  let secretEditing: SecretField | null = $state(null);
+  let secretValue = $state('');
+  let secretSaving = $state(false);
+  let slackRestartNotice = $state(false);
+
+  function startSecretEdit(field: SecretField): void {
+    secretEditing = field;
+    secretValue = '';
+  }
+
+  function cancelSecretEdit(): void {
+    secretEditing = null;
+    secretSaving = false;
+  }
+
+  async function saveSecret(): Promise<void> {
+    if (!secretEditing || !secretValue.trim()) return;
+    secretSaving = true;
+
+    try {
+      if (secretEditing === 'slackBotToken' || secretEditing === 'slackAppToken') {
+        const body =
+          secretEditing === 'slackBotToken'
+            ? { botToken: secretValue.trim() }
+            : { appToken: secretValue.trim() };
+        const result = await api<{ success: boolean; requiresRestart: boolean }>(
+          '/api/secrets/slack',
+          { method: 'PUT', body },
+        );
+        showToast('Slack token saved', 'success');
+        if (result.requiresRestart) slackRestartNotice = true;
+      } else {
+        await api<{ success: boolean; requiresRestart: boolean }>('/api/secrets/anthropic', {
+          method: 'PUT',
+          body: { apiKey: secretValue.trim() },
+        });
+        showToast('API key saved (effective next session)', 'success');
+      }
+      secretEditing = null;
+      secretValue = '';
+      onsecretsupdate();
+    } catch (err) {
+      showToast((err as Error).message, 'error');
+    } finally {
+      secretSaving = false;
+    }
+  }
+
+  function handleSecretKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Escape') cancelSecretEdit();
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      saveSecret();
+    }
   }
 </script>
 
@@ -104,6 +172,60 @@
           <span class="row-value mono">{doctor.node}</span>
         </div>
       {/if}
+      <div class="row">
+        <span class="row-label">API Key</span>
+        <span class="row-value">
+          {#if secretEditing === 'apiKey'}
+            <div class="secret-edit">
+              <input
+                type="password"
+                autocomplete="off"
+                class="secret-input mono"
+                placeholder="sk-ant-..."
+                bind:value={secretValue}
+                onkeydown={handleSecretKeydown}
+              />
+              <button
+                class="inline-btn inline-btn-save"
+                disabled={secretSaving || !secretValue}
+                onclick={saveSecret}
+                title="Save"
+              >
+                {#if secretSaving}...{:else}
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
+                    ><path
+                      d="M3 8.5l3.5 3.5L13 4.5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    /></svg
+                  >{/if}
+              </button>
+              <button
+                class="inline-btn inline-btn-cancel"
+                onclick={cancelSecretEdit}
+                title="Cancel"
+              >
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
+                  ><path
+                    d="M4 4l8 8M12 4l-8 8"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  /></svg
+                >
+              </button>
+            </div>
+          {:else if secrets}
+            <button class="val-btn mono editable" onclick={() => startSecretEdit('apiKey')}
+              >{secrets.anthropic.set ? secrets.anthropic.hint : 'not set'}</button
+            >
+          {:else}
+            <span class="dim">...</span>
+          {/if}
+        </span>
+      </div>
     </div>
   </div>
 
@@ -201,6 +323,72 @@
       {/if}
     </div>
     <div class="panel-body">
+      {#if slackRestartNotice}
+        <div class="notice">Restart the daemon to apply new Slack tokens.</div>
+      {/if}
+      {#snippet secretRow(
+        field: SecretField,
+        label: string,
+        placeholder: string,
+        hint: SecretHint | undefined,
+      )}
+        <div class="row">
+          <span class="row-label">{label}</span>
+          <span class="row-value">
+            {#if secretEditing === field}
+              <div class="secret-edit">
+                <input
+                  type="password"
+                  autocomplete="off"
+                  class="secret-input mono"
+                  {placeholder}
+                  bind:value={secretValue}
+                  onkeydown={handleSecretKeydown}
+                />
+                <button
+                  class="inline-btn inline-btn-save"
+                  disabled={secretSaving || !secretValue}
+                  onclick={saveSecret}
+                  title="Save"
+                >
+                  {#if secretSaving}...{:else}
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
+                      ><path
+                        d="M3 8.5l3.5 3.5L13 4.5"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      /></svg
+                    >{/if}
+                </button>
+                <button
+                  class="inline-btn inline-btn-cancel"
+                  onclick={cancelSecretEdit}
+                  title="Cancel"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
+                    ><path
+                      d="M4 4l8 8M12 4l-8 8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    /></svg
+                  >
+                </button>
+              </div>
+            {:else if hint}
+              <button class="val-btn mono editable" onclick={() => startSecretEdit(field)}
+                >{hint.set ? hint.hint : 'not set'}</button
+              >
+            {:else}
+              <span class="dim">...</span>
+            {/if}
+          </span>
+        </div>
+      {/snippet}
+      {@render secretRow('slackBotToken', 'Bot Token', 'xoxb-...', secrets?.slack.botToken)}
+      {@render secretRow('slackAppToken', 'App Token', 'xapp-...', secrets?.slack.appToken)}
       <div class="row">
         <span class="row-label">Require Mention</span>
         <span class="row-value">
@@ -466,6 +654,84 @@
     border-color: rgba(224, 92, 92, 0.3);
     background: var(--color-error-bg);
     color: var(--color-error);
+  }
+
+  .secret-edit {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .secret-input {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-1) var(--space-1-5);
+    background: var(--color-bg-deep);
+    border: 1px solid var(--color-accent-dim);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    box-shadow: 0 0 0 2px rgba(91, 140, 240, 0.1);
+  }
+
+  .secret-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(91, 140, 240, 0.18);
+  }
+
+  .inline-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition:
+      background var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  .inline-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .inline-btn-save {
+    background: var(--color-accent-dim);
+    color: var(--color-text-primary);
+  }
+
+  .inline-btn-save:hover {
+    background: var(--color-accent);
+  }
+
+  .inline-btn-save:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .inline-btn-cancel {
+    background: transparent;
+    color: var(--color-text-muted);
+  }
+
+  .inline-btn-cancel:hover {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+  }
+
+  .notice {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--color-warning);
+    background: var(--color-warning-bg);
+    border-bottom: 1px solid rgba(230, 180, 60, 0.2);
   }
 
   @media (max-width: 960px) {

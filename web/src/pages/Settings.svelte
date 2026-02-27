@@ -3,6 +3,7 @@
     StatusResponse,
     ConfigResponse,
     DoctorResponse,
+    SecretsResponse,
     PaginatedResult,
     LogRow,
     JobStats,
@@ -22,6 +23,7 @@
   let { status }: Props = $props();
 
   let config: ConfigResponse | null = $state(null);
+  let secrets: SecretsResponse | null = $state(null);
   let doctor: DoctorResponse | null = $state(null);
   let doctorLoading = $state(true);
   let recentErrors: LogRow[] = $state([]);
@@ -40,13 +42,15 @@
       api<PaginatedResult<LogRow>>('/api/logs?level=error&perPage=10'),
       api<JobStats>('/api/jobs/stats'),
       api<PaginatedResult<CronJobRow>>('/api/birds?system=true&perPage=100'),
+      api<SecretsResponse>('/api/secrets'),
     ])
-      .then(([c, logs, js, birds]) => {
+      .then(([c, logs, js, birds, s]) => {
         if (ac.signal.aborted) return;
         config = c;
         recentErrors = logs.items;
         jobStats = js;
         systemBirds = birds.items.filter((b) => b.name.startsWith('__bb_'));
+        secrets = s;
       })
       .finally(() => {
         if (!ac.signal.aborted) loading = false;
@@ -75,8 +79,19 @@
           })
           .catch(() => {});
       }
+      if (e.resource === 'secrets') {
+        fetchSecrets();
+      }
     });
   });
+
+  function fetchSecrets(): void {
+    api<SecretsResponse>('/api/secrets')
+      .then((s) => {
+        secrets = s;
+      })
+      .catch(() => {});
+  }
 
   function buildPatch(path: string, value: unknown): Record<string, unknown> {
     const parts = path.split('.');
@@ -164,7 +179,15 @@
   </div>
 
   {#if activeTab === 'config'}
-    <ConfigTab {config} {status} {doctor} {doctorLoading} {editor} />
+    <ConfigTab
+      {config}
+      {status}
+      {doctor}
+      {doctorLoading}
+      {editor}
+      {secrets}
+      onsecretsupdate={fetchSecrets}
+    />
   {/if}
 
   {#if activeTab === 'database'}
