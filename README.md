@@ -19,11 +19,13 @@ BrowserBird handles the thin layer: Slack adapter, session routing, scheduler, b
 ## Features
 
 - **Browse and act.** Ask it to open a page, fill a form, extract information, draft a reply, or complete a multi-step workflow. It controls a real Chromium browser and you can watch it work live.
+- **Streaming responses.** Agent output streams into Slack in real time. Tool use renders as task cards so you can see what the agent is doing as it works.
 - **Scheduled tasks.** Set up birds: prompts that run on a cron schedule and post results back to Slack. Daily briefings, monitoring checks, report generation.
 - **Persistent sessions.** Each Slack thread maps to a session. Context carries across conversations, pick up where you left off.
 - **Multi-agent routing.** Assign different agents to different channels, each with their own model and system prompt.
 - **Job queue.** All tasks go through a retry-capable queue with exponential backoff.
-- **Web dashboard.** Sessions, flight logs, scheduled birds, live browser view, and config all in one place.
+- **Web dashboard.** Sessions, flight logs, scheduled birds, live browser view, secrets management, and config all in one place.
+- **Automatic maintenance.** System birds run database cleanup and optimization on a schedule. No manual vacuuming or log pruning.
 
 ## Installation
 
@@ -52,7 +54,7 @@ docker compose -f oci/compose.yml up -d
 
 Pre-built images are pulled from `ghcr.io/owloops/browserbird` automatically. No local build needed.
 
-The stack runs two containers: a `vm` container with the Wayland compositor, VNC server, and noVNC; and a `browserbird` container with the agent CLI, Playwright MCP, and BrowserBird itself.
+The stack runs two containers: a `vm` container with the Wayland compositor, VNC server, and noVNC; and an `app` container with the agent CLI, Playwright MCP, and BrowserBird itself.
 
 On first run, open `http://<host>:18800` and complete the onboarding wizard (same as local).
 
@@ -73,6 +75,14 @@ Agents without browser access (text-only) are lightweight (~50 MB each). `shm_si
 3. Go to OAuth & Permissions, install the app to your workspace, then copy the **Bot User OAuth Token** (`xoxb-...`)
 4. Go to Basic Information, create an app-level token with the `connections:write` scope, then copy the token (`xapp-...`)
 
+### Slack Integration
+
+Responses stream into Slack in real time using the native `chatStream` API. Tool use (browser actions, file reads, commands) renders as a task timeline so you can follow each step as it happens. On completion, a footer shows token usage, cost, and turn count.
+
+The bot uses Slack's Assistant APIs: threads show a thinking indicator while the agent works, get auto-titled from the first message, and offer suggested follow-up prompts in DMs. If the agent produces images (screenshots, generated files), they are uploaded as files to the thread.
+
+When an error occurs, the message includes a retry button that re-dispatches the original prompt.
+
 ### Slash Commands
 
 Once the app is installed, `/bird` is available in any channel:
@@ -83,7 +93,7 @@ Once the app is installed, `/bird` is available in any channel:
 /bird logs <name>       Show recent flights
 /bird enable <name>     Enable a bird
 /bird disable <name>    Disable a bird
-/bird create            Create a new bird (opens form)
+/bird create            Create a new bird (opens modal form)
 /bird status            Show daemon status
 ```
 
@@ -258,7 +268,7 @@ The **opencode** provider inherits standard env vars per model provider. Set `OP
 
 ```bash
 browserbird                        # Start the daemon
-browserbird --config ./my.json     # Use a specific config file
+browserbird status                 # Show daemon status
 browserbird doctor                 # Check agent CLIs and Node.js version
 ```
 
@@ -291,7 +301,6 @@ browserbird sessions logs <id>
 
 ```bash
 browserbird settings
-browserbird settings --config ./my.json
 ```
 
 ### Database
@@ -312,14 +321,14 @@ browserbird database jobs clear --failed
 
 Runs at `http://localhost:18800` by default. Real-time updates via SSE.
 
-| Page         | Description                                                                         |
-| ------------ | ----------------------------------------------------------------------------------- |
-| **Status**   | System stats, active sessions overview                                              |
-| **Sessions** | Agent sessions with message counts, clickable to inspect full history               |
-| **Birds**    | Scheduled birds: create, edit, enable/disable, trigger, inline flight history       |
-| **Flights**  | Flight log across all birds, with status filter and per-flight retry                |
-| **Browser**  | Live noVNC viewer (Docker only)                                                     |
-| **Settings** | Config (agents, sessions, slack, browser) + Database tab (job queue, cleanup, logs) |
+| Page         | Description                                                                                          |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| **Status**   | System stats, failing birds, upcoming runs, active sessions                                          |
+| **Sessions** | Agent sessions with message counts, clickable to inspect full conversation history and token usage    |
+| **Birds**    | Scheduled birds: create, edit, enable/disable, trigger, inline flight history                        |
+| **Flights**  | Flight log across all birds, with status filter and per-flight retry                                 |
+| **Browser**  | Live noVNC viewer (Docker only)                                                                      |
+| **Settings** | Secrets (Slack tokens, API keys), agents, sessions, slack, browser, database. Job queue and log viewer in a separate Database tab |
 
 ## License
 
