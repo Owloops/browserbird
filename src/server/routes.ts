@@ -55,7 +55,7 @@ import { enqueue } from '../jobs.ts';
 import { deriveBirdName } from '../core/utils.ts';
 import { checkDoctor } from '../cli/index.ts';
 import { parseCron, nextCronMatch } from '../cron/parse.ts';
-import { DEFAULTS, loadRawConfig, saveConfig, saveEnvFile } from '../config.ts';
+import { DEFAULTS, loadRawConfig, saveConfig, saveEnvFile, deepMerge } from '../config.ts';
 import { resolve } from 'node:path';
 
 export function buildStatusPayload(
@@ -89,6 +89,7 @@ export function buildStatusPayload(
 export interface RouteOptions {
   configPath: string;
   onLaunch: () => Promise<void>;
+  onConfigReload: () => void;
 }
 
 function resolveBirdParam(
@@ -114,6 +115,169 @@ function resolveBirdParam(
     return null;
   }
   return result.row;
+}
+
+const VALID_PROVIDERS = new Set(['claude', 'opencode']);
+const VALID_BROWSER_MODES = new Set(['persistent', 'isolated']);
+const HH_MM_RE = /^\d{2}:\d{2}$/;
+
+const ALLOWED_TOP_LEVEL_KEYS = new Set([
+  'timezone',
+  'agents',
+  'sessions',
+  'slack',
+  'birds',
+  'browser',
+  'database',
+]);
+
+function sanitizeConfig(config: Config): object {
+  return {
+    timezone: config.timezone,
+    agents: config.agents.map((a: AgentConfig) => ({
+      id: a.id,
+      name: a.name,
+      provider: a.provider,
+      model: a.model,
+      fallbackModel: a.fallbackModel ?? null,
+      maxTurns: a.maxTurns,
+      systemPrompt: a.systemPrompt,
+      channels: a.channels,
+    })),
+    sessions: {
+      ttlHours: config.sessions.ttlHours,
+      maxConcurrent: config.sessions.maxConcurrent,
+      processTimeoutMs: config.sessions.processTimeoutMs,
+    },
+    slack: {
+      requireMention: config.slack.requireMention,
+      coalesce: config.slack.coalesce,
+      channels: config.slack.channels,
+      quietHours: config.slack.quietHours,
+    },
+    birds: config.birds,
+    browser: config.browser,
+    database: config.database,
+    web: { port: config.web.port },
+  };
+}
+
+function validateConfigPatch(body: Record<string, unknown>): string | null {
+  for (const key of Object.keys(body)) {
+    if (!ALLOWED_TOP_LEVEL_KEYS.has(key)) {
+      return `Unknown config key "${key}"`;
+    }
+  }
+
+  if ('timezone' in body && typeof body['timezone'] !== 'string') {
+    return '"timezone" must be a string';
+  }
+
+  if ('agents' in body) {
+    const agents = body['agents'];
+    if (!Array.isArray(agents) || agents.length === 0) {
+      return '"agents" must be a non-empty array';
+    }
+    for (const a of agents as Record<string, unknown>[]) {
+      if (!a['id'] || typeof a['id'] !== 'string') return 'Each agent must have a string "id"';
+      if (!a['name'] || typeof a['name'] !== 'string')
+        return 'Each agent must have a string "name"';
+      if (!a['provider'] || !VALID_PROVIDERS.has(a['provider'] as string)) {
+        return `Agent "${a['id']}": invalid provider (expected: ${[...VALID_PROVIDERS].join(', ')})`;
+      }
+      if (!a['model'] || typeof a['model'] !== 'string') {
+        return `Agent "${a['id']}": "model" is required`;
+      }
+      if (!Array.isArray(a['channels']) || (a['channels'] as unknown[]).length === 0) {
+        return `Agent "${a['id']}": "channels" must be a non-empty array`;
+      }
+    }
+  }
+
+  if ('sessions' in body) {
+    const s = body['sessions'] as Record<string, unknown>;
+    if (typeof s !== 'object' || s == null) return '"sessions" must be an object';
+    for (const k of ['ttlHours', 'maxConcurrent', 'processTimeoutMs'] as const) {
+      if (k in s && (typeof s[k] !== 'number' || (s[k] as number) <= 0)) {
+        return `"sessions.${k}" must be a positive number`;
+      }
+    }
+  }
+
+  if ('slack' in body) {
+    const sl = body['slack'] as Record<string, unknown>;
+    if (typeof sl !== 'object' || sl == null) return '"slack" must be an object';
+    if ('requireMention' in sl && typeof sl['requireMention'] !== 'boolean') {
+      return '"slack.requireMention" must be a boolean';
+    }
+    if ('channels' in sl) {
+      if (!Array.isArray(sl['channels'])) return '"slack.channels" must be an array';
+    }
+    if ('coalesce' in sl) {
+      const c = sl['coalesce'] as Record<string, unknown>;
+      if (typeof c !== 'object' || c == null) return '"slack.coalesce" must be an object';
+      if (
+        'debounceMs' in c &&
+        (typeof c['debounceMs'] !== 'number' || (c['debounceMs'] as number) <= 0)
+      ) {
+        return '"slack.coalesce.debounceMs" must be a positive number';
+      }
+      if ('bypassDms' in c && typeof c['bypassDms'] !== 'boolean') {
+        return '"slack.coalesce.bypassDms" must be a boolean';
+      }
+    }
+    if ('quietHours' in sl) {
+      const q = sl['quietHours'] as Record<string, unknown>;
+      if (typeof q !== 'object' || q == null) return '"slack.quietHours" must be an object';
+      if ('enabled' in q && typeof q['enabled'] !== 'boolean') {
+        return '"slack.quietHours.enabled" must be a boolean';
+      }
+      if (
+        'start' in q &&
+        (typeof q['start'] !== 'string' || !HH_MM_RE.test(q['start'] as string))
+      ) {
+        return '"slack.quietHours.start" must be HH:MM format';
+      }
+      if ('end' in q && (typeof q['end'] !== 'string' || !HH_MM_RE.test(q['end'] as string))) {
+        return '"slack.quietHours.end" must be HH:MM format';
+      }
+    }
+  }
+
+  if ('birds' in body) {
+    const b = body['birds'] as Record<string, unknown>;
+    if (typeof b !== 'object' || b == null) return '"birds" must be an object';
+    if (
+      'maxAttempts' in b &&
+      (!Number.isInteger(b['maxAttempts']) || (b['maxAttempts'] as number) <= 0)
+    ) {
+      return '"birds.maxAttempts" must be a positive integer';
+    }
+  }
+
+  if ('browser' in body) {
+    const br = body['browser'] as Record<string, unknown>;
+    if (typeof br !== 'object' || br == null) return '"browser" must be an object';
+    if ('enabled' in br && typeof br['enabled'] !== 'boolean') {
+      return '"browser.enabled" must be a boolean';
+    }
+    if ('mode' in br && !VALID_BROWSER_MODES.has(br['mode'] as string)) {
+      return `"browser.mode" must be one of: ${[...VALID_BROWSER_MODES].join(', ')}`;
+    }
+  }
+
+  if ('database' in body) {
+    const d = body['database'] as Record<string, unknown>;
+    if (typeof d !== 'object' || d == null) return '"database" must be an object';
+    if (
+      'retentionDays' in d &&
+      (!Number.isInteger(d['retentionDays']) || (d['retentionDays'] as number) <= 0)
+    ) {
+      return '"database.retentionDays" must be a positive integer';
+    }
+  }
+
+  return null;
 }
 
 export function buildRoutes(
@@ -225,33 +389,38 @@ export function buildRoutes(
       method: 'GET',
       pattern: pathToRegex('/api/config'),
       handler(_req, res) {
-        const config = getConfig();
-        json(res, {
-          timezone: config.timezone,
-          agents: config.agents.map((a: AgentConfig) => ({
-            id: a.id,
-            name: a.name,
-            provider: a.provider,
-            model: a.model,
-            maxTurns: a.maxTurns,
-            channels: a.channels,
-          })),
-          sessions: {
-            ttlHours: config.sessions.ttlHours,
-            maxConcurrent: config.sessions.maxConcurrent,
-            processTimeoutMs: config.sessions.processTimeoutMs,
-          },
-          slack: {
-            requireMention: config.slack.requireMention,
-            coalesce: config.slack.coalesce,
-            channels: config.slack.channels,
-            quietHours: config.slack.quietHours,
-          },
-          birds: config.birds,
-          browser: config.browser,
-          database: config.database,
-          web: { port: config.web.port },
-        });
+        json(res, sanitizeConfig(getConfig()));
+      },
+    },
+    {
+      method: 'PATCH',
+      pattern: pathToRegex('/api/config'),
+      async handler(req, res) {
+        let body: Record<string, unknown>;
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+
+        const error = validateConfigPatch(body);
+        if (error) {
+          jsonError(res, error, 400);
+          return;
+        }
+
+        try {
+          const raw = loadRawConfig(options.configPath);
+          const merged = deepMerge(raw, body);
+          saveConfig(options.configPath, merged);
+          options.onConfigReload();
+          broadcastSSE('invalidate', { resource: 'config' });
+          json(res, sanitizeConfig(getConfig()));
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          jsonError(res, `Failed to save config: ${msg}`, 500);
+        }
       },
     },
     {

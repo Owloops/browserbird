@@ -112,6 +112,13 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     startFull(config);
   };
 
+  const reloadConfig = (): void => {
+    const envPath = resolve('.env');
+    loadDotEnv(envPath);
+    currentConfig = loadConfig(configPath);
+    logger.info('config reloaded');
+  };
+
   const envPath = resolve('.env');
   loadDotEnv(envPath);
 
@@ -142,6 +149,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     webServer = createWebServer(getConfig, controller.signal, getDeps, {
       configPath,
       onLaunch,
+      onConfigReload: reloadConfig,
     });
     await webServer.start();
   }
