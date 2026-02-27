@@ -1,11 +1,11 @@
 /** @fileoverview CLI entry point: argument parsing and command routing. */
 
 import { parseArgs } from 'node:util';
-import { createRequire } from 'node:module';
 import type { Command } from '../core/types.ts';
 import { COMMANDS } from '../core/types.ts';
 import { logger } from '../core/logger.ts';
 import { startDaemon } from '../daemon.ts';
+import { BANNER, VERSION } from './banner.ts';
 import { handleSessions } from './sessions.ts';
 import { SESSIONS_HELP } from './sessions.ts';
 import { handleBirds } from './birds.ts';
@@ -17,10 +17,9 @@ import { CONFIG_HELP } from './config.ts';
 import { handleDoctor } from './doctor.ts';
 import { DOCTOR_HELP } from './doctor.ts';
 
-const require = createRequire(import.meta.url);
-const VERSION: string = (require('../../package.json') as { version: string }).version;
-
-const MAIN_HELP = `
+const MAIN_HELP =
+  BANNER +
+  `
 usage: browserbird [command] [options]
 
 commands:
@@ -38,8 +37,7 @@ options:
   --verbose      enable debug logging
   --config       config file path
 
-run 'browserbird <command> --help' for command-specific options.
-`.trim();
+run 'browserbird <command> --help' for command-specific options.`.trimEnd();
 
 const COMMAND_HELP: Record<string, string> = {
   sessions: SESSIONS_HELP,
@@ -129,4 +127,3 @@ function parseGlobalFlags(argv: string[]): { flags: { verbose: boolean; config?:
     flags: { verbose: values.verbose as boolean, config: values.config as string | undefined },
   };
 }
-

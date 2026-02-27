@@ -1,6 +1,7 @@
 /** @fileoverview Main orchestrator process: starts all subsystems and handles graceful shutdown. */
 
 import { logger } from './core/logger.ts';
+import { BANNER } from './cli/banner.ts';
 import { loadConfig, loadDotEnv, hasSlackTokens } from './config.ts';
 import { openDatabase, closeDatabase, setSetting } from './db/index.ts';
 import { startWorker } from './jobs.ts';
@@ -51,6 +52,7 @@ const stubDeps: WebServerDeps = {
 
 export async function startDaemon(options: DaemonOptions): Promise<void> {
   setupShutdown();
+  process.stderr.write(BANNER + '\n\n');
 
   if (options.flags.verbose) {
     logger.setLevel('debug');
