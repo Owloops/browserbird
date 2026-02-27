@@ -42,7 +42,9 @@ export interface ConfigResponse {
     name: string;
     provider: string;
     model: string;
+    fallbackModel: string | null;
     maxTurns: number;
+    systemPrompt: string;
     channels: string[];
   }[];
   sessions: {
@@ -59,6 +61,7 @@ export interface ConfigResponse {
   birds: { maxAttempts: number };
   browser: {
     enabled: boolean;
+    mode: string;
     vncPort: number;
     novncPort: number;
   };
@@ -165,7 +168,7 @@ export interface FlightRow {
 }
 
 export interface InvalidateEvent {
-  resource: 'sessions' | 'birds';
+  resource: 'sessions' | 'birds' | 'config';
   cronJobUid?: string;
 }
 
