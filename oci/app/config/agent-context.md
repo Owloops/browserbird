@@ -61,8 +61,8 @@ browserbird sessions logs <uid>                 Show session messages and detail
 
 ```
 browserbird config                              View merged configuration
-browserbird database logs                       Show log entries (--level error|warn|info)
-browserbird database jobs                       Show job queue
-browserbird database jobs retry <id>            Retry a failed job
+browserbird logs                                Show log entries (--level error|warn|info)
+browserbird jobs                                Show job queue
+browserbird jobs retry <id>                     Retry a failed job
 browserbird doctor                              Check system dependencies
 ```
