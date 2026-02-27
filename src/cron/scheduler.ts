@@ -123,7 +123,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
 
     if (payload.channelId && deps?.postToSlack) {
       if (completion) {
-        const summary = result.length > 300 ? result.slice(0, 300) + '...' : result;
+        const summary = result.length > 2800 ? result.slice(0, 2800) + '...' : result;
         const blocks = sessionCompleteBlocks(completion, summary, agent.name);
         const fallback = `Bird ${agent.name} completed: ${completion.numTurns} turns`;
         await deps.postToSlack(payload.channelId, fallback, { blocks });
