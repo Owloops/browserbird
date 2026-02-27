@@ -64,6 +64,8 @@
       rfb = new RFB(viewerEl, wsUrl);
       rfb.scaleViewport = true;
       rfb.resizeSession = false;
+      rfb.qualityLevel = 9;
+      rfb.compressionLevel = 0;
       rfbInstance = rfb;
 
       rfb.addEventListener('connect', () => {
