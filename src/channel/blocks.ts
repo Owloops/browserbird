@@ -288,10 +288,7 @@ export function busyBlocks(activeCount: number, maxConcurrent: number): Block[] 
 }
 
 export function noAgentBlocks(channelId: string): Block[] {
-  return [
-    section('*No agent configured for this channel*'),
-    context(`Channel: \`${channelId}\``),
-  ];
+  return [section('*No agent configured for this channel*'), context(`Channel: \`${channelId}\``)];
 }
 
 export function birdCreateModal(defaults?: {
@@ -434,12 +431,7 @@ export function birdLogsBlocks(
   const blocks: Block[] = [header(`Flights: ${birdName}`)];
 
   const lines = flights.map((f) => {
-    const icon =
-      f.status === 'success'
-        ? '[ok]'
-        : f.status === 'running'
-          ? '[...]'
-          : '[err]';
+    const icon = f.status === 'success' ? '[ok]' : f.status === 'running' ? '[...]' : '[err]';
     const duration = f.durationMs ? formatDuration(f.durationMs) : '-';
     const age = formatAge(f.startedAt);
     const detail = f.error ? truncate(f.error, 80) : duration;
@@ -464,10 +456,7 @@ function formatAge(isoDate: string): string {
 }
 
 export function birdFlyBlocks(birdName: string, userId: string): Block[] {
-  return [
-    section(`*${birdName}* is taking flight...`),
-    context(`Triggered by <@${userId}>`),
-  ];
+  return [section(`*${birdName}* is taking flight...`), context(`Triggered by <@${userId}>`)];
 }
 
 export function statusBlocks(opts: {
