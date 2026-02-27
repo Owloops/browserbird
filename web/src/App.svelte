@@ -55,6 +55,10 @@
 
   const pageTitle = $derived(PAGE_TITLES[currentPage] ?? 'Status');
 
+  $effect(() => {
+    document.title = `${pageTitle} - BrowserBird`;
+  });
+
   function toggleSidebar(): void {
     sidebarCollapsed = !sidebarCollapsed;
     localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed));
