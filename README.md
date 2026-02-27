@@ -12,7 +12,7 @@ Slack-connected AI agent orchestrator with a real browser and a scheduler.
 
 </div>
 
-https://github.com/user-attachments/assets/c71791c3-ba1c-4590-8931-f3adc2dcac2d
+<video src="https://github.com/user-attachments/assets/c71791c3-ba1c-4590-8931-f3adc2dcac2d" autoplay loop muted playsinline></video>
 
 Owloops has been building browser automation tools since 2020. Hand-written CSS selectors broke on every layout change. A chrome recorder helped with selector discovery but not with breakage. An LLM agent loop in a Chrome extension solved that by understanding the task instead of memorizing steps, but it ran inside the browser with no server, no scheduling, and no persistence.
 
@@ -283,6 +283,8 @@ run 'browserbird <command> --help' for command-specific options.
 ## Web UI
 
 Runs at `http://localhost:18800` by default.
+
+<img src="assets/webui-demo.png" alt="BrowserBird web UI" />
 
 | Page         | Description                                                                        |
 | ------------ | ---------------------------------------------------------------------------------- |
