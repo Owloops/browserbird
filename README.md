@@ -2,7 +2,9 @@
 
 <img src="web/public/logo-icon.svg" alt="BrowserBird" width="80"/>
 
-**A self-hosted AI assistant in Slack, with a real browser and a scheduler.**
+# BrowserBird
+
+Slack-connected AI agent orchestrator with a real browser and a scheduler.
 
 [![License: FSL-1.1-MIT](https://img.shields.io/badge/license-FSL--1.1--MIT-blue?style=flat-square)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/@owloops/browserbird?style=flat-square)](https://www.npmjs.com/package/@owloops/browserbird)
@@ -10,78 +12,53 @@
 
 </div>
 
-Owloops has been building browser automation tools since 2020. [Hand-written CSS selectors](https://github.com/Owloops/flybird) required technical knowledge and broke on every layout change. [Automating selector discovery with Chrome Recorder](https://github.com/Owloops/owloops-chrome-recorder) helped with setup but not with breakage. [A Chrome extension with an LLM agent loop](https://github.com/Owloops/owloops-extension) solved that by understanding the task rather than memorizing steps, but the loop ran inside the extension driving an open tab with no server, no scheduling, and no persistence. GPT-3.5 was not reliable enough for complex pages either.
+Owloops has been building browser automation tools since 2020. Hand-written CSS selectors broke on every layout change. A chrome recorder helped with selector discovery but not with breakage. An LLM agent loop in a Chrome extension solved that by understanding the task instead of memorizing steps, but it ran inside the browser with no server, no scheduling, and no persistence.
 
-BrowserBird runs as a server process with a Chromium browser it controls via Playwright MCP. Send a message in Slack, watch the browser work live via the built-in VNC viewer, get the result back in the thread. Sessions persist across conversations, tasks run on a schedule, and everything stays on your own infrastructure.
+BrowserBird is the server-side version. It connects Slack to an agent CLI with a Chromium browser controlled via Playwright MCP, a cron scheduler, session persistence, and a web dashboard. BrowserBird handles the thin orchestration layer; the agent handles reasoning, memory, tools, and sub-agents.
 
-BrowserBird handles the thin layer: Slack adapter, session routing, scheduler, browser access, CLI, and web dashboard. The agent handles reasoning, memory, tools, and sub-agents.
+Earlier projects: [flybird](https://github.com/Owloops/flybird), [chrome-recorder](https://github.com/Owloops/owloops-chrome-recorder), [browser extension](https://github.com/Owloops/owloops-extension).
 
 ## Features
 
-- **Browse and act.** Ask it to open a page, fill a form, extract information, draft a reply, or complete a multi-step workflow. It controls a real Chromium browser and you can watch it work live.
-- **Streaming responses.** Agent output streams into Slack in real time. Tool use renders as task cards so you can see what the agent is doing as it works.
-- **Scheduled tasks.** Set up birds: prompts that run on a cron schedule and post results back to Slack. Daily briefings, monitoring checks, report generation.
-- **Persistent sessions.** Each Slack thread maps to a session. Context carries across conversations, pick up where you left off.
-- **Multi-agent routing.** Assign different agents to different channels, each with their own model and system prompt.
-- **Job queue.** All tasks go through a retry-capable queue with exponential backoff.
-- **Web dashboard.** Sessions, flight logs, scheduled birds, live browser view, secrets management, and config all in one place.
-- **Automatic maintenance.** System birds run database cleanup and optimization on a schedule. No manual vacuuming or log pruning.
+- **Browser control.** The agent controls a real Chromium browser via Playwright MCP. Watch it work live through the built-in VNC viewer.
+- **Streaming.** Agent output streams into Slack in real time. Tool use renders as task cards inline.
+- **Scheduled tasks.** Birds are prompts on a cron schedule. Results post back to Slack.
+- **Persistent sessions.** Each Slack thread maps to a session with carry-over context.
+- **Multi-agent routing.** Different agents per channel, each with its own model and system prompt.
+- **Job queue.** Retry-capable queue with exponential backoff.
+- **Web dashboard.** Sessions, birds, live browser, settings, and database inspection in one place.
+- **Automatic maintenance.** System birds handle database cleanup on a schedule.
 
 ## Installation
 
-### Local (npm)
+On first run, open the web UI and complete the onboarding wizard. It walks through Slack tokens, agent config, and API keys.
 
-Install globally and run on your own machine. Browser actions open in your local Chromium.
+### Docker (recommended)
+
+```bash
+docker compose -f oci/compose.yml up -d
+```
+
+Everything is included: agent CLI, Chromium browser, VNC, and Playwright MCP. Open `http://<host>:18800` to begin onboarding.
+
+To skip onboarding, pre-fill `.env` with your tokens before starting (see `cp .env.example .env`).
+
+The browser runs in **persistent** mode by default: logins and cookies are saved across sessions, one agent at a time. Set `BROWSER_MODE=isolated` in `.env` for parallel sessions with fresh contexts (requires container restart). `shm_size: 2g` is required for Chromium stability.
+
+### npm
 
 ```bash
 npm install -g @owloops/browserbird
 browserbird
 ```
 
-On first run, open `http://localhost:18800` and create an account. The onboarding wizard walks you through Slack tokens, agent config, and API key setup, then writes `browserbird.json` and `.env` for you.
+Requires Node.js 24+ and at least one agent CLI installed ([claude](https://docs.anthropic.com/en/docs/claude-code/overview) or [opencode](https://github.com/anomalyco/opencode)). Open `http://localhost:18800` to begin onboarding.
 
-### Server (Docker)
-
-Run on a headless server with everything pre-wired: virtual display, VNC, noVNC, Playwright, and agent CLI in containers. Watch the browser live from anywhere via the noVNC viewer.
-
-```bash
-cp .env.example .env
-# Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, and agent auth (see below)
-
-docker compose -f oci/compose.yml up -d
-# or: podman-compose -f oci/compose.yml up -d
-```
-
-Pre-built images are pulled from `ghcr.io/owloops/browserbird` automatically. No local build needed.
-
-The stack runs two containers: a `vm` container with the Wayland compositor, VNC server, and noVNC; and an `app` container with the agent CLI, Playwright MCP, and BrowserBird itself.
-
-On first run, open `http://<host>:18800` and complete the onboarding wizard (same as local).
-
-The browser runs in **persistent** mode by default: logins and cookies are saved across sessions, and one agent uses the browser at a time. Set `BROWSER_MODE=isolated` in your `.env` for parallel sessions with fresh contexts. This is a deploy-time setting (requires container restart). In isolated mode, concurrent sessions share a single Chromium process (~20-50 MB per session on top of the ~300 MB base):
-
-| Spec | Concurrent browser sessions (isolated mode) |
-| --- | --- |
-| 2 GB / 1 vCPU | 5-10 |
-| 4 GB / 2 vCPU | 15-25 |
-| 8 GB / 4 vCPU | 30+ |
-
-Agents without browser access (text-only) are lightweight (~50 MB each). `shm_size: 2g` is required for Chromium stability inside containers.
-
-## Slack App Setup
+## Slack
 
 1. Create a new Slack app at [api.slack.com/apps](https://api.slack.com/apps) using the [manifest.json](https://raw.githubusercontent.com/Owloops/browserbird/main/manifest.json) from this repo
-2. Upload `web/public/logo-icon.png` as the app icon (Basic Information, Display Information)
-3. Go to OAuth & Permissions, install the app to your workspace, then copy the **Bot User OAuth Token** (`xoxb-...`)
-4. Go to Basic Information, create an app-level token with the `connections:write` scope, then copy the token (`xapp-...`)
-
-### Slack Integration
-
-Responses stream into Slack in real time using the native `chatStream` API. Tool use (browser actions, file reads, commands) renders as a task timeline so you can follow each step as it happens. On completion, a footer shows token usage, cost, and turn count.
-
-The bot uses Slack's Assistant APIs: threads show a thinking indicator while the agent works, get auto-titled from the first message, and offer suggested follow-up prompts in DMs. If the agent produces images (screenshots, generated files), they are uploaded as files to the thread.
-
-When an error occurs, the message includes a retry button that re-dispatches the original prompt.
+2. Go to OAuth & Permissions, install the app to your workspace, copy the **Bot User OAuth Token** (`xoxb-...`)
+3. Go to Basic Information, create an app-level token with the `connections:write` scope, copy the token (`xapp-...`)
 
 ### Slash Commands
 
@@ -99,231 +76,257 @@ Once the app is installed, `/bird` is available in any channel:
 
 ## Configuration
 
-For local installs, the onboarding wizard creates `browserbird.json` and `.env` automatically. For Docker or manual setups, copy the example and edit:
+The onboarding wizard handles initial setup. For manual configuration, copy the example config:
 
 ```bash
 cp browserbird.example.json browserbird.json
 ```
 
+See [browserbird.example.json](browserbird.example.json) for the full config with defaults.
+
+Any string value can reference an environment variable with `"env:VAR_NAME"` syntax (e.g. `"env:SLACK_BOT_TOKEN"`).
+
+The top-level `timezone` field (IANA format, default `"UTC"`) is used for cron scheduling and quiet hours.
+
+<details>
+<summary><strong>slack</strong> - Slack connection and behavior</summary>
+
 ```json
-{
-  "timezone": "UTC",
-  "slack": {
-    "botToken": "env:SLACK_BOT_TOKEN",
-    "appToken": "env:SLACK_APP_TOKEN",
-    "requireMention": true,
-    "coalesce": { "debounceMs": 3000, "bypassDms": true },
-    "channels": ["*"],
-    "quietHours": { "enabled": false, "start": "23:00", "end": "08:00", "timezone": "UTC" }
-  },
-  "agents": [
-    {
-      "id": "default",
-      "name": "BrowserBird",
-      "provider": "claude",
-      "model": "sonnet",
-      "fallbackModel": "haiku",
-      "maxTurns": 50,
-      "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
-      "channels": ["*"]
-    }
-  ],
-  "sessions": {
-    "ttlHours": 24,
-    "maxConcurrent": 5,
-    "processTimeoutMs": 300000
-  },
-  "database": { "retentionDays": 30 },
-  "browser": { "enabled": false, "mcpConfigPath": null },
-  "birds": { "maxAttempts": 3 },
-  "web": {
-    "enabled": true,
-    "host": "127.0.0.1",
-    "port": 18800,
-    "corsOrigin": ""
-  }
+"slack": {
+  "botToken": "env:SLACK_BOT_TOKEN",
+  "appToken": "env:SLACK_APP_TOKEN",
+  "requireMention": true,
+  "coalesce": { "debounceMs": 3000, "bypassDms": true },
+  "channels": ["*"],
+  "quietHours": { "enabled": false, "start": "23:00", "end": "08:00", "timezone": "UTC" }
 }
 ```
 
-| Key        | Default | Description                                                         |
-| ---------- | ------- | ------------------------------------------------------------------- |
-| `timezone` | `"UTC"` | IANA timezone used as default for new birds (e.g. `"America/Chicago"`) |
-
-<details>
-<summary><strong>slack</strong></summary>
-
-| Key                         | Default   | Description                                                               |
-| --------------------------- | --------- | ------------------------------------------------------------------------- |
-| `botToken`                  | required  | Bot user OAuth token                                                      |
-| `appToken`                  | required  | App-level token for Socket Mode                                           |
-| `requireMention`            | `true`    | Only respond in channels when the bot is `@mentioned`; DMs always respond |
-| `coalesce.debounceMs`       | `3000`    | Wait N ms after last message before dispatching (group channels)          |
-| `coalesce.bypassDms`        | `true`    | Skip debouncing for DMs                                                   |
-| `channels`                  | `["*"]`   | Channel names or IDs to listen in, or `"*"` for all                       |
-| `quietHours.enabled`        | `false`   | Silence the bot during specified hours                                    |
-| `quietHours.start`          | `"23:00"` | Start of quiet period (HH:MM)                                             |
-| `quietHours.end`            | `"08:00"` | End of quiet period (HH:MM), can wrap midnight                            |
-| `quietHours.timezone`       | `"UTC"`   | IANA timezone for quiet hours                                             |
+- `botToken`, `appToken`: Required. Bot user OAuth token and app-level token for Socket Mode
+- `requireMention`: Only respond in channels when `@mentioned`; DMs always respond
+- `coalesce.debounceMs`: Wait N ms after last message before dispatching (groups rapid messages)
+- `coalesce.bypassDms`: Skip debouncing for DMs
+- `channels`: Channel names or IDs to listen in, or `"*"` for all
+- `quietHours`: Silence the bot during specified hours. Start/end in HH:MM format, can wrap midnight
 
 </details>
 
 <details>
-<summary><strong>agents</strong></summary>
+<summary><strong>agents</strong> - Agent routing and model config</summary>
+
+```json
+"agents": [
+  {
+    "id": "default",
+    "name": "BrowserBird",
+    "provider": "claude",
+    "model": "sonnet",
+    "fallbackModel": "haiku",
+    "maxTurns": 50,
+    "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
+    "channels": ["*"]
+  }
+]
+```
 
 Each agent is scoped to specific channels. Multiple agents are matched in order, first match wins.
 
-| Key                | Default                   | Description                                                  |
-| ------------------ | ------------------------- | ------------------------------------------------------------ |
-| `id`               | required                  | Unique agent identifier                                      |
-| `name`             | required                  | Display name                                                 |
-| `provider`         | `"claude"`                | Provider CLI: `"claude"` or `"opencode"`                     |
-| `model`            | `"sonnet"`                | Model name. Claude uses short names (`sonnet`, `haiku`). OpenCode uses `provider/model` format (`anthropic/claude-sonnet-4-20250514`) |
-| `fallbackModel`    | none                      | Optional fallback when primary is unavailable (claude only, [pending for opencode](https://github.com/anomalyco/opencode/issues/7602)) |
-| `maxTurns`         | `50`                      | Max conversation turns per session                           |
-| `systemPrompt`     | none                      | Instructions prepended to every session                      |
-| `channels`         | `["*"]`                   | Channel names or IDs this agent handles, or `"*"` for all    |
-| `processTimeoutMs` | inherits `sessions` value | Per-agent subprocess timeout override in milliseconds        |
+- `id`, `name`: Required. Unique identifier and display name
+- `provider`: `"claude"` or `"opencode"`
+- `model`: Claude uses short names (`sonnet`, `haiku`). OpenCode uses `provider/model` format (`anthropic/claude-sonnet-4-20250514`)
+- `fallbackModel`: Fallback when primary is unavailable (claude only)
+- `maxTurns`: Max conversation turns per session
+- `systemPrompt`: Instructions prepended to every session
+- `channels`: Channel names or IDs this agent handles, or `"*"` for all
+- `processTimeoutMs`: Per-agent subprocess timeout override (inherits from `sessions` if not set)
 
 </details>
 
 <details>
-<summary><strong>sessions</strong></summary>
+<summary><strong>sessions</strong> - Session lifecycle</summary>
 
-| Key                | Default  | Description                                        |
-| ------------------ | -------- | -------------------------------------------------- |
-| `ttlHours`         | `24`     | Session lifetime in hours (resets on each message)  |
-| `maxConcurrent`    | `5`      | Max simultaneous agent processes                    |
-| `processTimeoutMs` | `300000` | Per-request timeout in milliseconds                 |
+```json
+"sessions": {
+  "ttlHours": 24,
+  "maxConcurrent": 5,
+  "processTimeoutMs": 300000
+}
+```
 
-</details>
-
-<details>
-<summary><strong>browser</strong></summary>
-
-| Key             | Default          | Description                                    |
-| --------------- | ---------------- | ---------------------------------------------- |
-| `enabled`       | `false`          | Enable Playwright MCP for the agent            |
-| `mcpConfigPath` | `null`           | Path to your MCP config (relative or absolute) |
-| `vncPort`       | `5900`           | VNC server port                                |
-| `novncPort`     | `6080`           | Upstream noVNC WebSocket port                  |
-| `novncHost`     | `"localhost"`    | Upstream noVNC host (e.g. `"vm"` in Docker)    |
-
-Browser mode is controlled by the `BROWSER_MODE` environment variable, not the config file. See the environment variables section below.
+- `ttlHours`: Session lifetime in hours (resets on each message)
+- `maxConcurrent`: Max simultaneous agent processes
+- `processTimeoutMs`: Per-request timeout in milliseconds
 
 </details>
 
 <details>
-<summary><strong>birds</strong></summary>
+<summary><strong>browser</strong> - Playwright MCP and VNC</summary>
 
-| Key           | Default | Description                                   |
-| ------------- | ------- | --------------------------------------------- |
-| `maxAttempts` | `3`     | Max job attempts before a bird stops retrying |
+```json
+"browser": {
+  "enabled": false,
+  "mcpConfigPath": null,
+  "vncPort": 5900,
+  "novncPort": 6080,
+  "novncHost": "localhost"
+}
+```
 
-Each bird also supports per-bird `active_hours_start` and `active_hours_end` (HH:MM format), set via CLI `--active-hours 09:00-17:00` or the API. When configured, the bird only runs during that time window in its configured timezone. Wrap-around windows (e.g. `22:00-06:00`) are supported.
+- `enabled`: Enable Playwright MCP for the agent
+- `mcpConfigPath`: Path to your MCP config (relative or absolute)
+- `vncPort`: VNC server port
+- `novncPort`: Upstream noVNC WebSocket port
+- `novncHost`: Upstream noVNC host (e.g. `"vm"` in Docker)
+
+Browser mode (`persistent` or `isolated`) is controlled by the `BROWSER_MODE` environment variable, not the config file.
 
 </details>
 
 <details>
-<summary><strong>database</strong></summary>
+<summary><strong>birds</strong> - Scheduled task settings</summary>
 
-| Key                     | Default | Description                                            |
-| ----------------------- | ------- | ------------------------------------------------------ |
-| `retentionDays` | `30` | How long to keep messages, flight logs, jobs, and logs |
+```json
+"birds": {
+  "maxAttempts": 3
+}
+```
+
+- `maxAttempts`: Max job attempts before a bird stops retrying
+
+Each bird supports per-bird active hours set via CLI `--active-hours 09:00-17:00` or the API. Wrap-around windows (e.g. `22:00-06:00`) are supported.
 
 </details>
 
 <details>
-<summary><strong>web</strong></summary>
+<summary><strong>database</strong> - Retention policy</summary>
 
-| Key          | Default       | Description                                                    |
-| ------------ | ------------- | -------------------------------------------------------------- |
-| `enabled`    | `true`        | Enable the web dashboard and API                               |
-| `host`       | `"127.0.0.1"` | Bind address (`0.0.0.0` for Docker/remote)                     |
-| `port`       | `18800`       | Web UI and REST API port                                       |
-| `corsOrigin` | none          | Allowed origin for CORS headers (for cross-origin SPA hosting) |
+```json
+"database": {
+  "retentionDays": 30
+}
+```
 
-Authentication is handled via the web UI. On first visit, you create an email + password account. All subsequent visits require login.
+- `retentionDays`: How long to keep messages, flight logs, jobs, and logs
 
 </details>
 
-### Environment variables
+<details>
+<summary><strong>web</strong> - Dashboard and API server</summary>
 
-Any string value in `browserbird.json` can reference an environment variable with `"env:VAR_NAME"`. The variable name is yours to choose. The example config uses the conventional names below, but `"env:MY_SLACK_TOKEN"` works just as well as `"env:SLACK_BOT_TOKEN"`.
+```json
+"web": {
+  "enabled": true,
+  "host": "127.0.0.1",
+  "port": 18800,
+  "corsOrigin": ""
+}
+```
 
-| Variable                      | Description                                                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                                                                |
-| `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
-| `BROWSER_MODE`                | `persistent` (default) or `isolated`. Controls Playwright MCP context mode across both containers. `persistent` saves logins across sessions (one agent at a time). `isolated` gives each session a fresh context (parallel agents, no saved state). Requires container restart to take effect |
-| `ANTHROPIC_API_KEY`           | Anthropic API key. Used by both claude and opencode providers. Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
-| `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. Get one at [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys). See note below |
-| `BROWSERBIRD_CONFIG`          | Path to `browserbird.json`. Overridden by `--config` flag. In Docker, defaults to the persistent volume so config survives image upgrades |
-| `NO_COLOR`                    | Disable colored output                                                                                              |
+- `enabled`: Enable the web dashboard and API
+- `host`: Bind address (`0.0.0.0` for Docker/remote)
+- `port`: Web UI and REST API port
+- `corsOrigin`: Allowed origin for CORS headers (for cross-origin SPA hosting)
 
-The **opencode** provider inherits standard env vars per model provider. Set `OPENAI_API_KEY` for OpenAI models, `GEMINI_API_KEY` for Google, `OPENROUTER_API_KEY` for OpenRouter, etc. See the full list at [models.dev](https://models.dev).
+Authentication is handled via the web UI. On first visit, you create an account. All subsequent visits require login.
+
+</details>
+
+### Environment Variables
+
+| Variable                  | Description                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| `SLACK_BOT_TOKEN`         | Bot user OAuth token                                                                             |
+| `SLACK_APP_TOKEN`         | App-level token for Socket Mode                                                                  |
+| `ANTHROPIC_API_KEY`       | Anthropic API key (pay-per-token). Used by both claude and opencode providers                    |
+| `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for claude provider only (uses your Claude Pro/Max subscription)                     |
+| `BROWSER_MODE`            | `persistent` (default) or `isolated`. Requires container restart                                 |
+| `BROWSERBIRD_CONFIG`      | Path to `browserbird.json`. Overridden by `--config` flag                                        |
+| `NO_COLOR`                | Disable colored output                                                                           |
+
+The **opencode** provider inherits standard env vars per model provider: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, etc. See the full list at [models.dev](https://models.dev).
 
 > [!NOTE]
 > **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use (claude provider only). When both are set, the claude provider uses OAuth and the opencode provider uses the API key.
 
 ## CLI
 
-```bash
-browserbird                        # Start the daemon
-browserbird doctor                 # Check agent CLIs and Node.js version
-browserbird config                 # View merged configuration
+```
+$ browserbird --help
+
+   .__.
+   ( ^>
+   / )\
+  <_/_/
+   " "
+usage: browserbird [command] [options]
+
+commands:
+
+  sessions    manage sessions
+  birds       manage scheduled birds
+  config      view configuration
+  database    database maintenance and inspection
+  doctor      check system dependencies
+
+options:
+
+  -h, --help     show this help
+  -v, --version  show version
+  --verbose      enable debug logging
+  --config       config file path
+
+run 'browserbird <command> --help' for command-specific options.
 ```
 
-### Birds
+## Web UI
+
+Runs at `http://localhost:18800` by default.
+
+| Page         | Description                                                                        |
+| ------------ | ---------------------------------------------------------------------------------- |
+| **Status**   | System overview, failing birds, upcoming runs, active sessions                     |
+| **Sessions** | Session list with message history, token usage, and conversation detail            |
+| **Birds**    | Scheduled birds: create, edit, enable/disable, trigger, inline flight history      |
+| **Browser**  | Live noVNC viewer (Docker only)                                                    |
+| **Settings** | Config editor, agent management, secrets, system birds, job queue, and log viewer  |
+
+## Development
 
 ```bash
-browserbird birds list
-browserbird birds add "0 9 * * 1-5" "Summarize what happened in #general yesterday" --channel C123456
-browserbird birds add "@daily" "Check the status page and report any incidents" --agent code-reviewer
-browserbird birds add "*/30 * * * *" "Monitor uptime" --active-hours "09:00-17:00"
-browserbird birds edit <id> --schedule "0 8 * * *" --agent support-bot
-browserbird birds edit <id> --active-hours "08:00-22:00"
-browserbird birds enable <id>
-browserbird birds disable <id>
-browserbird birds remove <id>
-browserbird birds fly <id>
-browserbird birds flights <id>
+git clone https://github.com/Owloops/browserbird.git
+cd browserbird
+npm ci
 ```
 
-Supported formats: standard 5-field cron (`* * * * *`) and macros (`@daily`, `@hourly`, `@weekly`, `@monthly`).
-
-### Sessions
+### Run locally
 
 ```bash
-browserbird sessions list
-browserbird sessions logs <id>
+cd web && npm ci && npm run build && cd ..
+./bin/browserbird
 ```
 
-### Database
+### Docker (build locally)
 
 ```bash
-browserbird database logs
-browserbird database logs --level warn --limit 50
-browserbird database jobs
-browserbird database jobs stats
-browserbird database jobs retry <id>
-browserbird database jobs retry --all-failed
-browserbird database jobs delete <id>
-browserbird database jobs clear --completed
-browserbird database jobs clear --failed
+cp .env.example .env
+docker compose -f oci/compose.yml up -d --build
 ```
 
-## Web Dashboard
+### Checks
 
-Runs at `http://localhost:18800` by default. Real-time updates via SSE.
+```bash
+npm run typecheck          # tsc --noEmit
+npm run lint               # eslint
+npm run format:check       # prettier
+npm test                   # node --test
+```
 
-| Page         | Description                                                                                          |
-| ------------ | ---------------------------------------------------------------------------------------------------- |
-| **Status**   | System stats, failing birds, upcoming runs, active sessions                                          |
-| **Sessions** | Agent sessions with message counts, clickable to inspect full conversation history and token usage    |
-| **Birds**    | Scheduled birds: create, edit, enable/disable, trigger, inline flight history                        |
-| **Flights**  | Flight log across all birds, with status filter and per-flight retry                                 |
-| **Browser**  | Live noVNC viewer (Docker only)                                                                      |
-| **Settings** | Secrets (Slack tokens, API keys), agents, sessions, slack, browser, database. Job queue and log viewer in a separate Database tab |
+Web UI (from `web/`):
+
+```bash
+npm run check              # svelte-check
+npm run format:check       # prettier
+```
 
 ## License
 
