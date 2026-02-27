@@ -14,22 +14,9 @@ Slack-connected AI agent orchestrator with a real browser and a scheduler.
 
 <video src="https://github.com/user-attachments/assets/c71791c3-ba1c-4590-8931-f3adc2dcac2d" autoplay loop muted playsinline></video>
 
-Owloops has been building browser automation tools since 2020. Hand-written CSS selectors broke on every layout change. A chrome recorder helped with selector discovery but not with breakage. An LLM agent loop in a Chrome extension solved that by understanding the task instead of memorizing steps, but it ran inside the browser with no server, no scheduling, and no persistence.
+Owloops has been building browser automation tools since 2020. BrowserBird is the latest, written from scratch with lessons learned from earlier projects: [Owloops/flybird](https://github.com/Owloops/flybird), [Owloops/owloops-chrome-recorder](https://github.com/Owloops/owloops-chrome-recorder), [Owloops/owloops-extension](https://github.com/Owloops/owloops-extension).
 
-BrowserBird is the server-side version. It connects Slack to an agent CLI with a Chromium browser controlled via Playwright MCP, a cron scheduler, session persistence, and a web dashboard. BrowserBird handles the thin orchestration layer; the agent handles reasoning, memory, tools, and sub-agents.
-
-Earlier projects: [flybird](https://github.com/Owloops/flybird), [chrome-recorder](https://github.com/Owloops/owloops-chrome-recorder), [browser extension](https://github.com/Owloops/owloops-extension).
-
-## Features
-
-- **Browser control.** The agent controls a real Chromium browser via Playwright MCP. Watch it work live through the built-in VNC viewer.
-- **Streaming.** Agent output streams into Slack in real time. Tool use renders as task cards inline.
-- **Scheduled tasks.** Birds are prompts on a cron schedule. Results post back to Slack.
-- **Persistent sessions.** Each Slack thread maps to a session with carry-over context.
-- **Multi-agent routing.** Different agents per channel, each with its own model and system prompt.
-- **Job queue.** Retry-capable queue with exponential backoff.
-- **Web dashboard.** Sessions, birds, live browser, settings, and database inspection in one place.
-- **Automatic maintenance.** System birds handle database cleanup on a schedule.
+It connects Slack to an agent CLI with a Chromium browser controlled via Playwright MCP, a cron scheduler, session persistence, and a web dashboard. BrowserBird handles the thin orchestration layer; the agent handles reasoning, memory, tools, and sub-agents.
 
 ## Installation
 
