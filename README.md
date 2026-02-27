@@ -12,6 +12,8 @@ Slack-connected AI agent orchestrator with a real browser and a scheduler.
 
 </div>
 
+https://github.com/user-attachments/assets/c71791c3-ba1c-4590-8931-f3adc2dcac2d
+
 Owloops has been building browser automation tools since 2020. Hand-written CSS selectors broke on every layout change. A chrome recorder helped with selector discovery but not with breakage. An LLM agent loop in a Chrome extension solved that by understanding the task instead of memorizing steps, but it ran inside the browser with no server, no scheduling, and no persistence.
 
 BrowserBird is the server-side version. It connects Slack to an agent CLI with a Chromium browser controlled via Playwright MCP, a cron scheduler, session persistence, and a web dashboard. BrowserBird handles the thin orchestration layer; the agent handles reasoning, memory, tools, and sub-agents.
