@@ -1,4 +1,4 @@
-/** @fileoverview WebSocket proxy for VNC — tunnels browser connections to upstream noVNC. */
+/** @fileoverview WebSocket proxy for VNC: tunnels browser connections to upstream noVNC. */
 
 import { connect } from 'node:net';
 import type { IncomingMessage } from 'node:http';

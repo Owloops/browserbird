@@ -61,7 +61,7 @@ describe('opencode parseStreamLine', () => {
     opencode.parseStreamLine(
       '{"type":"step_start","timestamp":1003000,"sessionID":"ses_multi","part":{"sessionID":"ses_multi","type":"step-start"}}',
     );
-    // Step 2: finish (stop — final)
+    // Step 2: finish (stop, final)
     const events = opencode.parseStreamLine(
       JSON.stringify({
         type: 'step_finish',

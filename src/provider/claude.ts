@@ -1,4 +1,4 @@
-/** @fileoverview Claude Code CLI provider — arg building and stream-json parsing. */
+/** @fileoverview Claude Code CLI provider: arg building and stream-json parsing. */
 
 import type { ProviderModule, SpawnOptions, ProviderCommand } from './types.ts';
 import type { StreamEvent, ToolImage } from './stream.ts';
@@ -53,7 +53,7 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
 
 /**
  * Parses a single line of stream-json output into zero or more StreamEvents.
- * Only extracts text, images, completion, and error events — tool use/result
+ * Only extracts text, images, completion, and error events. Tool use/result
  * events are internal to the agent and not surfaced to the channel layer.
  */
 function parseStreamLine(line: string): StreamEvent[] {

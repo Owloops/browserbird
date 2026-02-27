@@ -1,4 +1,4 @@
-/** @fileoverview Database command — maintenance, logs, and job queue inspection. */
+/** @fileoverview Database command: maintenance, logs, and job queue inspection. */
 
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';

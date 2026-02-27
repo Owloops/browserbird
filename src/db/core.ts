@@ -269,7 +269,7 @@ function setSchemaVersion(d: DatabaseSync, version: number): void {
 
 /**
  * Runs pending migrations inside a transaction.
- * Safe to call on every startup — already-applied migrations are skipped.
+ * Safe to call on every startup; already-applied migrations are skipped.
  */
 function migrate(d: DatabaseSync): void {
   const current = getSchemaVersion(d);

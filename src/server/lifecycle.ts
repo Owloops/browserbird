@@ -1,4 +1,4 @@
-/** @fileoverview Web server lifecycle — creation, request routing, and shutdown. */
+/** @fileoverview Web server lifecycle: creation, request routing, and shutdown. */
 
 import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse, Server } from 'node:http';

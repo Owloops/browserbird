@@ -1,4 +1,4 @@
-/** @fileoverview Server-Sent Events — connection management and broadcasting. */
+/** @fileoverview Server-Sent Events: connection management and broadcasting. */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Config } from '../core/types.ts';

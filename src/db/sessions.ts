@@ -1,4 +1,4 @@
-/** @fileoverview Session persistence — channel-to-agent session mapping. */
+/** @fileoverview Session persistence: channel-to-agent session mapping. */
 
 import type { PaginatedResult } from './core.ts';
 import type { MessageRow } from './messages.ts';

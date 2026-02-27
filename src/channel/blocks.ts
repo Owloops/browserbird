@@ -6,7 +6,7 @@ import { shortUid } from '../core/uid.ts';
 
 /**
  * Slack Block Kit block types used throughout the channel layer.
- * Intentionally minimal — only the shapes we actually construct.
+ * Intentionally minimal, only the shapes we actually construct.
  */
 
 interface PlainText {
@@ -173,10 +173,10 @@ export function formatCost(usd: number): string {
 }
 
 const SUBTYPE_LABELS: Record<string, string> = {
-  error_max_turns: ':warning: Hit turn limit',
-  error_max_budget_usd: ':warning: Hit budget limit',
-  error_during_execution: ':x: Error during execution',
-  error_max_structured_output_retries: ':x: Structured output failed',
+  error_max_turns: 'Warning: Hit turn limit',
+  error_max_budget_usd: 'Warning: Hit budget limit',
+  error_during_execution: 'Error during execution',
+  error_max_structured_output_retries: 'Structured output failed',
 };
 
 /**
@@ -195,19 +195,19 @@ export function completionFooterBlocks(
 
   const subtypeLabel = SUBTYPE_LABELS[completion.subtype];
   if (subtypeLabel) parts.push(subtypeLabel);
-  if (hasError) parts.push(':x: Error');
+  if (hasError) parts.push('Error');
 
   if (userId) parts.push(`Requested by <@${userId}>`);
   parts.push(formatDuration(completion.durationMs));
   parts.push(`${completion.numTurns} turn${completion.numTurns === 1 ? '' : 's'}`);
   if (birdName) parts.push(birdName);
 
-  return [divider(), context(parts.join('  \u00b7  '))];
+  return [divider(), context(parts.join('  |  '))];
 }
 
 /**
  * Standalone completion card for cron/bird results posted to a channel
- * (not in a streaming thread — these need full context).
+ * (not in a streaming thread; these need full context).
  */
 export function sessionCompleteBlocks(
   completion: StreamEventCompletion,
@@ -216,7 +216,7 @@ export function sessionCompleteBlocks(
   userId?: string,
 ): Block[] {
   const subtypeLabel = SUBTYPE_LABELS[completion.subtype];
-  const statusText = subtypeLabel ?? ':white_check_mark: Success';
+  const statusText = subtypeLabel ?? 'Success';
   const headerText = completion.subtype === 'success' ? 'Session Complete' : 'Session Ended';
 
   const blocks: Block[] = [
@@ -256,7 +256,7 @@ export function sessionErrorBlocks(
 
   const sectionBlock: SectionBlock = {
     type: 'section',
-    text: mrkdwn(`:x: *${truncate(errorMessage, 200)}*`),
+    text: mrkdwn(`*Error: ${truncate(errorMessage, 200)}*`),
   };
 
   if (opts?.sessionUid) {
@@ -282,14 +282,14 @@ export function sessionErrorBlocks(
 
 export function busyBlocks(activeCount: number, maxConcurrent: number): Block[] {
   return [
-    section(':warning: *Too many active sessions*'),
+    section('*Too many active sessions*'),
     context(`${activeCount}/${maxConcurrent} slots in use. Try again shortly.`),
   ];
 }
 
 export function noAgentBlocks(channelId: string): Block[] {
   return [
-    section(':grey_question: *No agent configured for this channel*'),
+    section('*No agent configured for this channel*'),
     context(`Channel: \`${channelId}\``),
   ];
 }
@@ -392,7 +392,7 @@ export function birdListBlocks(
 ): Block[] {
   if (birds.length === 0) {
     return [
-      section(':bird: *No birds configured*'),
+      section('*No birds configured*'),
       context('Use `/bird create` to create your first bird.'),
     ];
   }
@@ -400,7 +400,7 @@ export function birdListBlocks(
   const blocks: Block[] = [header('Active Birds')];
 
   for (const bird of birds) {
-    const status = bird.enabled ? ':large_green_circle:' : ':white_circle:';
+    const status = bird.enabled ? '[on]' : '[off]';
     const lastRun = bird.lastStatus ?? 'never';
     blocks.push(
       section(
@@ -426,7 +426,7 @@ export function birdLogsBlocks(
 ): Block[] {
   if (flights.length === 0) {
     return [
-      section(`:bird: *${birdName}* — No flights yet`),
+      section(`*${birdName}* - No flights yet`),
       context('Trigger with `/bird fly ${birdName}`'),
     ];
   }
@@ -436,14 +436,14 @@ export function birdLogsBlocks(
   const lines = flights.map((f) => {
     const icon =
       f.status === 'success'
-        ? ':white_check_mark:'
+        ? '[ok]'
         : f.status === 'running'
-          ? ':hourglass_flowing_sand:'
-          : ':x:';
-    const duration = f.durationMs ? formatDuration(f.durationMs) : '—';
+          ? '[...]'
+          : '[err]';
+    const duration = f.durationMs ? formatDuration(f.durationMs) : '-';
     const age = formatAge(f.startedAt);
     const detail = f.error ? truncate(f.error, 80) : duration;
-    return `${icon}  ${shortUid(f.uid)} \`${detail}\` — ${age} ago`;
+    return `${icon}  ${shortUid(f.uid)} \`${detail}\` - ${age} ago`;
   });
 
   blocks.push(section(lines.join('\n')));
@@ -465,7 +465,7 @@ function formatAge(isoDate: string): string {
 
 export function birdFlyBlocks(birdName: string, userId: string): Block[] {
   return [
-    section(`:bird: *${birdName}* is taking flight...`),
+    section(`*${birdName}* is taking flight...`),
     context(`Triggered by <@${userId}>`),
   ];
 }
@@ -477,9 +477,7 @@ export function statusBlocks(opts: {
   birdCount: number;
   uptime: string;
 }): Block[] {
-  const slackStatus = opts.slackConnected
-    ? ':large_green_circle: Connected'
-    : ':red_circle: Disconnected';
+  const slackStatus = opts.slackConnected ? 'Connected' : 'Disconnected';
 
   return [
     header('BrowserBird Status'),

@@ -1,4 +1,4 @@
-/** @fileoverview Sessions command — list and inspect claude sessions. */
+/** @fileoverview Sessions command: list and inspect claude sessions. */
 
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';

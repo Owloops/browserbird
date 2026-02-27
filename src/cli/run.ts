@@ -1,4 +1,4 @@
-/** @fileoverview CLI entry point — argument parsing and command routing. */
+/** @fileoverview CLI entry point: argument parsing and command routing. */
 
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';

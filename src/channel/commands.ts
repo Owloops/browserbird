@@ -135,8 +135,7 @@ export async function handleSlashCommand(
       }
 
       db.setCronJobEnabled(bird.uid, enabling);
-      const icon = enabling ? ':large_green_circle:' : ':white_circle:';
-      await say({ text: `${icon} *${bird.name}* ${subcommand}d.` });
+      await say({ text: `*${bird.name}* ${subcommand}d.` });
       logger.info(`/bird ${subcommand}: ${bird.name} by ${body.user_id}`);
       break;
     }
@@ -204,13 +203,13 @@ export async function handleSlashCommand(
         text: [
           '*Usage:* `/bird <command>`',
           '',
-          '`/bird list` \u2014 Show all configured birds',
-          '`/bird fly <name>` \u2014 Trigger a bird immediately',
-          '`/bird logs <name>` \u2014 Show recent flights',
-          '`/bird enable <name>` \u2014 Enable a bird',
-          '`/bird disable <name>` \u2014 Disable a bird',
-          '`/bird create` \u2014 Create a new bird (opens form)',
-          '`/bird status` \u2014 Show daemon status',
+          '`/bird list` - Show all configured birds',
+          '`/bird fly <name>` - Trigger a bird immediately',
+          '`/bird logs <name>` - Show recent flights',
+          '`/bird enable <name>` - Enable a bird',
+          '`/bird disable <name>` - Disable a bird',
+          '`/bird create` - Create a new bird (opens form)',
+          '`/bird status` - Show daemon status',
         ].join('\n'),
       });
   }

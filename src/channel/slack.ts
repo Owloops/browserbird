@@ -1,4 +1,4 @@
-/** @fileoverview Slack adapter — SocketModeClient + WebClient, streaming, and assistant APIs. */
+/** @fileoverview Slack adapter: SocketModeClient + WebClient, streaming, and assistant APIs. */
 
 import type { Config, SlackConfig } from '../core/types.ts';
 import type {
@@ -512,7 +512,7 @@ async function handleBirdCreateSubmission(
 
     await webClient.chat.postMessage({
       channel: channelId || 'general',
-      text: `:bird: Bird *${name}* created! Schedule: \`${schedule}\``,
+      text: `Bird *${name}* created. Schedule: \`${schedule}\``,
     });
 
     logger.info(`bird created via modal: ${name}`);

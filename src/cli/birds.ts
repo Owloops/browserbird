@@ -1,4 +1,4 @@
-/** @fileoverview Birds command — manage scheduled birds (cron jobs). */
+/** @fileoverview Birds command: manage scheduled birds (cron jobs). */
 
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';

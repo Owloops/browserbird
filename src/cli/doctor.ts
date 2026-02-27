@@ -1,4 +1,4 @@
-/** @fileoverview Doctor command — checks system dependencies. */
+/** @fileoverview Doctor command: checks system dependencies. */
 
 import { execFileSync } from 'node:child_process';
 import { logger } from '../core/logger.ts';

@@ -1,4 +1,4 @@
-/** @fileoverview Main orchestrator process — starts all subsystems and handles graceful shutdown. */
+/** @fileoverview Main orchestrator process: starts all subsystems and handles graceful shutdown. */
 
 import { logger } from './core/logger.ts';
 import { loadConfig, loadDotEnv, hasSlackTokens } from './config.ts';

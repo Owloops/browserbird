@@ -139,7 +139,7 @@
         Prev
       </button>
       <span class="pg-info">
-        Page {page} of {totalPages}{totalItems != null ? ` · ${totalItems} total` : ''}
+        Page {page} of {totalPages}{totalItems != null ? ` | ${totalItems} total` : ''}
       </span>
       <button
         class="pg-btn"

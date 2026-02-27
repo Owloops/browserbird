@@ -1,4 +1,4 @@
-/** @fileoverview OpenCode CLI provider — arg building, workspace setup, and JSON stream parsing. */
+/** @fileoverview OpenCode CLI provider: arg building, workspace setup, and JSON stream parsing. */
 
 import { mkdirSync, writeFileSync, readFileSync, copyFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -136,11 +136,11 @@ function accumulateStep(sessionId: string, part: Record<string, unknown>): void 
  * Parses a single line of opencode JSON output into zero or more StreamEvents.
  *
  * OpenCode emits these event types:
- *   step_start  → init (first one carries sessionID)
- *   text        → text_delta
- *   tool_use    → ignored (internal to the agent)
- *   step_finish → accumulates tokens/cost; final one (reason "stop") emits completion
- *   error       → error (connection/auth failures)
+ *   step_start  -> init (first one carries sessionID)
+ *   text        -> text_delta
+ *   tool_use    -> ignored (internal to the agent)
+ *   step_finish -> accumulates tokens/cost; final one (reason "stop") emits completion
+ *   error       -> error (connection/auth failures)
  */
 function parseStreamLine(line: string): StreamEvent[] {
   const trimmed = line.trim();

@@ -1,4 +1,4 @@
-/** @fileoverview HTTP utilities — response helpers, auth, body parsing, and shared types. */
+/** @fileoverview HTTP utilities: response helpers, auth, body parsing, and shared types. */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getUserCount } from '../db/auth.ts';

@@ -1,4 +1,4 @@
-/** @fileoverview Barrel re-export — keeps all existing import sites working. */
+/** @fileoverview Barrel re-export: keeps all existing import sites working. */
 
 export * from './core.ts';
 export * from './sessions.ts';

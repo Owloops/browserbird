@@ -1,4 +1,4 @@
-/** @fileoverview Work queue — persistent job scheduling and processing. */
+/** @fileoverview Work queue: persistent job scheduling and processing. */
 
 import type { PaginatedResult } from './core.ts';
 import { getDb, paginate, transaction, DEFAULT_PER_PAGE } from './core.ts';

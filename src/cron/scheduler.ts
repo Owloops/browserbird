@@ -1,4 +1,4 @@
-/** @fileoverview Cron scheduler — evaluates cron jobs every 60s and enqueues due jobs. */
+/** @fileoverview Cron scheduler: evaluates cron jobs every 60s and enqueues due jobs. */
 
 import type { Config } from '../core/types.ts';
 import type { Block } from '../channel/blocks.ts';

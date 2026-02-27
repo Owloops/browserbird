@@ -1,4 +1,4 @@
-/** @fileoverview Shared utilities — formatting, time ranges, and CLI table output. */
+/** @fileoverview Shared utilities: formatting, time ranges, and CLI table output. */
 
 const BIRD_NAME_MAX_LENGTH = 50;
 

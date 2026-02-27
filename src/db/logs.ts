@@ -1,4 +1,4 @@
-/** @fileoverview Structured log persistence — queryable via web UI. */
+/** @fileoverview Structured log persistence: queryable via web UI. */
 
 import type { PaginatedResult } from './core.ts';
 import { getDb, paginate, DEFAULT_PER_PAGE } from './core.ts';

@@ -1,4 +1,4 @@
-/** @fileoverview Core orchestration — session resolution, spawn, stream-to-channel. */
+/** @fileoverview Core orchestration: session resolution, spawn, stream-to-channel. */
 
 import type { Config } from '../core/types.ts';
 import type { CoalesceDispatch } from './coalesce.ts';
@@ -110,7 +110,7 @@ export function createHandler(
           hasError = true;
           logger.error(`agent error: ${event.error}`);
           db.insertLog('error', 'spawn', event.error, channelId);
-          await streamer.append({ markdown_text: `\n\n:x: ${event.error}` });
+          await streamer.append({ markdown_text: `\n\nError: ${event.error}` });
           break;
       }
     }

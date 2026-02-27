@@ -1,4 +1,4 @@
-/** @fileoverview Message logging — message audit trail and token tracking. */
+/** @fileoverview Message logging: message audit trail and token tracking. */
 
 import { getDb } from './core.ts';
 

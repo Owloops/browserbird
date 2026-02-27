@@ -1,4 +1,4 @@
-/** @fileoverview Settings command — display full configuration. */
+/** @fileoverview Settings command: display full configuration. */
 
 import { parseArgs } from 'node:util';
 import { loadConfig } from '../config.ts';

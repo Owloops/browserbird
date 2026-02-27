@@ -1,4 +1,4 @@
-/** @fileoverview Session router — maps Slack threads to CLI sessions. */
+/** @fileoverview Session router: maps Slack threads to CLI sessions. */
 
 import type { AgentConfig, Config } from '../core/types.ts';
 import type { SessionRow } from '../db/index.ts';
@@ -7,7 +7,7 @@ import * as db from '../db/index.ts';
 
 /**
  * Matches an incoming message to the correct agent based on channel config.
- * Agents are checked in order — first match wins.
+ * Agents are checked in order; first match wins.
  * A wildcard `"*"` in the agent's channels array matches everything.
  */
 export function matchAgent(channelId: string, agents: AgentConfig[]): AgentConfig | undefined {
