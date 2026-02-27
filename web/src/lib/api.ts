@@ -148,11 +148,7 @@ export async function saveAgentConfig(data: {
   return api('/api/onboarding/agent', { method: 'POST', body: data });
 }
 
-export async function saveAuthConfig(data: {
-  provider: string;
-  apiKey: string;
-  envVar?: string;
-}): Promise<{ valid: boolean }> {
+export async function saveAuthConfig(data: { apiKey: string }): Promise<{ valid: boolean }> {
   return api('/api/onboarding/auth', { method: 'POST', body: data });
 }
 

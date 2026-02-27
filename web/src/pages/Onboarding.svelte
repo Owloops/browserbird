@@ -16,7 +16,7 @@
 
   let { oncomplete }: Props = $props();
 
-  const STEPS = ['Slack', 'Agent', 'Browser', 'Launch'] as const;
+  const STEPS = ['Slack', 'Agent', 'Browser'] as const;
   const SLACK_APPS_URL = 'https://api.slack.com/apps';
   const MANIFEST_URL = 'https://raw.githubusercontent.com/Owloops/browserbird/main/manifest.json';
 
@@ -33,7 +33,6 @@
     maxTurns: 50,
     channels: ['*'],
     apiKey: '',
-    envVar: 'ANTHROPIC_API_KEY',
   });
   let browserData = $state({ enabled: false, mode: 'persistent' });
 
@@ -56,20 +55,6 @@
         /* defaults are pre-filled, not critical */
       });
   });
-
-  const envVarLabel = $derived(
-    agentData.provider === 'opencode' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY',
-  );
-
-  $effect(() => {
-    agentData.envVar = envVarLabel;
-  });
-
-  const apiKeyHint = $derived(
-    agentData.provider === 'opencode'
-      ? 'Get one at platform.openai.com/api-keys'
-      : 'Get one at console.anthropic.com/settings/keys',
-  );
 
   async function handleSlackSubmit(e: SubmitEvent): Promise<void> {
     e.preventDefault();
@@ -109,11 +94,7 @@
         maxTurns: agentData.maxTurns,
         channels: agentData.channels,
       });
-      await saveAuthConfig({
-        provider: agentData.provider,
-        apiKey: agentData.apiKey.trim(),
-        envVar: agentData.envVar,
-      });
+      await saveAuthConfig({ apiKey: agentData.apiKey.trim() });
       step = 2;
     } catch (err) {
       error = (err as Error).message;
@@ -143,12 +124,14 @@
     step = 3;
   }
 
+  let launched = $state(false);
+
   async function handleLaunch(): Promise<void> {
     loading = true;
     error = '';
     try {
       await completeOnboarding();
-      step = 4;
+      launched = true;
     } catch (err) {
       error = (err as Error).message;
     } finally {
@@ -188,10 +171,8 @@
         Configure Agent
       {:else if step === 2}
         Browser
-      {:else if step === 3}
-        Ready to Launch
       {:else}
-        You're all set
+        {launched ? "You're all set" : 'Review & Launch'}
       {/if}
     </h2>
 
@@ -242,7 +223,9 @@
         </button>
       </form>
     {:else if step === 1}
-      <p class="onboarding-desc">Configure the agent that will respond in Slack.</p>
+      <p class="onboarding-desc">
+        Configure your first agent. You can add more agents and change settings later.
+      </p>
       <form onsubmit={handleAgentSubmit}>
         <label class="form-label">
           Name
@@ -276,15 +259,15 @@
           <textarea class="form-textarea" rows="3" bind:value={agentData.systemPrompt}></textarea>
         </label>
         <label class="form-label">
-          {agentData.envVar}
+          Anthropic Key
           <input
             type="password"
             class="form-input"
-            placeholder="sk-..."
+            placeholder="sk-ant-..."
             autocomplete="off"
             bind:value={agentData.apiKey}
           />
-          <span class="form-hint">{apiKeyHint}</span>
+          <span class="form-hint">API key from platform.claude.com/settings/keys</span>
         </label>
         {#if error}
           <div class="login-error">{error}</div>
@@ -330,7 +313,7 @@
           </div>
         </div>
       </form>
-    {:else if step === 3}
+    {:else}
       <div class="launch-summary">
         <div class="summary-row">
           <span class="summary-label">Slack</span>
@@ -347,38 +330,41 @@
           <span class="summary-value">{browserData.enabled ? browserData.mode : 'Disabled'}</span>
         </div>
       </div>
-      {#if error}
-        <div class="login-error">{error}</div>
-      {/if}
-      <div class="onboarding-actions">
-        <button type="button" class="btn btn-outline" onclick={back}>Back</button>
-        <button type="button" class="btn btn-primary" disabled={loading} onclick={handleLaunch}>
-          {loading ? 'Starting...' : 'Start BrowserBird'}
+      {#if launched}
+        <div class="done-tips">
+          <div class="done-tip">
+            <span class="done-tip-label">Mention your bot</span>
+            <span class="done-tip-detail">@{agentData.name} in any channel</span>
+          </div>
+          <div class="done-tip">
+            <span class="done-tip-label">Direct message</span>
+            <span class="done-tip-detail">Open a DM with your bot in Slack</span>
+          </div>
+          <div class="done-tip">
+            <span class="done-tip-label">Slash commands</span>
+            <span class="done-tip-detail">Type /bird in Slack to manage scheduled tasks</span>
+          </div>
+          <div class="done-tip">
+            <span class="done-tip-label">Scheduled tasks</span>
+            <span class="done-tip-detail"
+              >Create birds from the dashboard, via /bird create, or ask your bot in Slack</span
+            >
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary onboarding-submit" onclick={oncomplete}>
+          Go to Dashboard
         </button>
-      </div>
-    {:else}
-      <p class="onboarding-desc">
-        BrowserBird is running and connected to Slack. Send a message to your bot to get started.
-      </p>
-      <div class="done-tips">
-        <div class="done-tip">
-          <span class="done-tip-label">Mention your bot</span>
-          <span class="done-tip-detail">@{agentData.name} in any configured channel</span>
+      {:else}
+        {#if error}
+          <div class="login-error">{error}</div>
+        {/if}
+        <div class="onboarding-actions">
+          <button type="button" class="btn btn-outline" onclick={back}>Back</button>
+          <button type="button" class="btn btn-primary" disabled={loading} onclick={handleLaunch}>
+            {loading ? 'Starting...' : 'Start BrowserBird'}
+          </button>
         </div>
-        <div class="done-tip">
-          <span class="done-tip-label">Direct message</span>
-          <span class="done-tip-detail">Open a DM with your bot in Slack</span>
-        </div>
-        <div class="done-tip">
-          <span class="done-tip-label">Scheduled tasks</span>
-          <span class="done-tip-detail"
-            >Create birds from the dashboard to run prompts on a schedule</span
-          >
-        </div>
-      </div>
-      <button type="button" class="btn btn-primary onboarding-submit" onclick={oncomplete}>
-        Go to Dashboard
-      </button>
+      {/if}
     {/if}
   </div>
 </div>

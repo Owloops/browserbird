@@ -680,6 +680,15 @@ export function buildRoutes(
         const botToken = body.botToken.trim();
         const appToken = body.appToken.trim();
 
+        if (!botToken.startsWith('xoxb-')) {
+          jsonError(res, 'Bot token must start with xoxb-', 400);
+          return;
+        }
+        if (!appToken.startsWith('xapp-')) {
+          jsonError(res, 'App token must start with xapp-', 400);
+          return;
+        }
+
         const { WebClient } = await import('@slack/web-api');
 
         let authResult: Awaited<ReturnType<InstanceType<typeof WebClient>['auth']['test']>>;
@@ -781,15 +790,11 @@ export function buildRoutes(
       method: 'POST',
       pattern: pathToRegex('/api/onboarding/auth'),
       async handler(req, res) {
-        let body: { provider?: string; apiKey?: string; envVar?: string };
+        let body: { apiKey?: string };
         try {
           body = await readJsonBody(req);
         } catch {
           jsonError(res, 'Invalid JSON body', 400);
-          return;
-        }
-        if (!body.provider || typeof body.provider !== 'string') {
-          jsonError(res, '"provider" is required', 400);
           return;
         }
         if (!body.apiKey || typeof body.apiKey !== 'string' || !body.apiKey.trim()) {
@@ -797,9 +802,23 @@ export function buildRoutes(
           return;
         }
 
-        const envVar = body.envVar?.trim() || 'ANTHROPIC_API_KEY';
+        const key = body.apiKey.trim();
+        let envVar: string;
+        if (key.startsWith('sk-ant-oat')) {
+          envVar = 'CLAUDE_CODE_OAUTH_TOKEN';
+        } else if (key.startsWith('sk-ant-api')) {
+          envVar = 'ANTHROPIC_API_KEY';
+        } else {
+          jsonError(
+            res,
+            'Only Anthropic keys are supported. Provide an API key (sk-ant-api...) or OAuth token (sk-ant-oat...).',
+            400,
+          );
+          return;
+        }
+
         const envPath = resolve('.env');
-        saveEnvFile(envPath, { [envVar]: body.apiKey.trim() });
+        saveEnvFile(envPath, { [envVar]: key });
         json(res, { valid: true });
       },
     },
