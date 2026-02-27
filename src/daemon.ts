@@ -11,7 +11,6 @@ import type { WebServerDeps } from './server/index.ts';
 import { startHealthChecks, getServiceHealth } from './server/health.ts';
 import type { Config } from './core/types.ts';
 import type { ChannelHandle } from './channel/types.ts';
-import { DEFAULTS } from './config.ts';
 import { resolve } from 'node:path';
 
 const controller = new AbortController();
@@ -98,7 +97,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     logger.info(`agents: ${config.agents.map((a) => a.id).join(', ')}`);
     logger.info(`max concurrent sessions: ${config.sessions.maxConcurrent}`);
     if (config.browser.enabled) {
-      logger.info(`browser mode: ${config.browser.mode}`);
+      logger.info(`browser mode: ${process.env['BROWSER_MODE'] ?? 'persistent'}`);
     }
   };
 

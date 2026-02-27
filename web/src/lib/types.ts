@@ -202,7 +202,6 @@ export interface OnboardingDefaults {
   };
   browser: {
     enabled: boolean;
-    mode: string;
   };
   doctor: DoctorResponse;
 }

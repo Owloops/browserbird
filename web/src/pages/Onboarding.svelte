@@ -34,7 +34,7 @@
     channels: ['*'],
     apiKey: '',
   });
-  let browserData = $state({ enabled: false, mode: 'persistent' });
+  let browserData = $state({ enabled: false });
 
   let defaults: OnboardingDefaults | null = $state(null);
 
@@ -49,7 +49,6 @@
         agentData.maxTurns = d.agent.maxTurns;
         agentData.channels = d.agent.channels;
         browserData.enabled = d.browser.enabled;
-        browserData.mode = d.browser.mode;
       })
       .catch(() => {
         /* defaults are pre-filled, not critical */
@@ -110,7 +109,6 @@
     try {
       await saveBrowserConfig({
         enabled: browserData.enabled,
-        mode: browserData.mode,
       });
       step = 3;
     } catch (err) {
@@ -291,15 +289,6 @@
             onToggle={() => (browserData.enabled = !browserData.enabled)}
           />
         </div>
-        {#if browserData.enabled}
-          <label class="form-label">
-            Mode
-            <select class="form-input" bind:value={browserData.mode}>
-              <option value="persistent">Persistent</option>
-              <option value="isolated">Isolated</option>
-            </select>
-          </label>
-        {/if}
         {#if error}
           <div class="login-error">{error}</div>
         {/if}
@@ -327,7 +316,7 @@
         </div>
         <div class="summary-row">
           <span class="summary-label">Browser</span>
-          <span class="summary-value">{browserData.enabled ? browserData.mode : 'Disabled'}</span>
+          <span class="summary-value">{browserData.enabled ? 'Enabled' : 'Disabled'}</span>
         </div>
       </div>
       {#if launched}

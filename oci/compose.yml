@@ -30,6 +30,7 @@ services:
     env_file: ../.env
     environment:
       - HOME=/home/bbuser
+      - BROWSER_MODE=${BROWSER_MODE:-persistent}
     depends_on:
       vm:
         condition: service_healthy

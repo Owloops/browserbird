@@ -152,10 +152,7 @@ export async function saveAuthConfig(data: { apiKey: string }): Promise<{ valid:
   return api('/api/onboarding/auth', { method: 'POST', body: data });
 }
 
-export async function saveBrowserConfig(data: {
-  enabled: boolean;
-  mode: string;
-}): Promise<{ browser: unknown }> {
+export async function saveBrowserConfig(data: { enabled: boolean }): Promise<{ browser: unknown }> {
   return api('/api/onboarding/browser', { method: 'POST', body: data });
 }
 

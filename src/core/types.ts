@@ -37,11 +37,8 @@ export interface SessionsConfig {
   processTimeoutMs: number;
 }
 
-export type BrowserMode = 'persistent' | 'isolated';
-
 export interface BrowserConfig {
   enabled: boolean;
-  mode: BrowserMode;
   mcpConfigPath: string | undefined;
   vncPort: number;
   novncPort: number;

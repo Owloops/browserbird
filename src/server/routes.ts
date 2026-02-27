@@ -125,7 +125,6 @@ function resolveBirdParam(
 }
 
 const VALID_PROVIDERS = new Set(['claude', 'opencode']);
-const VALID_BROWSER_MODES = new Set(['persistent', 'isolated']);
 
 function maskSecret(value: string | undefined): { set: boolean; hint: string } {
   if (!value) return { set: false, hint: '' };
@@ -171,7 +170,12 @@ function sanitizeConfig(config: Config): object {
       quietHours: config.slack.quietHours,
     },
     birds: config.birds,
-    browser: config.browser,
+    browser: {
+      enabled: config.browser.enabled,
+      mode: process.env['BROWSER_MODE'] ?? 'persistent',
+      vncPort: config.browser.vncPort,
+      novncPort: config.browser.novncPort,
+    },
     database: config.database,
     web: { port: config.web.port },
   };
@@ -275,9 +279,6 @@ function validateConfigPatch(body: Record<string, unknown>): string | null {
     if (typeof br !== 'object' || br == null) return '"browser" must be an object';
     if ('enabled' in br && typeof br['enabled'] !== 'boolean') {
       return '"browser.enabled" must be a boolean';
-    }
-    if ('mode' in br && !VALID_BROWSER_MODES.has(br['mode'] as string)) {
-      return `"browser.mode" must be one of: ${[...VALID_BROWSER_MODES].join(', ')}`;
     }
   }
 
@@ -961,7 +962,6 @@ export function buildRoutes(
           },
           browser: {
             enabled: DEFAULTS.browser.enabled,
-            mode: DEFAULTS.browser.mode,
           },
           doctor,
         });
@@ -1132,7 +1132,7 @@ export function buildRoutes(
       method: 'POST',
       pattern: pathToRegex('/api/onboarding/browser'),
       async handler(req, res) {
-        let body: { enabled?: boolean; mode?: string };
+        let body: { enabled?: boolean };
         try {
           body = await readJsonBody(req);
         } catch {
@@ -1144,7 +1144,6 @@ export function buildRoutes(
         const raw = loadRawConfig(configPath);
         const browser = (raw['browser'] ?? {}) as Record<string, unknown>;
         if (body.enabled !== undefined) browser['enabled'] = body.enabled;
-        if (body.mode) browser['mode'] = body.mode;
         raw['browser'] = browser;
         saveConfig(configPath, raw);
         json(res, { browser: raw['browser'] });

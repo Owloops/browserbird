@@ -540,16 +540,7 @@
       {#if config.browser.enabled}
         <div class="row">
           <span class="row-label">Mode</span>
-          <span class="row-value">
-            <select
-              class="inline-select mono"
-              value={config.browser.mode}
-              onchange={(e) => editor.saveConfigPatch({ browser: { mode: e.currentTarget.value } })}
-            >
-              <option value="persistent">persistent</option>
-              <option value="isolated">isolated</option>
-            </select>
-          </span>
+          <span class="row-value mono">{config.browser.mode}</span>
         </div>
         <div class="row">
           <span class="row-label">VNC Port</span>

@@ -6,8 +6,6 @@ import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
 
 const VALID_PROVIDERS = new Set<string>(['claude', 'opencode']);
-const VALID_BROWSER_MODES = new Set<string>(['persistent', 'isolated']);
-
 export const DEFAULTS: Config = {
   timezone: 'UTC',
   slack: {
@@ -39,7 +37,6 @@ export const DEFAULTS: Config = {
   },
   browser: {
     enabled: false,
-    mode: 'persistent',
     mcpConfigPath: undefined,
     vncPort: 5900,
     novncPort: 6080,
@@ -164,17 +161,8 @@ function validateConfig(config: Config): void {
     }
   }
 
-  if (config.browser.enabled && !VALID_BROWSER_MODES.has(config.browser.mode)) {
-    throw new Error(
-      `browser.mode "${config.browser.mode}" is invalid (expected: ${[...VALID_BROWSER_MODES].join(', ')})`,
-    );
-  }
-
-  if (
-    config.browser.enabled &&
-    config.browser.mode === 'persistent' &&
-    config.sessions.maxConcurrent > 1
-  ) {
+  const browserMode = process.env['BROWSER_MODE'] ?? 'persistent';
+  if (config.browser.enabled && browserMode === 'persistent' && config.sessions.maxConcurrent > 1) {
     logger.warn(
       'persistent browser mode with maxConcurrent > 1 will cause lock contention; use "isolated" or set maxConcurrent to 1',
     );

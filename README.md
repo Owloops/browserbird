@@ -54,17 +54,9 @@ Pre-built images are pulled from `ghcr.io/owloops/browserbird` automatically. No
 
 The stack runs two containers: a `vm` container with the Wayland compositor, VNC server, and noVNC; and a `browserbird` container with the agent CLI, Playwright MCP, and BrowserBird itself.
 
-The default image ships a single claude agent on all channels. To customize agents, mount your own config:
+On first run, open `http://<host>:18800` and complete the onboarding wizard (same as local).
 
-```yaml
-# docker-compose.override.yml
-services:
-  app:
-    volumes:
-      - ./browserbird.json:/app/oci/app/config/browserbird.json:ro
-```
-
-The browser runs in **persistent** mode by default: logins and cookies are saved across sessions, and one agent uses the browser at a time. Set `BROWSER_MODE=isolated` in your `.env` (or `browser.mode` in config) for parallel sessions with fresh contexts. In isolated mode, concurrent sessions share a single Chromium process (~20-50 MB per session on top of the ~300 MB base):
+The browser runs in **persistent** mode by default: logins and cookies are saved across sessions, and one agent uses the browser at a time. Set `BROWSER_MODE=isolated` in your `.env` for parallel sessions with fresh contexts. This is a deploy-time setting (requires container restart). In isolated mode, concurrent sessions share a single Chromium process (~20-50 MB per session on top of the ~300 MB base):
 
 | Spec | Concurrent browser sessions (isolated mode) |
 | --- | --- |
@@ -132,7 +124,7 @@ cp browserbird.example.json browserbird.json
     "processTimeoutMs": 300000
   },
   "database": { "retentionDays": 30 },
-  "browser": { "enabled": false, "mode": "persistent", "mcpConfigPath": null },
+  "browser": { "enabled": false, "mcpConfigPath": null },
   "birds": { "maxAttempts": 3 },
   "web": {
     "enabled": true,
@@ -201,11 +193,12 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 | Key             | Default          | Description                                    |
 | --------------- | ---------------- | ---------------------------------------------- |
 | `enabled`       | `false`          | Enable Playwright MCP for the agent            |
-| `mode`          | `"persistent"`   | `"persistent"` saves logins across sessions (one agent at a time). `"isolated"` gives each session a fresh context (parallel agents, no saved state). |
 | `mcpConfigPath` | `null`           | Path to your MCP config (relative or absolute) |
 | `vncPort`       | `5900`           | VNC server port                                |
 | `novncPort`     | `6080`           | Upstream noVNC WebSocket port                  |
 | `novncHost`     | `"localhost"`    | Upstream noVNC host (e.g. `"vm"` in Docker)    |
+
+Browser mode is controlled by the `BROWSER_MODE` environment variable, not the config file. See the environment variables section below.
 
 </details>
 
@@ -251,7 +244,7 @@ Any string value in `browserbird.json` can reference an environment variable wit
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `SLACK_BOT_TOKEN`             | Bot user OAuth token                                                                                                |
 | `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
-| `BROWSER_MODE`                | `persistent` (default) or `isolated`. Passed to the VM container to control Playwright MCP context mode             |
+| `BROWSER_MODE`                | `persistent` (default) or `isolated`. Controls Playwright MCP context mode across both containers. `persistent` saves logins across sessions (one agent at a time). `isolated` gives each session a fresh context (parallel agents, no saved state). Requires container restart to take effect |
 | `ANTHROPIC_API_KEY`           | Anthropic API key. Used by both claude and opencode providers. Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
 | `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. Get one at [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys). See note below |
 | `NO_COLOR`                    | Disable colored output                                                                                              |
