@@ -1,4 +1,4 @@
-/** @fileoverview Sessions command: list and inspect claude sessions. */
+/** @fileoverview Sessions command: list and inspect sessions. */
 
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
@@ -18,7 +18,7 @@ import type { SessionRow } from '../db/index.ts';
 export const SESSIONS_HELP = `
 usage: browserbird sessions <subcommand> [options]
 
-manage claude sessions.
+manage sessions.
 
 subcommands:
 

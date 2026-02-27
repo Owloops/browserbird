@@ -24,7 +24,7 @@ usage: browserbird [command] [options]
 
 commands:
 
-  sessions    manage claude sessions
+  sessions    manage sessions
   birds       manage scheduled birds
   config      view configuration
   database    database maintenance and inspection
