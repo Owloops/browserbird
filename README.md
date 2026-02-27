@@ -254,7 +254,8 @@ commands:
   sessions    manage sessions
   birds       manage scheduled birds
   config      view configuration
-  database    database maintenance and inspection
+  logs        show recent log entries
+  jobs        inspect and manage the job queue
   doctor      check system dependencies
 
 options:

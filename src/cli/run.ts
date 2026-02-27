@@ -12,8 +12,10 @@ import { handleSessions } from './sessions.ts';
 import { SESSIONS_HELP } from './sessions.ts';
 import { handleBirds } from './birds.ts';
 import { BIRDS_HELP } from './birds.ts';
-import { handleDatabase } from './database.ts';
-import { DATABASE_HELP } from './database.ts';
+import { handleLogs } from './logs.ts';
+import { LOGS_HELP } from './logs.ts';
+import { handleJobs } from './jobs.ts';
+import { JOBS_HELP } from './jobs.ts';
 import { handleConfig } from './config.ts';
 import { CONFIG_HELP } from './config.ts';
 import { handleDoctor } from './doctor.ts';
@@ -29,7 +31,8 @@ ${c('dim', 'commands:')}
   ${c('cyan', 'sessions')}    manage sessions
   ${c('cyan', 'birds')}       manage scheduled birds
   ${c('cyan', 'config')}      view configuration
-  ${c('cyan', 'database')}    database maintenance and inspection
+  ${c('cyan', 'logs')}        show recent log entries
+  ${c('cyan', 'jobs')}        inspect and manage the job queue
   ${c('cyan', 'doctor')}      check system dependencies
 
 ${c('dim', 'options:')}
@@ -45,7 +48,8 @@ const COMMAND_HELP: Record<string, string> = {
   sessions: SESSIONS_HELP,
   birds: BIRDS_HELP,
   config: CONFIG_HELP,
-  database: DATABASE_HELP,
+  logs: LOGS_HELP,
+  jobs: JOBS_HELP,
   doctor: DOCTOR_HELP,
 };
 
@@ -97,18 +101,25 @@ export async function run(argv: string[]): Promise<void> {
       }
       handleConfig(rest);
       break;
-    case COMMANDS.DATABASE:
+    case COMMANDS.LOGS:
       if (isHelp) {
-        console.log(COMMAND_HELP.database);
+        console.log(COMMAND_HELP.logs);
         return;
       }
-      handleDatabase(rest);
+      handleLogs(rest);
+      break;
+    case COMMANDS.JOBS:
+      if (isHelp) {
+        console.log(COMMAND_HELP.jobs);
+        return;
+      }
+      handleJobs(rest);
       break;
     case COMMANDS.DOCTOR:
       handleDoctor();
       break;
     default:
-      unknownSubcommand(command, '', ['sessions', 'birds', 'config', 'database', 'doctor']);
+      unknownSubcommand(command, '', ['sessions', 'birds', 'config', 'logs', 'jobs', 'doctor']);
   }
 }
 

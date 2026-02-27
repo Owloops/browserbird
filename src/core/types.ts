@@ -75,7 +75,8 @@ export const COMMANDS = {
   SESSIONS: 'sessions',
   BIRDS: 'birds',
   CONFIG: 'config',
-  DATABASE: 'database',
+  LOGS: 'logs',
+  JOBS: 'jobs',
   DOCTOR: 'doctor',
 } as const;
 
