@@ -175,6 +175,22 @@ export interface DoctorResponse {
   node: string;
 }
 
+export interface OnboardingDefaults {
+  agent: {
+    name: string;
+    provider: string;
+    model: string;
+    systemPrompt: string;
+    maxTurns: number;
+    channels: string[];
+  };
+  browser: {
+    enabled: boolean;
+    mode: string;
+  };
+  doctor: DoctorResponse;
+}
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface LogRow {

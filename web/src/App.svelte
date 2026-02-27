@@ -25,6 +25,7 @@
   import Browser from './pages/Browser.svelte';
   import Settings from './pages/Settings.svelte';
   import SessionDetail from './pages/SessionDetail.svelte';
+  import Onboarding from './pages/Onboarding.svelte';
 
   const PAGE_TITLES: Record<string, string> = {
     status: 'Status',
@@ -35,7 +36,7 @@
     settings: 'Settings',
   };
 
-  type AuthState = 'checking' | 'setup' | 'login' | 'authenticated';
+  type AuthState = 'checking' | 'setup' | 'login' | 'onboarding' | 'authenticated';
 
   let currentPage = $state(getPageFromHash());
   let authState: AuthState = $state('checking');
@@ -86,9 +87,15 @@
         authState = 'authenticated';
       } else if (getAuthToken()) {
         const valid = await verifyToken();
-        authState = valid ? 'authenticated' : 'login';
+        if (!valid) {
+          authState = 'login';
+        } else if (result.onboardingRequired) {
+          authState = 'onboarding';
+        } else {
+          authState = 'authenticated';
+        }
       } else {
-        authState = 'login';
+        authState = result.onboardingRequired ? 'login' : 'login';
       }
     });
   });
@@ -180,7 +187,8 @@
       setupEmail = '';
       setupPassword = '';
       setupConfirmPassword = '';
-      authState = 'authenticated';
+      const authCheck = await checkAuth();
+      authState = authCheck.onboardingRequired ? 'onboarding' : 'authenticated';
     } catch (err) {
       setupError = (err as Error).message;
     }
@@ -271,6 +279,12 @@
       </form>
     </div>
   </div>
+{:else if authState === 'onboarding'}
+  <Onboarding
+    oncomplete={() => {
+      authState = 'authenticated';
+    }}
+  />
 {:else}
   <div class="app">
     <Sidebar

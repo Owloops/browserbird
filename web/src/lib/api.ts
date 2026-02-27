@@ -56,9 +56,17 @@ export async function api<T>(
   return res.json() as Promise<T>;
 }
 
-export async function checkAuth(): Promise<{ setupRequired: boolean; authRequired: boolean }> {
+export async function checkAuth(): Promise<{
+  setupRequired: boolean;
+  authRequired: boolean;
+  onboardingRequired: boolean;
+}> {
   const res = await fetch(`${API_BASE}/api/auth/check`);
-  return res.json() as Promise<{ setupRequired: boolean; authRequired: boolean }>;
+  return res.json() as Promise<{
+    setupRequired: boolean;
+    authRequired: boolean;
+    onboardingRequired: boolean;
+  }>;
 }
 
 export async function login(
@@ -113,4 +121,48 @@ export function getHashParams(): URLSearchParams {
   const hash = window.location.hash.slice(2);
   const qIndex = hash.indexOf('?');
   return new URLSearchParams(qIndex === -1 ? '' : hash.slice(qIndex + 1));
+}
+
+export async function getOnboardingDefaults(): Promise<import('./types.ts').OnboardingDefaults> {
+  return api('/api/onboarding/defaults');
+}
+
+export async function validateSlackTokens(
+  botToken: string,
+  appToken: string,
+): Promise<{ valid: boolean; team: string; botUser: string }> {
+  return api('/api/onboarding/slack', {
+    method: 'POST',
+    body: { botToken, appToken },
+  });
+}
+
+export async function saveAgentConfig(data: {
+  name: string;
+  provider: string;
+  model: string;
+  systemPrompt: string;
+  maxTurns: number;
+  channels: string[];
+}): Promise<{ agents: unknown[] }> {
+  return api('/api/onboarding/agent', { method: 'POST', body: data });
+}
+
+export async function saveAuthConfig(data: {
+  provider: string;
+  apiKey: string;
+  envVar?: string;
+}): Promise<{ valid: boolean }> {
+  return api('/api/onboarding/auth', { method: 'POST', body: data });
+}
+
+export async function saveBrowserConfig(data: {
+  enabled: boolean;
+  mode: string;
+}): Promise<{ browser: unknown }> {
+  return api('/api/onboarding/browser', { method: 'POST', body: data });
+}
+
+export async function completeOnboarding(): Promise<{ success: boolean }> {
+  return api('/api/onboarding/complete', { method: 'POST', body: {} });
 }
