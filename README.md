@@ -33,8 +33,10 @@ Install globally and run on your own machine. Browser actions open in your local
 
 ```bash
 npm install -g @owloops/browserbird
-browserbird --config browserbird.json
+browserbird
 ```
+
+On first run, open `http://localhost:18800` and create an account. The onboarding wizard walks you through Slack tokens, agent config, and API key setup, then writes `browserbird.json` and `.env` for you.
 
 ### Server (Docker)
 
@@ -74,12 +76,10 @@ Agents without browser access (text-only) are lightweight (~50 MB each). `shm_si
 
 ## Slack App Setup
 
-1. Create a new Slack app at [api.slack.com/apps](https://api.slack.com/apps)
-2. Import `manifest.json` from this repo (Settings → App Manifest)
-3. Upload `web/public/logo-icon.png` as the app icon (Basic Information → Display Information)
-4. Install the app to your workspace
-5. Copy **Bot User OAuth Token** to `SLACK_BOT_TOKEN`
-6. Enable Socket Mode, copy **App-Level Token** to `SLACK_APP_TOKEN`
+1. Create a new Slack app at [api.slack.com/apps](https://api.slack.com/apps) using the [manifest.json](https://raw.githubusercontent.com/Owloops/browserbird/main/manifest.json) from this repo
+2. Upload `web/public/logo-icon.png` as the app icon (Basic Information, Display Information)
+3. Go to OAuth & Permissions, install the app to your workspace, then copy the **Bot User OAuth Token** (`xoxb-...`)
+4. Go to Basic Information, create an app-level token with the `connections:write` scope, then copy the token (`xapp-...`)
 
 ### Slash Commands
 
@@ -96,6 +96,8 @@ Once the app is installed, `/bird` is available in any channel:
 ```
 
 ## Configuration
+
+For local installs, the onboarding wizard creates `browserbird.json` and `.env` automatically. For Docker or manual setups, copy the example and edit:
 
 ```bash
 cp browserbird.example.json browserbird.json
@@ -251,7 +253,7 @@ Any string value in `browserbird.json` can reference an environment variable wit
 | `SLACK_APP_TOKEN`             | App-level token for Socket Mode                                                                                     |
 | `BROWSER_MODE`                | `persistent` (default) or `isolated`. Passed to the VM container to control Playwright MCP context mode             |
 | `ANTHROPIC_API_KEY`           | Anthropic API key. Used by both claude and opencode providers. Pay-per-token through [console.anthropic.com](https://console.anthropic.com) |
-| `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. See note below |
+| `CLAUDE_CODE_OAUTH_TOKEN`     | OAuth token for claude provider only. Uses your Claude Pro/Max subscription. Get one at [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys). See note below |
 | `NO_COLOR`                    | Disable colored output                                                                                              |
 
 The **opencode** provider inherits standard env vars per model provider. Set `OPENAI_API_KEY` for OpenAI models, `GEMINI_API_KEY` for Google, `OPENROUTER_API_KEY` for OpenRouter, etc. See the full list at [models.dev](https://models.dev).
