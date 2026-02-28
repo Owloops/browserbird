@@ -264,7 +264,7 @@ options:
   -h, --help     show this help
   -v, --version  show version
   --verbose      enable debug logging
-  --config       config file path
+  --config       config file path (env: BROWSERBIRD_CONFIG)
   --db           database file path (env: BROWSERBIRD_DB)
 
 run 'browserbird <command> --help' for command-specific options.
