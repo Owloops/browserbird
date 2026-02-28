@@ -1,11 +1,10 @@
 /** @fileoverview Logs command: show recent log entries from the database. */
 
 import { parseArgs } from 'node:util';
-import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { printTable } from '../core/utils.ts';
 import { c } from './style.ts';
-import { openDatabase, closeDatabase, getRecentLogs } from '../db/index.ts';
+import { openDatabase, closeDatabase, getRecentLogs, resolveDbPathFromArgv } from '../db/index.ts';
 
 export const LOGS_HELP = `
 ${c('cyan', 'usage:')} browserbird logs [options]
@@ -17,6 +16,7 @@ ${c('dim', 'options:')}
   ${c('yellow', '--level')} <lvl>    filter by level: error, warn, info (default: error)
   ${c('yellow', '--limit')} <n>      number of entries to show (default: 20)
   ${c('yellow', '--json')}           output as JSON
+  ${c('yellow', '--db')} <path>      database file path (env: BROWSERBIRD_DB)
   ${c('yellow', '--config')} <path>  config file path
   ${c('yellow', '-h, --help')}       show this help
 `.trim();
@@ -41,8 +41,7 @@ export function handleLogs(argv: string[]): void {
     return;
   }
 
-  const dbPath = resolve('.browserbird', 'browserbird.db');
-  openDatabase(dbPath);
+  openDatabase(resolveDbPathFromArgv(argv));
   try {
     const result = getRecentLogs(1, perPage, level ?? 'error');
     if (values.json) {

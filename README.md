@@ -230,6 +230,7 @@ Authentication is handled via the web UI. On first visit, you create an account.
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for claude provider only (uses your Claude Pro/Max subscription)                     |
 | `BROWSER_MODE`            | `persistent` (default) or `isolated`. Requires container restart                                 |
 | `BROWSERBIRD_CONFIG`      | Path to `browserbird.json`. Overridden by `--config` flag                                        |
+| `BROWSERBIRD_DB`          | Path to SQLite database file. Overridden by `--db` flag                                          |
 | `NO_COLOR`                | Disable colored output                                                                           |
 
 The **opencode** provider inherits standard env vars per model provider: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, etc. See the full list at [models.dev](https://models.dev).
@@ -264,6 +265,7 @@ options:
   -v, --version  show version
   --verbose      enable debug logging
   --config       config file path
+  --db           database file path (env: BROWSERBIRD_DB)
 
 run 'browserbird <command> --help' for command-specific options.
 ```

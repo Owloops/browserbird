@@ -1,7 +1,6 @@
 /** @fileoverview Birds command: manage scheduled birds (cron jobs). */
 
 import { parseArgs } from 'node:util';
-import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { shortUid } from '../core/uid.ts';
 import { formatDuration, deriveBirdName, printTable, unknownSubcommand } from '../core/utils.ts';
@@ -16,6 +15,7 @@ import {
   setCronJobEnabled,
   deleteCronJob,
   listFlights,
+  resolveDbPathFromArgv,
 } from '../db/index.ts';
 import type { CronJobRow } from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
@@ -46,6 +46,7 @@ ${c('dim', 'options:')}
   ${c('yellow', '--active-hours')} <range>  restrict runs to a time window (e.g. "09:00-17:00")
   ${c('yellow', '--limit')} <n>          number of flights to show (default: 10)
   ${c('yellow', '--json')}              output as JSON (with list, flights)
+  ${c('yellow', '--db')} <path>          database file path (env: BROWSERBIRD_DB)
   ${c('yellow', '-h, --help')}           show this help
 `.trim();
 
@@ -107,8 +108,7 @@ export function handleBirds(argv: string[]): void {
     strict: false,
   });
 
-  const dbPath = resolve('.browserbird', 'browserbird.db');
-  openDatabase(dbPath);
+  openDatabase(resolveDbPathFromArgv(argv));
 
   try {
     switch (subcommand) {

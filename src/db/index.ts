@@ -7,3 +7,4 @@ export * from './jobs.ts';
 export * from './messages.ts';
 export * from './logs.ts';
 export * from './auth.ts';
+export * from './path.ts';

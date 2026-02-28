@@ -3,7 +3,7 @@
 import { logger } from './core/logger.ts';
 import { BANNER } from './cli/banner.ts';
 import { loadConfig, loadDotEnv, hasSlackTokens } from './config.ts';
-import { openDatabase, closeDatabase, setSetting } from './db/index.ts';
+import { openDatabase, closeDatabase, setSetting, resolveDbPath } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
@@ -41,7 +41,7 @@ function setupShutdown(): void {
 }
 
 interface DaemonOptions {
-  flags: { verbose: boolean; config?: string };
+  flags: { verbose: boolean; config?: string; db?: string };
 }
 
 const stubDeps: WebServerDeps = {
@@ -62,7 +62,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     options.flags.config ?? process.env['BROWSERBIRD_CONFIG'] ?? 'browserbird.json',
   );
   const envPath = resolve('.env');
-  const dbPath = resolve('.browserbird', 'browserbird.db');
+  const dbPath = resolveDbPath(options.flags.db);
   openDatabase(dbPath);
   startWorker(controller.signal);
 

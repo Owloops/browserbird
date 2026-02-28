@@ -1,7 +1,6 @@
 /** @fileoverview Sessions command: list and inspect sessions. */
 
 import { parseArgs } from 'node:util';
-import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { shortUid } from '../core/uid.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
@@ -13,6 +12,7 @@ import {
   listSessions,
   getSessionMessages,
   getSessionTokenStats,
+  resolveDbPathFromArgv,
 } from '../db/index.ts';
 import type { SessionRow } from '../db/index.ts';
 
@@ -29,6 +29,7 @@ ${c('dim', 'subcommands:')}
 ${c('dim', 'options:')}
 
   ${c('yellow', '--json')}       output as JSON (with list, logs)
+  ${c('yellow', '--db')} <path>  database file path (env: BROWSERBIRD_DB)
   ${c('yellow', '-h, --help')}   show this help
 `.trim();
 
@@ -36,7 +37,7 @@ export function handleSessions(argv: string[]): void {
   const subcommand = argv[0] ?? 'list';
   const args = argv.slice(1);
 
-  const dbPath = resolve('.browserbird', 'browserbird.db');
+  const dbPath = resolveDbPathFromArgv(argv);
 
   const { values, positionals } = parseArgs({
     args,

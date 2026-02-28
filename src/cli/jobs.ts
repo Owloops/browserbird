@@ -1,7 +1,6 @@
 /** @fileoverview Jobs command: inspect and manage the job queue. */
 
 import { parseArgs } from 'node:util';
-import { resolve } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
 import { c } from './style.ts';
@@ -14,6 +13,7 @@ import {
   retryAllFailedJobs,
   deleteJob,
   clearJobs,
+  resolveDbPathFromArgv,
 } from '../db/index.ts';
 
 export const JOBS_HELP = `
@@ -37,6 +37,7 @@ ${c('dim', 'options:')}
   ${c('yellow', '--completed')}      clear completed jobs (with clear)
   ${c('yellow', '--failed')}         clear failed jobs (with clear)
   ${c('yellow', '--json')}           output as JSON (with list, stats)
+  ${c('yellow', '--db')} <path>      database file path (env: BROWSERBIRD_DB)
   ${c('yellow', '--config')} <path>  config file path
   ${c('yellow', '-h, --help')}       show this help
 `.trim();
@@ -57,8 +58,7 @@ export function handleJobs(argv: string[]): void {
   });
 
   const subcommand = positionals[0] ?? 'list';
-  const dbPath = resolve('.browserbird', 'browserbird.db');
-  openDatabase(dbPath);
+  openDatabase(resolveDbPathFromArgv(argv));
   try {
     switch (subcommand) {
       case 'list': {
