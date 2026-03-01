@@ -1,3 +1,10 @@
+## [1.0.11](https://github.com/Owloops/browserbird/compare/v1.0.10...v1.0.11) (2026-03-01)
+
+
+### Bug Fixes
+
+* **mcp:** auto-generate mcp config from browser host instead of static file ([319d699](https://github.com/Owloops/browserbird/commit/319d6990795fcfce2a7df3f53b47d02c0b2af95e))
+
 ## [1.0.10](https://github.com/Owloops/browserbird/compare/v1.0.9...v1.0.10) (2026-03-01)
 
 
