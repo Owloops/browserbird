@@ -32,12 +32,16 @@ function gracefulKill(proc: ChildProcess): void {
 /** Env vars that prevent nested Claude Code sessions. */
 const STRIPPED_ENV_VARS = ['CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT'];
 
+/** Strips env vars whose names suggest they hold credentials. */
+const SENSITIVE_NAME_RE = /KEY|SECRET|TOKEN|PASSWORD/i;
+
 function cleanEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (value != null && !STRIPPED_ENV_VARS.includes(key)) {
-      env[key] = value;
-    }
+    if (value == null) continue;
+    if (STRIPPED_ENV_VARS.includes(key)) continue;
+    if (SENSITIVE_NAME_RE.test(key)) continue;
+    env[key] = value;
   }
   return env;
 }

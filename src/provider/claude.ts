@@ -43,10 +43,13 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
 
   args.push('--dangerously-skip-permissions');
 
-  const env: Record<string, string> | undefined =
-    process.env['CLAUDE_CODE_OAUTH_TOKEN'] && process.env['ANTHROPIC_API_KEY']
-      ? { ANTHROPIC_API_KEY: '' }
-      : undefined;
+  const oauthToken = process.env['CLAUDE_CODE_OAUTH_TOKEN'];
+  const apiKey = process.env['ANTHROPIC_API_KEY'];
+  const env: Record<string, string> = oauthToken
+    ? { CLAUDE_CODE_OAUTH_TOKEN: oauthToken }
+    : apiKey
+      ? { ANTHROPIC_API_KEY: apiKey }
+      : {};
 
   return { binary: 'claude', args, env };
 }

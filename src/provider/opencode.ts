@@ -104,7 +104,17 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
 
   args.push(message);
 
-  return { binary: 'opencode', args, cwd: WORKSPACE_DIR };
+  const env: Record<string, string> = {};
+  const apiKey = process.env['ANTHROPIC_API_KEY'];
+  if (apiKey) env['ANTHROPIC_API_KEY'] = apiKey;
+  const openRouterKey = process.env['OPENROUTER_API_KEY'];
+  if (openRouterKey) env['OPENROUTER_API_KEY'] = openRouterKey;
+  const openAiKey = process.env['OPENAI_API_KEY'];
+  if (openAiKey) env['OPENAI_API_KEY'] = openAiKey;
+  const geminiKey = process.env['GEMINI_API_KEY'];
+  if (geminiKey) env['GEMINI_API_KEY'] = geminiKey;
+
+  return { binary: 'opencode', args, cwd: WORKSPACE_DIR, env };
 }
 
 interface MetricAccumulator {
