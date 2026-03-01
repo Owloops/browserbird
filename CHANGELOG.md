@@ -1,3 +1,11 @@
+## [1.0.8](https://github.com/Owloops/browserbird/compare/v1.0.7...v1.0.8) (2026-03-01)
+
+
+### Bug Fixes
+
+* **docker:** use gosu to fix volume permissions on platforms with root-owned mounts ([6ae7c7b](https://github.com/Owloops/browserbird/commit/6ae7c7b042b8052fee4080c9038e7b980cd1c63b))
+* **vm:** use websockify directly for IPv6 dual-stack support ([0ddf871](https://github.com/Owloops/browserbird/commit/0ddf87184a7acba9c715b07304033b0f9de0825a))
+
 ## [1.0.7](https://github.com/Owloops/browserbird/compare/v1.0.6...v1.0.7) (2026-03-01)
 
 
