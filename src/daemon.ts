@@ -12,7 +12,7 @@ import type { WebServerDeps } from './server/index.ts';
 import { startHealthChecks, getServiceHealth } from './server/health.ts';
 import type { Config } from './core/types.ts';
 import type { ChannelHandle } from './channel/types.ts';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 
 const controller = new AbortController();
 
@@ -62,7 +62,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const configPath = resolve(
     options.flags.config ?? process.env['BROWSERBIRD_CONFIG'] ?? 'browserbird.json',
   );
-  const envPath = resolve('.env');
+  const envPath = resolve(dirname(configPath), '.env');
   const dbPath = resolveDbPath(options.flags.db);
   openDatabase(dbPath);
   startWorker(controller.signal);
@@ -145,6 +145,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     logger.info(`starting web server on port ${webConfig.web.port}...`);
     webServer = createWebServer(getConfig, controller.signal, getDeps, {
       configPath,
+      envPath,
       onLaunch,
       onConfigReload: reloadConfig,
     });

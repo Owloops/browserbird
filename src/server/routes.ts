@@ -64,7 +64,7 @@ import {
   loadDotEnv,
   deepMerge,
 } from '../config.ts';
-import { resolve } from 'node:path';
+
 
 export function buildStatusPayload(
   getConfig: () => Config,
@@ -96,6 +96,7 @@ export function buildStatusPayload(
 
 export interface RouteOptions {
   configPath: string;
+  envPath: string;
   onLaunch: () => Promise<void>;
   onConfigReload: () => void;
 }
@@ -521,7 +522,7 @@ export function buildRoutes(
         }
 
         try {
-          const envPath = resolve('.env');
+          const envPath = options.envPath;
           saveEnvFile(envPath, envVars);
           loadDotEnv(envPath);
           options.onConfigReload();
@@ -561,7 +562,7 @@ export function buildRoutes(
         }
 
         try {
-          const envPath = resolve('.env');
+          const envPath = options.envPath;
           saveEnvFile(envPath, { [envVar]: key });
           loadDotEnv(envPath);
           options.onConfigReload();
@@ -1033,7 +1034,7 @@ export function buildRoutes(
         }
 
         try {
-          const envPath = resolve('.env');
+          const envPath = options.envPath;
           saveEnvFile(envPath, {
             SLACK_BOT_TOKEN: botToken,
             SLACK_APP_TOKEN: appToken,
@@ -1133,7 +1134,7 @@ export function buildRoutes(
           return;
         }
 
-        const envPath = resolve('.env');
+        const envPath = options.envPath;
         saveEnvFile(envPath, { [envVar]: key });
         json(res, { valid: true });
       },
