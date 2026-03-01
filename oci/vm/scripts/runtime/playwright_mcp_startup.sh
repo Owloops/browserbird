@@ -17,6 +17,7 @@ WAYLAND_DISPLAY=wayland-1 \
     --allowed-hosts '*' \
     $ISOLATION_FLAG \
     --config /opt/browserbird/playwright.config.json \
+    --init-script /opt/browserbird/stealth.js \
     > /tmp/playwright-mcp.log 2>&1 &
 
 timeout=15

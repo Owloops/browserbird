@@ -26,6 +26,7 @@ COPY --chown=$USERNAME:$USERNAME oci/vm/config/waybar/ /home/$USERNAME/.config/w
 COPY --chown=$USERNAME:$USERNAME oci/vm/config/foot/foot.ini /home/$USERNAME/.config/foot/foot.ini
 COPY --chown=$USERNAME:$USERNAME oci/vm/config/fontconfig/fonts.conf /home/$USERNAME/.config/fontconfig/fonts.conf
 COPY oci/vm/config/playwright.config.json /opt/browserbird/
+COPY oci/vm/config/stealth.js /opt/browserbird/
 
 COPY oci/vm/scripts/runtime/ /opt/browserbird/runtime/
 RUN chmod +x /opt/browserbird/runtime/*.sh
