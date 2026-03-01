@@ -9,6 +9,7 @@ import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import * as db from '../db/index.ts';
 import { logger } from '../core/logger.ts';
+import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { sessionErrorBlocks, busyBlocks, noAgentBlocks, completionFooterBlocks } from './blocks.ts';
 
@@ -77,10 +78,12 @@ export function createHandler(
           db.updateSessionProviderId(sessionUid, event.sessionId);
           break;
 
-        case 'text_delta':
-          fullText += event.delta;
-          await streamer.append({ markdown_text: event.delta });
+        case 'text_delta': {
+          const safe = redact(event.delta);
+          fullText += safe;
+          await streamer.append({ markdown_text: safe });
           break;
+        }
 
         case 'tool_images':
           await uploadImages(event.images, channelId, threadTs);
@@ -106,12 +109,14 @@ export function createHandler(
           logger.debug(`rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`);
           break;
 
-        case 'error':
+        case 'error': {
           hasError = true;
-          logger.error(`agent error: ${event.error}`);
-          db.insertLog('error', 'spawn', event.error, channelId);
-          await streamer.append({ markdown_text: `\n\nError: ${event.error}` });
+          const safeError = redact(event.error);
+          logger.error(`agent error: ${safeError}`);
+          db.insertLog('error', 'spawn', safeError, channelId);
+          await streamer.append({ markdown_text: `\n\nError: ${safeError}` });
           break;
+        }
       }
     }
 

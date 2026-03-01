@@ -24,6 +24,7 @@ import { expireStaleSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { spawnProvider } from '../provider/spawn.ts';
+import { redact } from '../core/redact.ts';
 import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
 import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
 
@@ -100,7 +101,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     let completion: StreamEventCompletion | undefined;
     for await (const event of events) {
       if (event.type === 'text_delta') {
-        result += event.delta;
+        result += redact(event.delta);
       } else if (event.type === 'completion') {
         completion = event;
       } else if (event.type === 'rate_limit') {
@@ -108,11 +109,12 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
           `bird ${shortUid(payload.cronJobUid)} rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
         );
       } else if (event.type === 'error') {
+        const safeError = redact(event.error);
         if (payload.channelId && deps?.postToSlack) {
-          const blocks = sessionErrorBlocks(event.error, { birdName: agent.name });
-          await deps.postToSlack(payload.channelId, `Bird failed: ${event.error}`, { blocks });
+          const blocks = sessionErrorBlocks(safeError, { birdName: agent.name });
+          await deps.postToSlack(payload.channelId, `Bird failed: ${safeError}`, { blocks });
         }
-        throw new Error(event.error);
+        throw new Error(safeError);
       }
     }
 
