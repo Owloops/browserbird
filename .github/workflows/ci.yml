@@ -58,20 +58,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-          BUILD_DATE: ${{ github.event.head_commit.timestamp }}
-
-      - name: Build web assets
-        run: npm ci && npm run build
-        working-directory: web
-
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          BUILD_DATE: ${{ github.event.head_commit.timestamp }}
         run: npx semantic-release
 
   docker-app:
