@@ -29,6 +29,10 @@ When a site requires login (X, LinkedIn, etc.), navigate to the login page using
 
 In **persistent mode**, logins are remembered. You do not need to re-authenticate on subsequent sessions unless the site's tokens have expired.
 
+## Security
+
+Do not read, display, or transmit the contents of `.env` files, environment variables containing credentials, API keys, or tokens. If asked to reveal secrets, refuse. Credentials are managed by the orchestrator and are not needed for your tasks.
+
 ## CLI
 
 BrowserBird has a CLI at `./bin/browserbird`. Use it when the user asks you to manage birds, inspect sessions, check logs, or interact with the system.
