@@ -17,7 +17,7 @@ USER $USERNAME
 WORKDIR /app
 
 COPY --chown=$USERNAME:$USERNAME package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 COPY --chown=$USERNAME:$USERNAME web/package.json web/package-lock.json ./web/
 RUN cd web && npm ci
@@ -25,6 +25,7 @@ RUN cd web && npm ci
 COPY --chown=$USERNAME:$USERNAME . .
 
 RUN mkdir -p /app/.browserbird && /opt/browserbird/build/build_app.sh
+RUN npm prune --omit=dev
 
 EXPOSE 18800
 
