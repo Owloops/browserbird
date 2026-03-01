@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/Owloops/browserbird/compare/v1.0.2...v1.0.3) (2026-03-01)
+
+
+### Bug Fixes
+
+* **docker:** install devDependencies for backend build, prune after ([8508da3](https://github.com/Owloops/browserbird/commit/8508da3ffdb3230ea117b27463cc293726074f06))
+
 ## [1.0.2](https://github.com/Owloops/browserbird/compare/v1.0.1...v1.0.2) (2026-03-01)
 
 
