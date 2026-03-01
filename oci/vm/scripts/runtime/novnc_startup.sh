@@ -1,11 +1,11 @@
 #!/bin/bash
 echo "starting noVNC"
 
-/opt/noVNC/utils/novnc_proxy \
-    --vnc localhost:5900 \
-    --listen 6080 \
-    -6 \
+/opt/noVNC/utils/websockify/run \
     --web /opt/noVNC \
+    -6 \
+    6080 \
+    localhost:5900 \
     > /tmp/novnc.log 2>&1 &
 
 timeout=10
