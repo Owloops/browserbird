@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Owloops/browserbird/compare/v1.0.11...v1.1.0) (2026-03-01)
+
+
+### Features
+
+* **vm:** add light browser stealth to reduce automation detection ([57cbbe3](https://github.com/Owloops/browserbird/commit/57cbbe31864d1a5544fb76e5004e20af5cb302eb))
+
 ## [1.0.11](https://github.com/Owloops/browserbird/compare/v1.0.10...v1.0.11) (2026-03-01)
 
 
