@@ -71,12 +71,12 @@ export function getServiceHealth(config: Config): ServiceHealth {
   };
 }
 
-export function startHealthChecks(config: Config, signal: AbortSignal): void {
-  refreshAgent(config);
-  refreshBrowser(config);
+export function startHealthChecks(getConfig: () => Config, signal: AbortSignal): void {
+  refreshAgent(getConfig());
+  refreshBrowser(getConfig());
 
   const timer = setInterval(() => {
-    refreshBrowser(config);
+    refreshBrowser(getConfig());
   }, BROWSER_CHECK_INTERVAL_MS);
 
   signal.addEventListener('abort', () => {

@@ -98,7 +98,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
       logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
     });
 
-    startHealthChecks(config, controller.signal);
+    startHealthChecks(getConfig, controller.signal);
 
     logger.success('browserbird orchestrator started');
     logger.info(`agents: ${config.agents.map((a) => a.id).join(', ')}`);
