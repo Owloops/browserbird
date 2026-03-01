@@ -33,6 +33,10 @@ Everything is included: agent CLI, Chromium browser, VNC, and Playwright MCP. Op
 
 The browser runs in **persistent** mode by default: logins and cookies are saved across sessions, one agent at a time. Set `BROWSER_MODE=isolated` in `.env` for parallel sessions with fresh contexts (requires container restart). `shm_size: 2g` is required for Chromium stability.
 
+### Railway
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/browserbird)
+
 ### npm
 
 ```bash
