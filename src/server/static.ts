@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { MIME_TYPES } from './http.ts';
 
-const WEB_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'web', 'dist');
+const WEB_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'web', 'dist');
 
 export function serveStatic(res: ServerResponse, urlPath: string): void {
   if (!existsSync(WEB_DIR)) {

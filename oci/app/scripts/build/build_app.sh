@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+echo "Building backend..."
+npm run build
+
 echo "Building web UI..."
 cd web && npm run build && cd ..
 

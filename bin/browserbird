@@ -1,6 +1,12 @@
 #!/usr/bin/env -S node --disable-warning=ExperimentalWarning
 
-import { run } from '../src/cli/index.ts';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const { run } = await import(join(__dirname, '..', 'dist', 'index.mjs'));
 
 try {
   await run(process.argv.slice(2));
