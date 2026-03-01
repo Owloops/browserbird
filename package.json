@@ -1,6 +1,6 @@
 {
   "name": "@owloops/browserbird",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Self-hosted AI agent for Slack with a real browser, a scheduler, and a web dashboard",
   "type": "module",
   "bin": {

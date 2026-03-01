@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/Owloops/browserbird/compare/v1.0.6...v1.0.7) (2026-03-01)
+
+
+### Bug Fixes
+
+* **vm:** enable dual-stack listening for noVNC to support IPv6 networking ([05708f2](https://github.com/Owloops/browserbird/commit/05708f2a8c2fa219afdb74697f682824b610121b))
+
 ## [1.0.6](https://github.com/Owloops/browserbird/compare/v1.0.5...v1.0.6) (2026-03-01)
 
 
