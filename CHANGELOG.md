@@ -1,3 +1,17 @@
+## [1.0.10](https://github.com/Owloops/browserbird/compare/v1.0.9...v1.0.10) (2026-03-01)
+
+
+### Bug Fixes
+
+* **config:** store .env next to config file so secrets persist on mounted volumes ([9c7ef13](https://github.com/Owloops/browserbird/commit/9c7ef137338d68784026100854c6493c2dbe0921))
+* formatting in routes.ts ([32c794e](https://github.com/Owloops/browserbird/commit/32c794e0d9ef0359a278ff184486621ac313e8ae))
+* **vm:** add --disable-dev-shm-usage to prevent chromium crashes in constrained containers ([2c7cc0e](https://github.com/Owloops/browserbird/commit/2c7cc0e2def0be43c68503d80999e6ce978ec73a))
+
+
+### Performance Improvements
+
+* **web:** increase vnc quality level to 8 for sharper remote display ([9b8a5bb](https://github.com/Owloops/browserbird/commit/9b8a5bb5931695a180fb40c4afc509192b1710aa))
+
 ## [1.0.9](https://github.com/Owloops/browserbird/compare/v1.0.8...v1.0.9) (2026-03-01)
 
 
