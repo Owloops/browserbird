@@ -27,6 +27,8 @@ COPY --chown=$USERNAME:$USERNAME . .
 RUN mkdir -p /app/.browserbird && /opt/browserbird/build/build_app.sh
 RUN npm prune --omit=dev
 
+USER root
+
 EXPOSE 18800
 
 ENTRYPOINT ["oci/app/scripts/runtime/entrypoint.sh"]
