@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/Owloops/browserbird/compare/v1.0.1...v1.0.2) (2026-03-01)
+
+
+### Bug Fixes
+
+* **docker:** pre-create .browserbird directory for correct volume ownership ([3375915](https://github.com/Owloops/browserbird/commit/3375915fffda7f07d289e25e8ceb51bd692ad164))
+
 ## [1.0.1](https://github.com/Owloops/browserbird/compare/v1.0.0...v1.0.1) (2026-03-01)
 
 
