@@ -2,7 +2,7 @@
 
 import { logger } from './core/logger.ts';
 import { BANNER } from './cli/banner.ts';
-import { loadConfig, loadDotEnv, hasSlackTokens } from './config.ts';
+import { loadConfig, loadDotEnv, hasSlackTokens, ensureMcpConfig } from './config.ts';
 import { openDatabase, closeDatabase, setSetting, resolveDbPath } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
@@ -62,13 +62,15 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const configPath = resolve(
     options.flags.config ?? process.env['BROWSERBIRD_CONFIG'] ?? 'browserbird.json',
   );
-  const envPath = resolve(dirname(configPath), '.env');
+  const configDir = dirname(configPath);
+  const envPath = resolve(configDir, '.env');
   const dbPath = resolveDbPath(options.flags.db);
   openDatabase(dbPath);
   startWorker(controller.signal);
 
   loadDotEnv(envPath);
   let currentConfig: Config = loadConfig(configPath);
+  ensureMcpConfig(currentConfig, configDir);
   let slackHandle: ChannelHandle | null = null;
   let setupMode = true;
 
@@ -111,6 +113,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const onLaunch = async () => {
     loadDotEnv(envPath);
     const config = loadConfig(configPath);
+    ensureMcpConfig(config, configDir);
 
     if (!config.slack.botToken || !config.slack.appToken) {
       throw new Error('Slack tokens are required to launch');
@@ -122,6 +125,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const reloadConfig = (): void => {
     loadDotEnv(envPath);
     currentConfig = loadConfig(configPath);
+    ensureMcpConfig(currentConfig, configDir);
     logger.info('config reloaded');
   };
 

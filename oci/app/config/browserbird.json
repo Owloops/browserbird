@@ -1,7 +1,6 @@
 {
   "browser": {
     "enabled": true,
-    "mcpConfigPath": "oci/app/config/mcp.json",
     "novncHost": "vm"
   },
   "web": {

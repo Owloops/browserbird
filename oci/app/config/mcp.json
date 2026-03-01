@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "playwright": {
-      "type": "sse",
-      "url": "http://vm:3000/sse"
-    }
-  }
-}

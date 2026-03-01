@@ -218,6 +218,34 @@ function isTokenResolvable(value: unknown): boolean {
   return true;
 }
 
+/**
+ * When the browser is enabled but no explicit mcpConfigPath is set, generates
+ * a Playwright MCP config file using novncHost as the SSE server hostname.
+ * Writes to `<configDir>/mcp.json` and mutates `config.browser.mcpConfigPath`.
+ */
+export function ensureMcpConfig(config: Config, configDir: string): void {
+  if (!config.browser.enabled) return;
+
+  if (config.browser.mcpConfigPath) {
+    if (existsSync(resolve(config.browser.mcpConfigPath))) return;
+    logger.warn(`mcp config not found at ${config.browser.mcpConfigPath}, regenerating`);
+  }
+
+  const mcpPath = resolve(configDir, 'mcp.json');
+  const host = config.browser.novncHost || 'localhost';
+  const mcpConfig = {
+    mcpServers: {
+      playwright: {
+        type: 'sse',
+        url: `http://${host}:3000/sse`,
+      },
+    },
+  };
+  writeFileSync(mcpPath, JSON.stringify(mcpConfig, null, 2) + '\n', 'utf-8');
+  config.browser.mcpConfigPath = mcpPath;
+  logger.info(`generated mcp config at ${mcpPath} (host: ${host})`);
+}
+
 /** Atomic write: writes to a .tmp file then renames over the target. */
 export function saveConfig(configPath: string, data: Record<string, unknown>): void {
   const tmp = configPath + '.tmp';
