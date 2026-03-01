@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/Owloops/browserbird/compare/v1.0.4...v1.0.5) (2026-03-01)
+
+
+### Bug Fixes
+
+* **logger:** route log streams by mode for cloud platform compatibility ([586c182](https://github.com/Owloops/browserbird/commit/586c182ef205aa8aeb3b28c768ad78da04c3899b))
+
 ## [1.0.4](https://github.com/Owloops/browserbird/compare/v1.0.3...v1.0.4) (2026-03-01)
 
 
