@@ -65,7 +65,6 @@ import {
   deepMerge,
 } from '../config.ts';
 
-
 export function buildStatusPayload(
   getConfig: () => Config,
   startedAt: number,
