@@ -1,3 +1,10 @@
+## [1.0.9](https://github.com/Owloops/browserbird/compare/v1.0.8...v1.0.9) (2026-03-01)
+
+
+### Performance Improvements
+
+* **vm:** reduce resolution to 720p and tune vnc quality for lower cpu usage ([52cba8b](https://github.com/Owloops/browserbird/commit/52cba8b240fcfea6d183adc4b5c414f36141e4de))
+
 ## [1.0.8](https://github.com/Owloops/browserbird/compare/v1.0.7...v1.0.8) (2026-03-01)
 
 
