@@ -1,13 +1,13 @@
 {
   "name": "@owloops/browserbird",
   "version": "0.0.0",
-  "description": "Lightweight orchestrator connecting Slack to AI agent CLI sessions",
+  "description": "Self-hosted AI agent for Slack with a real browser, a scheduler, and a web dashboard",
   "type": "module",
   "bin": {
     "browserbird": "./bin/browserbird"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=22.21.0"
   },
   "files": [
     "src",
@@ -22,7 +22,8 @@
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
     "test": "node --test src/**/*.test.ts",
-    "start": "./bin/browserbird"
+    "start": "./bin/browserbird",
+    "prepublishOnly": "npm run lint && npm run format:check && npm run typecheck && cd web && npm ci && npm run build"
   },
   "keywords": [
     "slack",
@@ -44,6 +45,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@types/node": "^24.0.0",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
@@ -52,6 +55,7 @@
     "eslint-plugin-prettier": "^5.5.5",
     "prettier": "^3.8.1",
     "prettier-plugin-svelte": "^3.5.0",
+    "semantic-release": "^25.0.3",
     "typescript": "^5.8.0"
   },
   "publishConfig": {

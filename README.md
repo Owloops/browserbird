@@ -4,7 +4,7 @@
 
 # BrowserBird
 
-Slack-connected AI agent orchestrator with a real browser and a scheduler.
+Self-hosted AI agent for Slack with a real browser, a scheduler, and a web dashboard.
 
 [![License: FSL-1.1-MIT](https://img.shields.io/badge/license-FSL--1.1--MIT-blue?style=flat-square)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/@owloops/browserbird?style=flat-square)](https://www.npmjs.com/package/@owloops/browserbird)
@@ -14,9 +14,9 @@ Slack-connected AI agent orchestrator with a real browser and a scheduler.
 
 <video src="https://github.com/user-attachments/assets/c71791c3-ba1c-4590-8931-f3adc2dcac2d" autoplay loop muted playsinline></video>
 
-Owloops has been building browser automation tools since 2020. BrowserBird is the latest, written from scratch with lessons learned from earlier projects: [Owloops/flybird](https://github.com/Owloops/flybird), [Owloops/owloops-chrome-recorder](https://github.com/Owloops/owloops-chrome-recorder), [Owloops/owloops-extension](https://github.com/Owloops/owloops-extension).
+Talk to an AI agent in Slack threads. It can browse the web with a real Chromium browser you can watch live through VNC, run scheduled tasks on a cron, and keep persistent sessions across conversations. BrowserBird is the orchestration layer; the agent CLI ([claude](https://docs.anthropic.com/en/docs/claude-code/overview), [opencode](https://github.com/anomalyco/opencode)) handles reasoning, memory, tools, and sub-agents.
 
-It connects Slack to an agent CLI with a Chromium browser controlled via Playwright MCP, a cron scheduler, session persistence, and a web dashboard. BrowserBird handles the thin orchestration layer; the agent handles reasoning, memory, tools, and sub-agents.
+Built by [Owloops](https://github.com/Owloops), who have been building browser automation tools since 2020 ([flybird](https://github.com/Owloops/flybird), [chrome-recorder](https://github.com/Owloops/owloops-chrome-recorder), [extension](https://github.com/Owloops/owloops-extension)). BrowserBird is written from scratch with lessons learned from those projects.
 
 ## Installation
 
@@ -25,12 +25,11 @@ On first run, open the web UI and complete the onboarding wizard. It walks throu
 ### Docker (recommended)
 
 ```bash
-docker compose -f oci/compose.yml up -d
+curl -fsSL https://raw.githubusercontent.com/Owloops/browserbird/main/compose.yml -o compose.yml
+docker compose up -d
 ```
 
 Everything is included: agent CLI, Chromium browser, VNC, and Playwright MCP. Open `http://<host>:18800` to begin onboarding.
-
-To skip onboarding, pre-fill `.env` with your tokens before starting (see `cp .env.example .env`).
 
 The browser runs in **persistent** mode by default: logins and cookies are saved across sessions, one agent at a time. Set `BROWSER_MODE=isolated` in `.env` for parallel sessions with fresh contexts (requires container restart). `shm_size: 2g` is required for Chromium stability.
 
