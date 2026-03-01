@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Owloops/browserbird/compare/v1.0.0...v1.0.1) (2026-03-01)
+
+
+### Bug Fixes
+
+* **ci:** add multi-arch docker builds for amd64 and arm64 ([4ff9b60](https://github.com/Owloops/browserbird/commit/4ff9b602af8256b286ef646465015cb276bf0e4f))
+
 # 1.0.0 (2026-03-01)
 
 
