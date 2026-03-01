@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/Owloops/browserbird/compare/v1.0.5...v1.0.6) (2026-03-01)
+
+
+### Bug Fixes
+
+* **health:** use live config for browser health checks after config reload ([21152d6](https://github.com/Owloops/browserbird/commit/21152d6635fcc0d319dec3532fee50c38dc42107))
+
 ## [1.0.5](https://github.com/Owloops/browserbird/compare/v1.0.4...v1.0.5) (2026-03-01)
 
 
