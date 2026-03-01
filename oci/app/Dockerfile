@@ -24,7 +24,7 @@ RUN cd web && npm ci
 
 COPY --chown=$USERNAME:$USERNAME . .
 
-RUN /opt/browserbird/build/build_app.sh
+RUN mkdir -p /app/.browserbird && /opt/browserbird/build/build_app.sh
 
 EXPOSE 18800
 
