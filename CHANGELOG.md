@@ -1,3 +1,11 @@
+## [1.0.4](https://github.com/Owloops/browserbird/compare/v1.0.3...v1.0.4) (2026-03-01)
+
+
+### Bug Fixes
+
+* **ci:** native builds to speed up ci ([31deacf](https://github.com/Owloops/browserbird/commit/31deacfff288caf3ef7112dbf1077a0430fb74a6))
+* **ci:** pass build env vars to semantic-release step ([060bed3](https://github.com/Owloops/browserbird/commit/060bed3142df6dad1803c73bcb31ad4cb7317abd))
+
 ## [1.0.3](https://github.com/Owloops/browserbird/compare/v1.0.2...v1.0.3) (2026-03-01)
 
 
