@@ -52,7 +52,8 @@ const stubDeps: WebServerDeps = {
 
 export async function startDaemon(options: DaemonOptions): Promise<void> {
   setupShutdown();
-  process.stderr.write(BANNER + '\n\n');
+  logger.setMode('daemon');
+  process.stdout.write(BANNER + '\n\n');
 
   if (options.flags.verbose) {
     logger.setLevel('debug');

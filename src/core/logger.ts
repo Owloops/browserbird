@@ -1,4 +1,14 @@
-/** @fileoverview Structured logger. Writes to stderr, respects NO_COLOR. */
+/**
+ * @fileoverview Structured logger. Respects NO_COLOR.
+ *
+ * Stream routing by mode:
+ *   - CLI mode (default): all logs to stderr, keeping stdout clean for data output.
+ *   - Daemon mode: errors/warnings to stderr, everything else to stdout.
+ *     Cloud platforms (Railway, Fly, etc.) treat stderr lines as errors, so this
+ *     prevents info lines from showing up red.
+ *
+ * Call `logger.setMode('daemon')` once at startup to switch.
+ */
 
 import { styleText } from 'node:util';
 
@@ -6,7 +16,7 @@ function shouldUseColor(): boolean {
   if (process.env['NO_COLOR'] !== undefined) return false;
   if (process.env['TERM'] === 'dumb') return false;
   if (process.argv.includes('--no-color')) return false;
-  return process.stderr.isTTY === true;
+  return process.stdout.isTTY === true || process.stderr.isTTY === true;
 }
 
 const useColor = shouldUseColor();
@@ -26,43 +36,49 @@ const LOG_LEVELS = {
 type LogLevel = (typeof LOG_LEVELS)[keyof typeof LOG_LEVELS];
 
 let currentLevel: LogLevel = LOG_LEVELS.INFO;
+let daemonMode = false;
 
 function timestamp(): string {
   return new Date().toISOString().slice(11, 23);
 }
 
-function write(prefix: string, message: string): void {
+function out(prefix: string, message: string): void {
+  const stream = daemonMode ? process.stdout : process.stderr;
+  stream.write(`${style('dim', timestamp())} ${prefix} ${message}\n`);
+}
+
+function err(prefix: string, message: string): void {
   process.stderr.write(`${style('dim', timestamp())} ${prefix} ${message}\n`);
 }
 
 export const logger = {
   error(message: string): void {
     if (currentLevel >= LOG_LEVELS.ERROR) {
-      write(style('red', '[error]'), message);
+      err(style('red', '[error]'), message);
     }
   },
 
   warn(message: string): void {
     if (currentLevel >= LOG_LEVELS.WARN) {
-      write(style('yellow', '[warn]'), message);
+      err(style('yellow', '[warn]'), message);
     }
   },
 
   info(message: string): void {
     if (currentLevel >= LOG_LEVELS.INFO) {
-      write(style('blue', '[info]'), message);
+      out(style('blue', '[info]'), message);
     }
   },
 
   debug(message: string): void {
     if (currentLevel >= LOG_LEVELS.DEBUG) {
-      write(style('dim', '[debug]'), message);
+      out(style('dim', '[debug]'), message);
     }
   },
 
   success(message: string): void {
     if (currentLevel >= LOG_LEVELS.INFO) {
-      write(style('green', '[ok]'), message);
+      out(style('green', '[ok]'), message);
     }
   },
 
@@ -74,5 +90,9 @@ export const logger = {
       debug: LOG_LEVELS.DEBUG,
     };
     currentLevel = map[level] ?? LOG_LEVELS.INFO;
+  },
+
+  setMode(mode: 'cli' | 'daemon'): void {
+    daemonMode = mode === 'daemon';
   },
 };
