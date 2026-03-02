@@ -12,9 +12,18 @@ Self-hosted AI agent for Slack with a real browser, a scheduler, and a web dashb
 
 </div>
 
-<video src="https://github.com/user-attachments/assets/c71791c3-ba1c-4590-8931-f3adc2dcac2d" autoplay loop muted playsinline></video>
-
-https://github.com/user-attachments/assets/ff9bfe81-dde8-4bd2-acf5-47b48f43be9b
+<table>
+   <tr>
+      <td width="50%" align="center">
+         <h4>Overview</h4>
+         <video src="https://github.com/user-attachments/assets/ff9bfe81-dde8-4bd2-acf5-47b48f43be9b" autoplay loop muted playsinline style="width:100%; max-width:400px;">
+      </td>
+      <td width="50%" align="center">
+         <h4>Demo</h4>
+         <video src="https://github.com/user-attachments/assets/c71791c3-ba1c-4590-8931-f3adc2dcac2d" controls style="width:100%; max-width:400px;">
+      </td>
+   </tr>
+</table>
 
 Talk to an AI agent in Slack threads. It can browse the web with a real Chromium browser you can watch live through VNC, run scheduled tasks on a cron, and keep persistent sessions across conversations. BrowserBird is the orchestration layer; the agent CLI ([claude](https://docs.anthropic.com/en/docs/claude-code/overview), [opencode](https://github.com/anomalyco/opencode)) handles reasoning, memory, tools, and sub-agents.
 
