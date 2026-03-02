@@ -18,8 +18,8 @@
   let { oncomplete }: Props = $props();
 
   const STEPS = ['Slack', 'Agent', 'Browser'] as const;
-  const SLACK_APPS_URL = 'https://api.slack.com/apps';
-  const MANIFEST_URL = 'https://raw.githubusercontent.com/Owloops/browserbird/main/manifest.json';
+  const SLACK_MANIFEST_URL =
+    'https://api.slack.com/apps?new_app=1&manifest_json=%7B%22display_information%22%3A%7B%22name%22%3A%22BrowserBird%22%2C%22description%22%3A%22A%20self-hosted%20AI%20assistant%20in%20Slack%2C%20with%20a%20real%20browser%20and%20a%20scheduler.%22%2C%22background_color%22%3A%22%231a1a2e%22%7D%2C%22features%22%3A%7B%22assistant_view%22%3A%7B%22assistant_description%22%3A%22A%20self-hosted%20AI%20assistant%20in%20Slack%2C%20with%20a%20real%20browser%20and%20a%20scheduler.%22%7D%2C%22app_home%22%3A%7B%22home_tab_enabled%22%3Atrue%2C%22messages_tab_enabled%22%3Atrue%2C%22messages_tab_read_only_enabled%22%3Afalse%7D%2C%22bot_user%22%3A%7B%22display_name%22%3A%22BrowserBird%22%2C%22always_online%22%3Atrue%7D%2C%22slash_commands%22%3A%5B%7B%22command%22%3A%22%2Fbird%22%2C%22description%22%3A%22Manage%20BrowserBird%20birds%22%2C%22usage_hint%22%3A%22list%20%7C%20fly%20%7C%20logs%20%7C%20enable%20%7C%20disable%20%7C%20create%20%7C%20status%22%2C%22should_escape%22%3Afalse%7D%5D%7D%2C%22oauth_config%22%3A%7B%22scopes%22%3A%7B%22bot%22%3A%5B%22app_mentions%3Aread%22%2C%22assistant%3Awrite%22%2C%22channels%3Ahistory%22%2C%22channels%3Aread%22%2C%22chat%3Awrite%22%2C%22files%3Aread%22%2C%22files%3Awrite%22%2C%22groups%3Ahistory%22%2C%22groups%3Aread%22%2C%22im%3Ahistory%22%2C%22im%3Aread%22%2C%22im%3Awrite%22%2C%22mpim%3Ahistory%22%2C%22mpim%3Aread%22%2C%22reactions%3Aread%22%2C%22reactions%3Awrite%22%2C%22users%3Aread%22%2C%22commands%22%5D%7D%7D%2C%22settings%22%3A%7B%22event_subscriptions%22%3A%7B%22bot_events%22%3A%5B%22app_mention%22%2C%22assistant_thread_context_changed%22%2C%22assistant_thread_started%22%2C%22message.channels%22%2C%22message.groups%22%2C%22message.im%22%2C%22message.mpim%22%5D%7D%2C%22interactivity%22%3A%7B%22is_enabled%22%3Atrue%7D%2C%22org_deploy_enabled%22%3Afalse%2C%22socket_mode_enabled%22%3Atrue%2C%22token_rotation_enabled%22%3Afalse%7D%7D';
 
   let step = $state(0);
   let loading = $state(false);
@@ -211,13 +211,8 @@
 
     {#if step === 0}
       <p class="onboarding-desc">
-        Create a Slack app at
-        <a href={SLACK_APPS_URL} target="_blank" rel="noopener" class="onboarding-link"
-          >api.slack.com/apps</a
-        >
-        using the
-        <a href={MANIFEST_URL} target="_blank" rel="noopener" class="onboarding-link"
-          >manifest.json</a
+        <a href={SLACK_MANIFEST_URL} target="_blank" rel="noopener" class="onboarding-link"
+          >Create a Slack app from the manifest</a
         >.
       </p>
       <form onsubmit={handleSlackSubmit}>
