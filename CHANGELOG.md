@@ -1,3 +1,11 @@
+## [1.1.3](https://github.com/Owloops/browserbird/compare/v1.1.2...v1.1.3) (2026-03-02)
+
+
+### Bug Fixes
+
+* **birds:** post full result to slack and log tokens to db ([4634fde](https://github.com/Owloops/browserbird/commit/4634fdee3b4c3e6ca054b877b09dec5492ad9733))
+* **slack:** add tip about duplicate slash command registrations ([f081ab6](https://github.com/Owloops/browserbird/commit/f081ab626328b4a00907de0601e2a81929c35567))
+
 ## [1.1.2](https://github.com/Owloops/browserbird/compare/v1.1.1...v1.1.2) (2026-03-02)
 
 
