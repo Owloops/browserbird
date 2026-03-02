@@ -211,7 +211,7 @@ export function completionFooterBlocks(
  */
 export function sessionCompleteBlocks(
   completion: StreamEventCompletion,
-  summary: string,
+  summary: string | undefined,
   birdName?: string,
   userId?: string,
 ): Block[] {

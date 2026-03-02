@@ -19,6 +19,7 @@ import {
   deleteOldJobs,
   deleteOldLogs,
   optimizeDatabase,
+  logMessage,
 } from '../db/index.ts';
 import { expireStaleSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
@@ -97,6 +98,10 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       signal,
     );
 
+    if (payload.channelId) {
+      logMessage(payload.channelId, null, agent.id, 'in', payload.prompt);
+    }
+
     let result = '';
     let completion: StreamEventCompletion | undefined;
     for await (const event of events) {
@@ -118,19 +123,29 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       }
     }
 
+    if (completion && payload.channelId) {
+      logMessage(
+        payload.channelId,
+        null,
+        agent.id,
+        'out',
+        result || undefined,
+        completion.tokensIn,
+        completion.tokensOut,
+      );
+    }
+
     if (!result) {
       logger.info(`bird ${shortUid(payload.cronJobUid)} completed (no output)`);
       return 'completed (no output)';
     }
 
     if (payload.channelId && deps?.postToSlack) {
+      await deps.postToSlack(payload.channelId, result);
       if (completion) {
-        const summary = result.length > 2800 ? result.slice(0, 2800) + '...' : result;
-        const blocks = sessionCompleteBlocks(completion, summary, agent.name);
+        const blocks = sessionCompleteBlocks(completion, undefined, agent.name);
         const fallback = `Bird ${agent.name} completed: ${completion.numTurns} turns`;
         await deps.postToSlack(payload.channelId, fallback, { blocks });
-      } else {
-        await deps.postToSlack(payload.channelId, result);
       }
       logger.info(`bird ${shortUid(payload.cronJobUid)} result posted to ${payload.channelId}`);
     } else {
