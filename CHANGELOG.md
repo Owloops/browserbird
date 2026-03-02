@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/Owloops/browserbird/compare/v1.1.1...v1.1.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* **readme:** simplify installation, slack setup, and badges ([44a214e](https://github.com/Owloops/browserbird/commit/44a214eeeb50c50b552a00a0ab672c9cd3458e99))
+
 ## [1.1.1](https://github.com/Owloops/browserbird/compare/v1.1.0...v1.1.1) (2026-03-02)
 
 
