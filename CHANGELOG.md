@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/Owloops/browserbird/compare/v1.1.0...v1.1.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* **web:** lower vnc quality level from 8 to 7 to reduce lag ([6073adb](https://github.com/Owloops/browserbird/commit/6073adb05cd2e7b877031d51b2b49c66615ce5ab))
+
 # [1.1.0](https://github.com/Owloops/browserbird/compare/v1.0.11...v1.1.0) (2026-03-01)
 
 
