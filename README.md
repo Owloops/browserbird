@@ -57,6 +57,9 @@ Once the app is installed, `/bird` is available in any channel:
 /bird status            Show daemon status
 ```
 
+> [!TIP]
+> If `/bird` fails or routes to the wrong app, you may have another Slack app in the workspace with the same slash command. Remove or rename the duplicate from [api.slack.com/apps](https://api.slack.com/apps).
+
 ## Configuration
 
 The onboarding wizard handles initial setup. For manual configuration, copy the example config:
