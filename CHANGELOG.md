@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/Owloops/browserbird/compare/v1.1.3...v1.1.4) (2026-03-02)
+
+
+### Bug Fixes
+
+* **docs:** add another video showcase ([9a26d64](https://github.com/Owloops/browserbird/commit/9a26d64771305792754153472ab1739d842aa17c))
+
 ## [1.1.3](https://github.com/Owloops/browserbird/compare/v1.1.2...v1.1.3) (2026-03-02)
 
 
