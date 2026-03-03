@@ -5,6 +5,8 @@ services:
     ports:
       - "5900:5900"
       - "6080:6080"
+    volumes:
+      - bb-browser:/home/bbuser/.browserbird
     environment:
       - BROWSER_MODE=${BROWSER_MODE:-persistent}
     shm_size: 2g
@@ -37,3 +39,4 @@ networks:
 
 volumes:
   bb-data:
+  bb-browser:
