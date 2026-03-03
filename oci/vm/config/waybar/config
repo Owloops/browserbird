@@ -22,7 +22,7 @@
     },
     "custom/chromium": {
         "format": "\uf0ac",
-        "on-click": "chromium --disable-gpu --no-sandbox --disable-dev-shm-usage --ozone-platform=wayland --disable-blink-features=AutomationControlled",
+        "on-click": "chromium --user-data-dir=/home/bbuser/.browserbird/browser-profile --disable-gpu --no-sandbox --disable-dev-shm-usage --ozone-platform=wayland --disable-blink-features=AutomationControlled",
         "tooltip": false
     },
     "custom/terminal": {
