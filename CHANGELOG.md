@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Owloops/browserbird/compare/v1.2.0...v1.2.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* **vm:** fix browser profile volume permissions via gosu ([159f561](https://github.com/Owloops/browserbird/commit/159f5613908026526a36f40c9389342e4edd85c3))
+
 # [1.2.0](https://github.com/Owloops/browserbird/compare/v1.1.6...v1.2.0) (2026-03-03)
 
 
