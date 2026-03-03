@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Owloops/browserbird/compare/v1.1.6...v1.2.0) (2026-03-03)
+
+
+### Features
+
+* **web:** auto-detect railway and prepopulate vm host in onboarding ([332472f](https://github.com/Owloops/browserbird/commit/332472f9a3de3cff319a6334baf06b8b50cd0f42))
+
 ## [1.1.6](https://github.com/Owloops/browserbird/compare/v1.1.5...v1.1.6) (2026-03-03)
 
 
