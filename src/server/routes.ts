@@ -313,6 +313,14 @@ export function buildRoutes(
   return [
     {
       method: 'GET',
+      pattern: pathToRegex('/api/healthcheck'),
+      skipAuth: true,
+      handler(_req, res) {
+        json(res, { ok: true });
+      },
+    },
+    {
+      method: 'GET',
       pattern: pathToRegex('/api/auth/check'),
       skipAuth: true,
       handler(_req, res) {
