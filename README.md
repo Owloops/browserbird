@@ -46,7 +46,7 @@ The browser runs in **persistent** mode by default: logins and cookies are saved
 
 ### Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/browserbird)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/browserbird-1)
 
 ## Slack
 
