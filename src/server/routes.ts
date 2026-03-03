@@ -967,6 +967,10 @@ export function buildRoutes(
       handler(_req, res) {
         const doctor = checkDoctor();
         const defaultAgent = DEFAULTS.agents[0]!;
+        const isRailway = !!process.env['RAILWAY_ENVIRONMENT_NAME'];
+        const novncHost = isRailway
+          ? 'browserbird-vm.railway.internal'
+          : DEFAULTS.browser.novncHost;
         json(res, {
           agent: {
             name: defaultAgent.name,
@@ -978,7 +982,7 @@ export function buildRoutes(
           },
           browser: {
             enabled: DEFAULTS.browser.enabled,
-            novncHost: DEFAULTS.browser.novncHost,
+            novncHost: novncHost,
             novncPort: DEFAULTS.browser.novncPort,
           },
           doctor,
