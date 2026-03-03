@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+if [ "$(id -u)" = "0" ]; then
+  chown "$USERNAME:$USERNAME" "/home/$USERNAME/.browserbird"
+  exec gosu "$USERNAME" "$0" "$@"
+fi
+
 export XDG_RUNTIME_DIR=/tmp/xdg-runtime-bbuser
 export WAYLAND_DISPLAY=wayland-1
 mkdir -p "$XDG_RUNTIME_DIR"

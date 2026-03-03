@@ -37,6 +37,8 @@ RUN /opt/browserbird/build/install_playwright.sh
 
 WORKDIR /opt/browserbird
 
+USER root
+
 EXPOSE 5900 6080 3000
 
 ENTRYPOINT ["/opt/browserbird/runtime/vm_entrypoint.sh"]

@@ -13,7 +13,7 @@ npm install -g @playwright/mcp
 echo "Installing system dependencies..."
 npx playwright-core install-deps chromium
 apt-get install -y --no-install-recommends \
-  sway wayvnc cage waybar foot neovim sudo python3 net-tools \
+  sway wayvnc cage waybar foot neovim sudo gosu python3 net-tools \
   fonts-noto-core fonts-noto-color-emoji fonts-font-awesome fontconfig dbus-x11 xdg-utils git
 rm -rf /var/lib/apt/lists/*
 
