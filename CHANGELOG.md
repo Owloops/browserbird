@@ -1,3 +1,11 @@
+## [1.1.5](https://github.com/Owloops/browserbird/compare/v1.1.4...v1.1.5) (2026-03-03)
+
+
+### Bug Fixes
+
+* **vm:** persist browser profile across container restarts ([562f88c](https://github.com/Owloops/browserbird/commit/562f88c4f4141914972eec4f24fc8d1690b0a647))
+* **web:** add unauthenticated healthcheck endpoint for railway ([c9b5494](https://github.com/Owloops/browserbird/commit/c9b5494d6e5a7f575a4e3a9f1634acb8586253f4))
+
 ## [1.1.4](https://github.com/Owloops/browserbird/compare/v1.1.3...v1.1.4) (2026-03-02)
 
 
