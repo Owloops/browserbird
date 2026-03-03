@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/Owloops/browserbird/compare/v1.2.1...v1.2.2) (2026-03-03)
+
+
+### Bug Fixes
+
+* **vm:** use persistent browser profile for manual chromium launches ([18c3c2c](https://github.com/Owloops/browserbird/commit/18c3c2cb5ab30bc235d539126ed922c178f6a01b))
+
 ## [1.2.1](https://github.com/Owloops/browserbird/compare/v1.2.0...v1.2.1) (2026-03-03)
 
 
