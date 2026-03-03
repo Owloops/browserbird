@@ -1,3 +1,10 @@
+## [1.1.6](https://github.com/Owloops/browserbird/compare/v1.1.5...v1.1.6) (2026-03-03)
+
+
+### Bug Fixes
+
+* **readme:** update railway deploy button to new template url ([d968d8c](https://github.com/Owloops/browserbird/commit/d968d8cda4b67fafb161ec2519117ef0c81759a5))
+
 ## [1.1.5](https://github.com/Owloops/browserbird/compare/v1.1.4...v1.1.5) (2026-03-03)
 
 
