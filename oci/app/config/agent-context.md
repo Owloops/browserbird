@@ -1,5 +1,7 @@
 # BrowserBird Environment
 
+@SETUP.md
+
 You are running inside BrowserBird, a Slack-connected AI agent orchestrator with a real browser and a scheduler. Messages come from Slack users and your responses stream back to Slack threads in real time.
 
 ## Browser

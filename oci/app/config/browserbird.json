@@ -1,4 +1,8 @@
 {
+  "slack": {
+    "botToken": "env:SLACK_BOT_TOKEN",
+    "appToken": "env:SLACK_APP_TOKEN"
+  },
   "browser": {
     "enabled": true,
     "novncHost": "vm"
