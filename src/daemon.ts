@@ -2,7 +2,7 @@
 
 import { logger } from './core/logger.ts';
 import { BANNER } from './cli/banner.ts';
-import { loadConfig, loadDotEnv, hasSlackTokens, ensureMcpConfig } from './config.ts';
+import { loadConfig, loadDotEnv, hasSlackTokens, ensureMcpConfig, getBrowserMode } from './config.ts';
 import { openDatabase, closeDatabase, setSetting, resolveDbPath } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
@@ -106,7 +106,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     logger.info(`agents: ${config.agents.map((a) => a.id).join(', ')}`);
     logger.info(`max concurrent sessions: ${config.sessions.maxConcurrent}`);
     if (config.browser.enabled) {
-      logger.info(`browser mode: ${process.env['BROWSER_MODE'] ?? 'persistent'}`);
+      logger.info(`browser mode: ${getBrowserMode()}`);
     }
   };
 

@@ -28,6 +28,8 @@ import { spawnProvider } from '../provider/spawn.ts';
 import { redact } from '../core/redact.ts';
 import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
 import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
+import { acquireBrowserLock, releaseBrowserLock } from '../browser/lock.ts';
+import { getBrowserMode } from '../config.ts';
 
 const TICK_INTERVAL_MS = 60_000;
 const MAX_SCHEDULE_ERRORS = 3;
@@ -92,67 +94,78 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       throw new Error(`agent "${payload.agentId}" not found`);
     }
 
-    const { events } = spawnProvider(
-      agent.provider,
-      { message: payload.prompt, agent, mcpConfigPath: config.browser.mcpConfigPath },
-      signal,
-    );
-
-    if (payload.channelId) {
-      logMessage(payload.channelId, null, agent.id, 'in', payload.prompt);
-    }
-
-    let result = '';
-    let completion: StreamEventCompletion | undefined;
-    for await (const event of events) {
-      if (event.type === 'text_delta') {
-        result += redact(event.delta);
-      } else if (event.type === 'completion') {
-        completion = event;
-      } else if (event.type === 'rate_limit') {
-        logger.debug(
-          `bird ${shortUid(payload.cronJobUid)} rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
-        );
-      } else if (event.type === 'error') {
-        const safeError = redact(event.error);
-        if (payload.channelId && deps?.postToSlack) {
-          const blocks = sessionErrorBlocks(safeError, { birdName: agent.name });
-          await deps.postToSlack(payload.channelId, `Bird failed: ${safeError}`, { blocks });
-        }
-        throw new Error(safeError);
+    const needsBrowserLock = config.browser.enabled && getBrowserMode() === 'persistent';
+    if (needsBrowserLock) {
+      if (!acquireBrowserLock(payload.cronJobUid, config.sessions.processTimeoutMs)) {
+        throw new Error('browser is locked by another session');
       }
     }
 
-    if (completion && payload.channelId) {
-      logMessage(
-        payload.channelId,
-        null,
-        agent.id,
-        'out',
-        result || undefined,
-        completion.tokensIn,
-        completion.tokensOut,
+    try {
+      const { events } = spawnProvider(
+        agent.provider,
+        { message: payload.prompt, agent, mcpConfigPath: config.browser.mcpConfigPath },
+        signal,
       );
-    }
 
-    if (!result) {
-      logger.info(`bird ${shortUid(payload.cronJobUid)} completed (no output)`);
-      return 'completed (no output)';
-    }
-
-    if (payload.channelId && deps?.postToSlack) {
-      await deps.postToSlack(payload.channelId, result);
-      if (completion) {
-        const blocks = sessionCompleteBlocks(completion, undefined, agent.name);
-        const fallback = `Bird ${agent.name} completed: ${completion.numTurns} turns`;
-        await deps.postToSlack(payload.channelId, fallback, { blocks });
+      if (payload.channelId) {
+        logMessage(payload.channelId, null, agent.id, 'in', payload.prompt);
       }
-      logger.info(`bird ${shortUid(payload.cronJobUid)} result posted to ${payload.channelId}`);
-    } else {
-      logger.info(`bird ${shortUid(payload.cronJobUid)} completed (${result.length} chars)`);
-    }
 
-    return result;
+      let result = '';
+      let completion: StreamEventCompletion | undefined;
+      for await (const event of events) {
+        if (event.type === 'text_delta') {
+          result += redact(event.delta);
+        } else if (event.type === 'completion') {
+          completion = event;
+        } else if (event.type === 'rate_limit') {
+          logger.debug(
+            `bird ${shortUid(payload.cronJobUid)} rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
+          );
+        } else if (event.type === 'error') {
+          const safeError = redact(event.error);
+          if (payload.channelId && deps?.postToSlack) {
+            const blocks = sessionErrorBlocks(safeError, { birdName: agent.name });
+            await deps.postToSlack(payload.channelId, `Bird failed: ${safeError}`, { blocks });
+          }
+          throw new Error(safeError);
+        }
+      }
+
+      if (completion && payload.channelId) {
+        logMessage(
+          payload.channelId,
+          null,
+          agent.id,
+          'out',
+          result || undefined,
+          completion.tokensIn,
+          completion.tokensOut,
+        );
+      }
+
+      if (!result) {
+        logger.info(`bird ${shortUid(payload.cronJobUid)} completed (no output)`);
+        return 'completed (no output)';
+      }
+
+      if (payload.channelId && deps?.postToSlack) {
+        await deps.postToSlack(payload.channelId, result);
+        if (completion) {
+          const blocks = sessionCompleteBlocks(completion, undefined, agent.name);
+          const fallback = `Bird ${agent.name} completed: ${completion.numTurns} turns`;
+          await deps.postToSlack(payload.channelId, fallback, { blocks });
+        }
+        logger.info(`bird ${shortUid(payload.cronJobUid)} result posted to ${payload.channelId}`);
+      } else {
+        logger.info(`bird ${shortUid(payload.cronJobUid)} completed (${result.length} chars)`);
+      }
+
+      return result;
+    } finally {
+      if (needsBrowserLock) releaseBrowserLock(payload.cronJobUid);
+    }
   });
 
   registerHandler('system_cron_run', (raw) => {

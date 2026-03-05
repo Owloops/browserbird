@@ -12,6 +12,8 @@ import { logger } from '../core/logger.ts';
 import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { sessionErrorBlocks, busyBlocks, noAgentBlocks, completionFooterBlocks } from './blocks.ts';
+import { acquireBrowserLock, releaseBrowserLock } from '../browser/lock.ts';
+import { getBrowserMode } from '../config.ts';
 
 interface SessionLock {
   processing: boolean;
@@ -177,6 +179,17 @@ export function createHandler(
       return;
     }
 
+    const needsBrowserLock = config.browser.enabled && getBrowserMode() === 'persistent';
+    if (needsBrowserLock && !acquireBrowserLock(key, config.sessions.processTimeoutMs)) {
+      await client.postMessage(
+        channelId,
+        threadTs,
+        'The browser is in use by another session. Your message will be processed when it finishes.',
+      );
+      lock.queue.push(dispatch);
+      return;
+    }
+
     lock.processing = true;
     activeSpawns++;
 
@@ -241,6 +254,7 @@ export function createHandler(
         /* channel may no longer be accessible */
       }
     } finally {
+      if (needsBrowserLock) releaseBrowserLock(key);
       activeSpawns--;
       lock.processing = false;
       lock.killCurrent = null;

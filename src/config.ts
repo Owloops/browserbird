@@ -161,8 +161,7 @@ function validateConfig(config: Config): void {
     }
   }
 
-  const browserMode = process.env['BROWSER_MODE'] ?? 'persistent';
-  if (config.browser.enabled && browserMode === 'persistent' && config.sessions.maxConcurrent > 1) {
+  if (config.browser.enabled && getBrowserMode() === 'persistent' && config.sessions.maxConcurrent > 1) {
     logger.warn(
       'persistent browser mode with maxConcurrent > 1 will cause lock contention; use "isolated" or set maxConcurrent to 1',
     );
@@ -244,6 +243,11 @@ export function ensureMcpConfig(config: Config, configDir: string): void {
   writeFileSync(mcpPath, JSON.stringify(mcpConfig, null, 2) + '\n', 'utf-8');
   config.browser.mcpConfigPath = mcpPath;
   logger.info(`generated mcp config at ${mcpPath} (host: ${host})`);
+}
+
+/** Returns the browser mode from BROWSER_MODE env var, defaulting to 'persistent'. */
+export function getBrowserMode(): string {
+  return process.env['BROWSER_MODE'] ?? 'persistent';
 }
 
 /** Atomic write: writes to a .tmp file then renames over the target. */

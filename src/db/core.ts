@@ -254,6 +254,18 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    name: 'browser lock',
+    up(d) {
+      d.exec(`
+        CREATE TABLE IF NOT EXISTS browser_lock (
+          id INTEGER PRIMARY KEY CHECK(id = 1),
+          holder TEXT NOT NULL,
+          acquired_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+    },
+  },
 ];
 
 let db: DatabaseSync | null = null;

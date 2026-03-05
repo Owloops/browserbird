@@ -63,6 +63,7 @@ import {
   saveEnvFile,
   loadDotEnv,
   deepMerge,
+  getBrowserMode,
 } from '../config.ts';
 
 export function buildStatusPayload(
@@ -173,7 +174,7 @@ function sanitizeConfig(config: Config): object {
     birds: config.birds,
     browser: {
       enabled: config.browser.enabled,
-      mode: process.env['BROWSER_MODE'] ?? 'persistent',
+      mode: getBrowserMode(),
       novncHost: config.browser.novncHost,
       vncPort: config.browser.vncPort,
       novncPort: config.browser.novncPort,
