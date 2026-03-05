@@ -1,5 +1,6 @@
 /** @fileoverview Claude Code CLI provider: arg building and stream-json parsing. */
 
+import { resolve } from 'node:path';
 import type { ProviderModule, SpawnOptions, ProviderCommand } from './types.ts';
 import type { StreamEvent, ToolImage } from './stream.ts';
 
@@ -50,6 +51,8 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
     : apiKey
       ? { ANTHROPIC_API_KEY: apiKey }
       : {};
+
+  env['CLAUDE_CONFIG_DIR'] = resolve('.browserbird', 'claude');
 
   return { binary: 'claude', args, env };
 }
