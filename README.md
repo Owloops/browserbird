@@ -29,6 +29,21 @@ Talk to an AI agent in Slack threads. It can browse the web with a real Chromium
 
 Built by [Owloops](https://github.com/Owloops), building browser automation tools since 2020.
 
+## Use Cases
+
+Set up a bird (scheduled task) and it runs on a cron, browses the web, and posts results to your Slack channel. The browser keeps logins and cookies across runs, so it works with sites that require authentication.
+
+| Use Case | What the bird does |
+| --- | --- |
+| **Competitor monitoring** | Visits competitor pages on a schedule, screenshots pricing or feature changes, and flags differences in your channel. |
+| **News and mention digest** | Browses Hacker News, Reddit, or Twitter for mentions of your product or keywords, and posts a morning summary. |
+| **Status page watchdog** | Checks a status page every few minutes and alerts your incidents channel when something is degraded. |
+| **Dashboard screenshots** | Logs into your analytics or billing dashboard, takes screenshots of key metrics, and posts them weekly. |
+| **Job and listing tracker** | Browses job boards, real estate sites, or marketplaces for new listings matching your criteria. |
+| **Review and form monitor** | Checks Google Reviews, App Store reviews, or form submissions and summarizes new entries in your support channel. |
+
+These are starting points. Every bird has a full AI agent (Claude Code or opencode) behind it that can browse the web, run shell commands, write and analyze code, call APIs, use MCP servers, and work with any CLI tool installed in the environment.
+
 ## Installation
 
 On first run, open the web UI and complete the onboarding wizard. It walks through Slack tokens, agent config, and API keys.
