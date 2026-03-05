@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/Owloops/browserbird/compare/v1.2.3...v1.2.4) (2026-03-05)
+
+
+### Bug Fixes
+
+* add use cases section to readme ([e70043f](https://github.com/Owloops/browserbird/commit/e70043fd3f928c23a5fd3728b655509809d9b0b5))
+
 ## [1.2.3](https://github.com/Owloops/browserbird/compare/v1.2.2...v1.2.3) (2026-03-04)
 
 
