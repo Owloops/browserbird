@@ -1,7 +1,7 @@
 /** @fileoverview Config command: display merged configuration. */
 
 import { parseArgs } from 'node:util';
-import { loadRawConfig } from '../config.ts';
+import { loadRawConfig, getBrowserMode } from '../config.ts';
 import type { Config } from '../core/types.ts';
 import { c } from './style.ts';
 
@@ -23,7 +23,9 @@ export function handleConfig(argv: string[]): void {
     allowPositionals: false,
     strict: false,
   });
-  printConfig(values.config as string | undefined);
+  const configPath =
+    (values.config as string | undefined) ?? process.env['BROWSERBIRD_CONFIG'];
+  printConfig(configPath);
 }
 
 function printConfig(configPath?: string): void {
@@ -64,7 +66,7 @@ function printConfig(configPath?: string): void {
   console.log(`\n${c('cyan', 'browser:')}`);
   console.log(`  ${c('dim', 'enabled:')}    ${config.browser.enabled ? 'yes' : 'no'}`);
   if (config.browser.enabled) {
-    console.log(`  ${c('dim', 'mode:')}       ${process.env['BROWSER_MODE'] ?? 'persistent'}`);
+    console.log(`  ${c('dim', 'mode:')}       ${getBrowserMode()}`);
     console.log(`  ${c('dim', 'vnc port:')}   ${config.browser.vncPort}`);
     console.log(`  ${c('dim', 'novnc port:')} ${config.browser.novncPort}`);
   }
