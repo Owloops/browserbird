@@ -1,3 +1,12 @@
+## [1.2.5](https://github.com/Owloops/browserbird/compare/v1.2.4...v1.2.5) (2026-03-05)
+
+
+### Bug Fixes
+
+* **browser:** add sqlite-based lock for persistent browser mode ([c472ad8](https://github.com/Owloops/browserbird/commit/c472ad836f230a79dd3d4dbbfd792c2feab168a6))
+* **cli:** support BROWSERBIRD_CONFIG env var in config command ([96f0072](https://github.com/Owloops/browserbird/commit/96f00723e8025ffe03ab3ee022ae1c61089351de))
+* format files with prettier ([6c46374](https://github.com/Owloops/browserbird/commit/6c46374ad2f83536a49768a46c02b8a043b1304a))
+
 ## [1.2.4](https://github.com/Owloops/browserbird/compare/v1.2.3...v1.2.4) (2026-03-05)
 
 
