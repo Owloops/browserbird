@@ -2,7 +2,13 @@
 
 import { logger } from './core/logger.ts';
 import { BANNER } from './cli/banner.ts';
-import { loadConfig, loadDotEnv, hasSlackTokens, ensureMcpConfig, getBrowserMode } from './config.ts';
+import {
+  loadConfig,
+  loadDotEnv,
+  hasSlackTokens,
+  ensureMcpConfig,
+  getBrowserMode,
+} from './config.ts';
 import { openDatabase, closeDatabase, setSetting, resolveDbPath } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';

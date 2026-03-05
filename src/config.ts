@@ -161,7 +161,11 @@ function validateConfig(config: Config): void {
     }
   }
 
-  if (config.browser.enabled && getBrowserMode() === 'persistent' && config.sessions.maxConcurrent > 1) {
+  if (
+    config.browser.enabled &&
+    getBrowserMode() === 'persistent' &&
+    config.sessions.maxConcurrent > 1
+  ) {
     logger.warn(
       'persistent browser mode with maxConcurrent > 1 will cause lock contention; use "isolated" or set maxConcurrent to 1',
     );

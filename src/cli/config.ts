@@ -23,8 +23,7 @@ export function handleConfig(argv: string[]): void {
     allowPositionals: false,
     strict: false,
   });
-  const configPath =
-    (values.config as string | undefined) ?? process.env['BROWSERBIRD_CONFIG'];
+  const configPath = (values.config as string | undefined) ?? process.env['BROWSERBIRD_CONFIG'];
   printConfig(configPath);
 }
 
