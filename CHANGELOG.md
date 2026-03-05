@@ -1,3 +1,10 @@
+## [1.2.6](https://github.com/Owloops/browserbird/compare/v1.2.5...v1.2.6) (2026-03-05)
+
+
+### Bug Fixes
+
+* **claude:** persist session state across container restarts ([536f400](https://github.com/Owloops/browserbird/commit/536f400d5d95ecfb7467a216235dcdd8e7d9573f))
+
 ## [1.2.5](https://github.com/Owloops/browserbird/compare/v1.2.4...v1.2.5) (2026-03-05)
 
 
