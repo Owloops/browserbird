@@ -1,3 +1,10 @@
+## [1.2.8](https://github.com/Owloops/browserbird/compare/v1.2.7...v1.2.8) (2026-03-06)
+
+
+### Bug Fixes
+
+* post slack block when agent session times out ([#5](https://github.com/Owloops/browserbird/issues/5)) ([a5294d8](https://github.com/Owloops/browserbird/commit/a5294d87d4c94fa7527751eea09349373839b7cd))
+
 ## [1.2.7](https://github.com/Owloops/browserbird/compare/v1.2.6...v1.2.7) (2026-03-06)
 
 
