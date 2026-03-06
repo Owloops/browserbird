@@ -30,8 +30,11 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
     args.push('--resume', sessionId);
   }
 
-  if (agent.systemPrompt) {
-    args.push('--append-system-prompt', agent.systemPrompt);
+  const systemParts: string[] = [];
+  if (agent.systemPrompt) systemParts.push(agent.systemPrompt);
+  if (options.timezone) systemParts.push(`System timezone: ${options.timezone}. All cron expressions and scheduled times use this timezone.`);
+  if (systemParts.length > 0) {
+    args.push('--append-system-prompt', systemParts.join(' '));
   }
 
   if (mcpConfigPath) {

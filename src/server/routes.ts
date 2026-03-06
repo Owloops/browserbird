@@ -719,7 +719,7 @@ export function buildRoutes(
           if (bird.name.startsWith(SYSTEM_CRON_PREFIX)) continue;
           try {
             const schedule = parseCron(bird.schedule);
-            const next = nextCronMatch(schedule, now, bird.timezone);
+            const next = nextCronMatch(schedule, now, getConfig().timezone);
             if (next) {
               upcoming.push({
                 uid: bird.uid,
@@ -786,7 +786,6 @@ export function buildRoutes(
           prompt?: string;
           channel?: string;
           agent?: string;
-          timezone?: string;
           activeHoursStart?: string;
           activeHoursEnd?: string;
         };
@@ -810,7 +809,6 @@ export function buildRoutes(
           body.prompt.trim(),
           body.channel?.trim() || undefined,
           body.agent?.trim() || undefined,
-          body.timezone?.trim() || getConfig().timezone,
           body.activeHoursStart?.trim() || undefined,
           body.activeHoursEnd?.trim() || undefined,
         );
@@ -829,7 +827,6 @@ export function buildRoutes(
           prompt?: string;
           channel?: string | null;
           agent?: string;
-          timezone?: string;
           activeHoursStart?: string | null;
           activeHoursEnd?: string | null;
         };
@@ -845,7 +842,6 @@ export function buildRoutes(
           name: body.prompt ? deriveBirdName(body.prompt) : undefined,
           targetChannelId: body.channel !== undefined ? body.channel?.trim() || null : undefined,
           agentId: body.agent?.trim() || undefined,
-          timezone: body.timezone?.trim() || undefined,
           activeHoursStart:
             body.activeHoursStart !== undefined ? body.activeHoursStart?.trim() || null : undefined,
           activeHoursEnd:

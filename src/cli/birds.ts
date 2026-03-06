@@ -42,7 +42,6 @@ ${c('dim', 'options:')}
   ${c('yellow', '--agent')} <id>         target agent id
   ${c('yellow', '--schedule')} <expr>    cron schedule expression
   ${c('yellow', '--prompt')} <text>      prompt text
-  ${c('yellow', '--timezone')} <tz>      IANA timezone (default: UTC)
   ${c('yellow', '--active-hours')} <range>  restrict runs to a time window (e.g. "09:00-17:00")
   ${c('yellow', '--limit')} <n>          number of flights to show (default: 10)
   ${c('yellow', '--json')}              output as JSON (with list, flights)
@@ -99,7 +98,6 @@ export function handleBirds(argv: string[]): void {
       agent: { type: 'string' },
       schedule: { type: 'string' },
       prompt: { type: 'string' },
-      timezone: { type: 'string' },
       'active-hours': { type: 'string' },
       limit: { type: 'string' },
       json: { type: 'boolean', default: false },
@@ -174,7 +172,6 @@ export function handleBirds(argv: string[]): void {
           prompt,
           values.channel as string | undefined,
           values.agent as string | undefined,
-          values.timezone as string | undefined,
           activeStart,
           activeEnd,
         );
@@ -190,7 +187,7 @@ export function handleBirds(argv: string[]): void {
         const uidPrefix = positionals[0];
         if (!uidPrefix) {
           logger.error(
-            'usage: browserbird birds edit <uid> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--timezone <tz>] [--active-hours <range>]',
+            'usage: browserbird birds edit <uid> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--active-hours <range>]',
           );
           process.exitCode = 1;
           return;
@@ -201,7 +198,6 @@ export function handleBirds(argv: string[]): void {
         const agent = values.agent as string | undefined;
         const schedule = values.schedule as string | undefined;
         const prompt = values.prompt as string | undefined;
-        const timezone = values.timezone as string | undefined;
         const editActiveHoursRaw = values['active-hours'] as string | undefined;
         let editActiveStart: string | null | undefined;
         let editActiveEnd: string | null | undefined;
@@ -223,11 +219,10 @@ export function handleBirds(argv: string[]): void {
           !prompt &&
           !channel &&
           !agent &&
-          !timezone &&
           editActiveStart === undefined
         ) {
           logger.error(
-            'provide at least one of: --schedule, --prompt, --channel, --agent, --timezone, --active-hours',
+            'provide at least one of: --schedule, --prompt, --channel, --agent, --active-hours',
           );
           process.exitCode = 1;
           return;
@@ -238,7 +233,6 @@ export function handleBirds(argv: string[]): void {
           name: prompt ? deriveBirdName(prompt) : undefined,
           targetChannelId: channel !== undefined ? channel || null : undefined,
           agentId: agent,
-          timezone,
           activeHoursStart: editActiveStart,
           activeHoursEnd: editActiveEnd,
         });

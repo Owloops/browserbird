@@ -90,7 +90,10 @@ function ensureWorkspace(mcpConfigPath?: string, systemPrompt?: string): void {
 function buildCommand(options: SpawnOptions): ProviderCommand {
   const { message, sessionId, agent, mcpConfigPath } = options;
 
-  ensureWorkspace(mcpConfigPath, agent.systemPrompt);
+  const systemParts: string[] = [];
+  if (agent.systemPrompt) systemParts.push(agent.systemPrompt);
+  if (options.timezone) systemParts.push(`System timezone: ${options.timezone}. All cron expressions and scheduled times use this timezone.`);
+  ensureWorkspace(mcpConfigPath, systemParts.join(' ') || undefined);
 
   const args: string[] = ['run', '--format', 'json', '-m', agent.model];
 

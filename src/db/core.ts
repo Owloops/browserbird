@@ -172,7 +172,6 @@ const MIGRATIONS: Migration[] = [
           target_channel_id TEXT,
           active_hours_start TEXT,
           active_hours_end TEXT,
-          timezone TEXT DEFAULT 'UTC',
           enabled INTEGER NOT NULL DEFAULT 1,
           failure_count INTEGER NOT NULL DEFAULT 0,
           last_run TEXT,

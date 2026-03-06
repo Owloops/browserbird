@@ -225,6 +225,7 @@ export function createHandler(
           sessionId: existingSessionId,
           agent,
           mcpConfigPath: config.browser.mcpConfigPath,
+          timezone: config.timezone,
         },
         signal,
       );

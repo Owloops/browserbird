@@ -104,7 +104,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     try {
       const { events } = spawnProvider(
         agent.provider,
-        { message: payload.prompt, agent, mcpConfigPath: config.browser.mcpConfigPath },
+        { message: payload.prompt, agent, mcpConfigPath: config.browser.mcpConfigPath, timezone: config.timezone },
         signal,
       );
 
@@ -213,9 +213,9 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
         }
       }
 
-      if (!matchesCron(schedule, now, job.timezone)) continue;
+      if (!matchesCron(schedule, now, config.timezone)) continue;
 
-      if (!isWithinActiveHours(job.active_hours_start, job.active_hours_end, now, job.timezone)) {
+      if (!isWithinActiveHours(job.active_hours_start, job.active_hours_end, now, config.timezone)) {
         logger.debug(`bird ${shortUid(job.uid)} skipped: outside active hours`);
         continue;
       }

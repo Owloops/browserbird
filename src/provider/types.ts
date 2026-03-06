@@ -16,6 +16,7 @@ export interface SpawnOptions {
   sessionId?: string;
   agent: import('../core/types.ts').AgentConfig;
   mcpConfigPath?: string;
+  timezone?: string;
 }
 
 export interface ProviderModule {
