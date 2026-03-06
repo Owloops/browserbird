@@ -28,8 +28,11 @@ import { spawnProvider } from '../provider/spawn.ts';
 import { redact } from '../core/redact.ts';
 import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
 import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
-import { acquireBrowserLock, releaseBrowserLock } from '../browser/lock.ts';
+import { acquireBrowserLock, releaseBrowserLock, refreshBrowserLock } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
+
+const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
+const LOCK_HEARTBEAT_MS = 30_000;
 
 const TICK_INTERVAL_MS = 60_000;
 const MAX_SCHEDULE_ERRORS = 3;
@@ -95,16 +98,18 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
     }
 
     const needsBrowserLock = config.browser.enabled && getBrowserMode() === 'persistent';
-    if (needsBrowserLock) {
-      if (!acquireBrowserLock(payload.cronJobUid, config.sessions.processTimeoutMs)) {
-        throw new Error('browser is locked by another session');
-      }
-    }
+    let browserLockAcquired = false;
+    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
     try {
       const { events } = spawnProvider(
         agent.provider,
-        { message: payload.prompt, agent, mcpConfigPath: config.browser.mcpConfigPath, timezone: config.timezone },
+        {
+          message: payload.prompt,
+          agent,
+          mcpConfigPath: config.browser.mcpConfigPath,
+          timezone: config.timezone,
+        },
         signal,
       );
 
@@ -115,7 +120,23 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
       let result = '';
       let completion: StreamEventCompletion | undefined;
       for await (const event of events) {
-        if (event.type === 'text_delta') {
+        if (event.type === 'tool_use') {
+          if (
+            needsBrowserLock &&
+            !browserLockAcquired &&
+            event.toolName.startsWith(BROWSER_TOOL_PREFIX)
+          ) {
+            if (!acquireBrowserLock(payload.cronJobUid, config.sessions.processTimeoutMs)) {
+              throw new Error('browser is locked by another session');
+            }
+            browserLockAcquired = true;
+            heartbeatTimer = setInterval(
+              () => refreshBrowserLock(payload.cronJobUid),
+              LOCK_HEARTBEAT_MS,
+            );
+            logger.info(`browser lock acquired lazily for bird ${shortUid(payload.cronJobUid)}`);
+          }
+        } else if (event.type === 'text_delta') {
           result += redact(event.delta);
         } else if (event.type === 'completion') {
           completion = event;
@@ -164,7 +185,8 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
 
       return result;
     } finally {
-      if (needsBrowserLock) releaseBrowserLock(payload.cronJobUid);
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      if (browserLockAcquired) releaseBrowserLock(payload.cronJobUid);
     }
   });
 
@@ -215,7 +237,9 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
 
       if (!matchesCron(schedule, now, config.timezone)) continue;
 
-      if (!isWithinActiveHours(job.active_hours_start, job.active_hours_end, now, config.timezone)) {
+      if (
+        !isWithinActiveHours(job.active_hours_start, job.active_hours_end, now, config.timezone)
+      ) {
         logger.debug(`bird ${shortUid(job.uid)} skipped: outside active hours`);
         continue;
       }

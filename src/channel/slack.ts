@@ -497,13 +497,7 @@ async function handleBirdCreateSubmission(
     }
 
     const { createCronJob, setCronJobEnabled } = await import('../db/index.ts');
-    const bird = createCronJob(
-      name,
-      schedule,
-      prompt,
-      channelId || undefined,
-      'default',
-    );
+    const bird = createCronJob(name, schedule, prompt, channelId || undefined, 'default');
     if (enabledValue !== 'enabled') {
       setCronJobEnabled(bird.uid, false);
     }

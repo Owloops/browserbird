@@ -47,13 +47,19 @@ interface StreamEventError {
   error: string;
 }
 
+export interface StreamEventToolUse {
+  type: 'tool_use';
+  toolName: string;
+}
+
 export type StreamEvent =
   | StreamEventInit
   | StreamEventTextDelta
   | StreamEventToolImages
   | StreamEventCompletion
   | StreamEventRateLimit
-  | StreamEventError;
+  | StreamEventError
+  | StreamEventToolUse;
 
 /**
  * Splits a raw data chunk into lines, handling partial lines across chunks.

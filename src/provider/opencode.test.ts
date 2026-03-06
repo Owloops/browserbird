@@ -162,6 +162,25 @@ describe('opencode parseStreamLine', () => {
     deepStrictEqual(events[0], { type: 'error', error: 'UnknownError' });
   });
 
+  it('emits tool_use event', () => {
+    const events = opencode.parseStreamLine(
+      JSON.stringify({
+        type: 'tool_use',
+        timestamp: 1772778840600,
+        sessionID: 'ses_abc',
+        part: {
+          sessionID: 'ses_abc',
+          type: 'tool',
+          callID: 'toolu_012',
+          tool: 'mcp__playwright__navigate',
+          state: { status: 'completed' },
+        },
+      }),
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], { type: 'tool_use', toolName: 'mcp__playwright__navigate' });
+  });
+
   it('returns empty for blank lines and non-json', () => {
     strictEqual(opencode.parseStreamLine('').length, 0);
     strictEqual(opencode.parseStreamLine('garbage').length, 0);

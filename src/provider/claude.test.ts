@@ -74,11 +74,12 @@ describe('claude parseStreamLine', () => {
     strictEqual(claude.parseStreamLine('not json at all').length, 0);
   });
 
-  it('ignores tool_use content blocks', () => {
+  it('emits tool_use event from content blocks', () => {
     const events = claude.parseStreamLine(
-      '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"bash","input":{}}]}}',
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"mcp__playwright__navigate","input":{}}]}}',
     );
-    strictEqual(events.length, 0);
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], { type: 'tool_use', toolName: 'mcp__playwright__navigate' });
   });
 
   it('parses rate_limit_event', () => {

@@ -22,6 +22,13 @@ export function acquireBrowserLock(holder: string, timeoutMs: number): boolean {
   return Number(result.changes) > 0;
 }
 
+/** Refreshes the lock timestamp to prevent staleness during long operations. */
+export function refreshBrowserLock(holder: string): void {
+  getDb()
+    .prepare(`UPDATE browser_lock SET acquired_at = datetime('now') WHERE id = 1 AND holder = ?`)
+    .run(holder);
+}
+
 /** Releases the browser lock only if the caller is the current holder. */
 export function releaseBrowserLock(holder: string): void {
   getDb().prepare('DELETE FROM browser_lock WHERE id = 1 AND holder = ?').run(holder);

@@ -32,7 +32,10 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
 
   const systemParts: string[] = [];
   if (agent.systemPrompt) systemParts.push(agent.systemPrompt);
-  if (options.timezone) systemParts.push(`System timezone: ${options.timezone}. All cron expressions and scheduled times use this timezone.`);
+  if (options.timezone)
+    systemParts.push(
+      `System timezone: ${options.timezone}. All cron expressions and scheduled times use this timezone.`,
+    );
   if (systemParts.length > 0) {
     args.push('--append-system-prompt', systemParts.join(' '));
   }
@@ -160,6 +163,8 @@ function parseAssistantContent(parsed: Record<string, unknown>): StreamEvent[] {
     const b = block as Record<string, unknown>;
     if (b['type'] === 'text' && typeof b['text'] === 'string') {
       events.push({ type: 'text_delta', delta: b['text'] });
+    } else if (b['type'] === 'tool_use' && typeof b['name'] === 'string') {
+      events.push({ type: 'tool_use', toolName: b['name'] });
     }
   }
   return events;

@@ -12,8 +12,11 @@ import { logger } from '../core/logger.ts';
 import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { sessionErrorBlocks, busyBlocks, noAgentBlocks, completionFooterBlocks } from './blocks.ts';
-import { acquireBrowserLock, releaseBrowserLock } from '../browser/lock.ts';
+import { acquireBrowserLock, releaseBrowserLock, refreshBrowserLock } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
+
+const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
+const LOCK_HEARTBEAT_MS = 30_000;
 
 interface SessionLock {
   processing: boolean;
@@ -64,7 +67,7 @@ export function createHandler(
     sessionUid: string,
     teamId: string,
     userId: string,
-    meta: { birdName?: string },
+    meta: { birdName?: string; onToolUse?: (toolName: string) => void },
   ): Promise<void> {
     const streamer = client.startStream({ channelId, threadTs, teamId, userId });
     let fullText = '';
@@ -89,6 +92,10 @@ export function createHandler(
 
         case 'tool_images':
           await uploadImages(event.images, channelId, threadTs);
+          break;
+
+        case 'tool_use':
+          meta.onToolUse?.(event.toolName);
           break;
 
         case 'completion':
@@ -180,15 +187,8 @@ export function createHandler(
     }
 
     const needsBrowserLock = config.browser.enabled && getBrowserMode() === 'persistent';
-    if (needsBrowserLock && !acquireBrowserLock(key, config.sessions.processTimeoutMs)) {
-      await client.postMessage(
-        channelId,
-        threadTs,
-        'The browser is in use by another session. Your message will be processed when it finishes.',
-      );
-      lock.queue.push(dispatch);
-      return;
-    }
+    let browserLockAcquired = false;
+    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
     lock.processing = true;
     activeSpawns++;
@@ -239,8 +239,25 @@ export function createHandler(
         client.setTitle?.(channelId, threadTs, title).catch(() => {});
       }
 
+      const onToolUse = (toolName: string) => {
+        if (!needsBrowserLock || browserLockAcquired) return;
+        if (!toolName.startsWith(BROWSER_TOOL_PREFIX)) return;
+
+        if (acquireBrowserLock(key, config.sessions.processTimeoutMs)) {
+          browserLockAcquired = true;
+          heartbeatTimer = setInterval(() => refreshBrowserLock(key), LOCK_HEARTBEAT_MS);
+          logger.info(`browser lock acquired lazily for ${key} (tool: ${toolName})`);
+        } else {
+          logger.warn(`browser lock unavailable for ${key} (tool: ${toolName})`);
+          client
+            .postMessage(channelId, threadTs, 'The browser is in use by another session.')
+            .catch(() => {});
+        }
+      };
+
       await streamToChannel(events, channelId, threadTs, session.uid, getTeamId(), userId, {
         birdName: agent.name,
+        onToolUse,
       });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -255,7 +272,8 @@ export function createHandler(
         /* channel may no longer be accessible */
       }
     } finally {
-      if (needsBrowserLock) releaseBrowserLock(key);
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      if (browserLockAcquired) releaseBrowserLock(key);
       activeSpawns--;
       lock.processing = false;
       lock.killCurrent = null;

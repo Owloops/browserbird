@@ -214,13 +214,7 @@ export function handleBirds(argv: string[]): void {
           editActiveStart = parsed.start;
           editActiveEnd = parsed.end;
         }
-        if (
-          !schedule &&
-          !prompt &&
-          !channel &&
-          !agent &&
-          editActiveStart === undefined
-        ) {
+        if (!schedule && !prompt && !channel && !agent && editActiveStart === undefined) {
           logger.error(
             'provide at least one of: --schedule, --prompt, --channel, --agent, --active-hours',
           );

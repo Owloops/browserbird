@@ -92,7 +92,10 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
 
   const systemParts: string[] = [];
   if (agent.systemPrompt) systemParts.push(agent.systemPrompt);
-  if (options.timezone) systemParts.push(`System timezone: ${options.timezone}. All cron expressions and scheduled times use this timezone.`);
+  if (options.timezone)
+    systemParts.push(
+      `System timezone: ${options.timezone}. All cron expressions and scheduled times use this timezone.`,
+    );
   ensureWorkspace(mcpConfigPath, systemParts.join(' ') || undefined);
 
   const args: string[] = ['run', '--format', 'json', '-m', agent.model];
@@ -230,6 +233,14 @@ function parseStreamLine(line: string): StreamEvent[] {
 
       accumulators.delete(sid);
       return [completion];
+    }
+
+    case 'tool_use': {
+      const toolName = (typeof part?.['tool'] === 'string' && part['tool']) || '';
+      if (toolName) {
+        return [{ type: 'tool_use', toolName }];
+      }
+      return [];
     }
 
     case 'error': {
