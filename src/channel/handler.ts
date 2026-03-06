@@ -11,7 +11,13 @@ import * as db from '../db/index.ts';
 import { logger } from '../core/logger.ts';
 import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
-import { sessionErrorBlocks, busyBlocks, noAgentBlocks, completionFooterBlocks } from './blocks.ts';
+import {
+  sessionErrorBlocks,
+  busyBlocks,
+  noAgentBlocks,
+  completionFooterBlocks,
+  sessionTimeoutBlocks,
+} from './blocks.ts';
 import { acquireBrowserLock, releaseBrowserLock, refreshBrowserLock } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
 
@@ -73,6 +79,8 @@ export function createHandler(
     let fullText = '';
     let completion: StreamEventCompletion | undefined;
     let hasError = false;
+    let timedOut = false;
+    let timedOutMs = 0;
 
     for await (const event of events) {
       if (signal.aborted) break;
@@ -126,6 +134,12 @@ export function createHandler(
           await streamer.append({ markdown_text: `\n\nError: ${safeError}` });
           break;
         }
+
+        case 'timeout':
+          timedOut = true;
+          timedOutMs = event.timeoutMs;
+          logger.warn(`session timed out after ${event.timeoutMs}ms`);
+          break;
       }
     }
 
@@ -134,6 +148,16 @@ export function createHandler(
       : undefined;
 
     await streamer.stop(footerBlocks ? { blocks: footerBlocks } : {});
+
+    if (timedOut && !completion) {
+      const blocks = sessionTimeoutBlocks(timedOutMs, { sessionUid });
+      await client.postMessage(
+        channelId,
+        threadTs,
+        `Session timed out after ${Math.round(timedOutMs / 60_000)} minutes.`,
+        { blocks },
+      );
+    }
   }
 
   async function uploadImages(

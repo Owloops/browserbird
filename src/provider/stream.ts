@@ -52,6 +52,11 @@ export interface StreamEventToolUse {
   toolName: string;
 }
 
+export interface StreamEventTimeout {
+  type: 'timeout';
+  timeoutMs: number;
+}
+
 export type StreamEvent =
   | StreamEventInit
   | StreamEventTextDelta
@@ -59,7 +64,8 @@ export type StreamEvent =
   | StreamEventCompletion
   | StreamEventRateLimit
   | StreamEventError
-  | StreamEventToolUse;
+  | StreamEventToolUse
+  | StreamEventTimeout;
 
 /**
  * Splits a raw data chunk into lines, handling partial lines across chunks.

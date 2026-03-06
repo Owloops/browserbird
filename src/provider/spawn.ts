@@ -84,7 +84,9 @@ export function spawnProvider(
     stderrBuf += chunk.toString('utf-8');
   });
 
+  let timedOut = false;
   const timeout = setTimeout(() => {
+    timedOut = true;
     logger.warn(`${cmd.binary} timed out after ${timeoutMs}ms, killing`);
     gracefulKill(proc);
   }, timeoutMs);
@@ -102,6 +104,9 @@ export function spawnProvider(
 
       if (buffer.trim()) {
         yield* mod.parseStreamLine(buffer);
+      }
+      if (timedOut) {
+        yield { type: 'timeout' as const, timeoutMs };
       }
     } finally {
       clearTimeout(timeout);

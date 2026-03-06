@@ -280,6 +280,32 @@ export function sessionErrorBlocks(
   return blocks;
 }
 
+export function sessionTimeoutBlocks(timeoutMs: number, opts?: { sessionUid?: string }): Block[] {
+  const minutes = Math.round(timeoutMs / 60_000);
+  const blocks: Block[] = [
+    header('Session Timed Out'),
+    section(
+      `The session was stopped after *${minutes} minute${minutes === 1 ? '' : 's'}* (the configured limit).\n\nReply to continue in a new session, or increase \`sessions.processTimeoutMs\` in your config to allow longer runs.`,
+    ),
+  ];
+
+  if (opts?.sessionUid) {
+    blocks.push({
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: plain('Retry'),
+          action_id: 'session_retry',
+          value: `retry:${opts.sessionUid}`,
+        },
+      ],
+    });
+  }
+
+  return blocks;
+}
+
 export function busyBlocks(activeCount: number, maxConcurrent: number): Block[] {
   return [
     section('*Too many active sessions*'),
