@@ -26,3 +26,8 @@ export function acquireBrowserLock(holder: string, timeoutMs: number): boolean {
 export function releaseBrowserLock(holder: string): void {
   getDb().prepare('DELETE FROM browser_lock WHERE id = 1 AND holder = ?').run(holder);
 }
+
+/** Clears any browser lock unconditionally. Called on startup before any sessions exist. */
+export function clearBrowserLock(): void {
+  getDb().prepare('DELETE FROM browser_lock WHERE id = 1').run();
+}

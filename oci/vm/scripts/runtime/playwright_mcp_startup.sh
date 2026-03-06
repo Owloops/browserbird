@@ -13,6 +13,7 @@ if [ "${BROWSER_MODE}" = "isolated" ]; then
 else
     BROWSER_PROFILE="/home/${USERNAME:-bbuser}/.browserbird/browser-profile"
     mkdir -p "$BROWSER_PROFILE"
+    rm -f "$BROWSER_PROFILE/SingletonLock"
     export PLAYWRIGHT_MCP_USER_DATA_DIR="$BROWSER_PROFILE"
     echo "browser mode: persistent (shared profile, logins saved across sessions)"
 fi

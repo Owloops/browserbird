@@ -9,6 +9,7 @@ import {
   ensureMcpConfig,
   getBrowserMode,
 } from './config.ts';
+import { clearBrowserLock } from './browser/lock.ts';
 import { openDatabase, closeDatabase, setSetting, resolveDbPath } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
@@ -72,6 +73,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const envPath = resolve(configDir, '.env');
   const dbPath = resolveDbPath(options.flags.db);
   openDatabase(dbPath);
+  clearBrowserLock();
   startWorker(controller.signal);
 
   loadDotEnv(envPath);
