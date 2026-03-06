@@ -1,3 +1,12 @@
+## [1.2.7](https://github.com/Owloops/browserbird/compare/v1.2.6...v1.2.7) (2026-03-06)
+
+
+### Bug Fixes
+
+* **browser:** acquire browser lock lazily on first playwright tool use ([febb9bb](https://github.com/Owloops/browserbird/commit/febb9bb9f678ef12c57880b663dcc875288f1950))
+* clear stale browser lock on startup and remove chrome singletonlock on vm boot ([437d13d](https://github.com/Owloops/browserbird/commit/437d13df3c27bdb7911a5a04ab8556de55c6c48b))
+* use global config timezone instead of per-bird timezone ([20fe26a](https://github.com/Owloops/browserbird/commit/20fe26aaad097236ba9495b384239d5dc6f766cc))
+
 ## [1.2.6](https://github.com/Owloops/browserbird/compare/v1.2.5...v1.2.6) (2026-03-05)
 
 
