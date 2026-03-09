@@ -143,13 +143,8 @@ export function createHandler(
       }
     }
 
-    const footerBlocks = completion
-      ? completionFooterBlocks(completion, hasError, meta.birdName, userId)
-      : undefined;
-
-    await streamer.stop(footerBlocks ? { blocks: footerBlocks } : {});
-
-    if (timedOut && !completion) {
+    if (timedOut) {
+      await streamer.stop({});
       const blocks = sessionTimeoutBlocks(timedOutMs, { sessionUid });
       await client.postMessage(
         channelId,
@@ -157,6 +152,11 @@ export function createHandler(
         `Session timed out after ${Math.round(timedOutMs / 60_000)} minutes.`,
         { blocks },
       );
+    } else {
+      const footerBlocks = completion
+        ? completionFooterBlocks(completion, hasError, meta.birdName, userId)
+        : undefined;
+      await streamer.stop(footerBlocks ? { blocks: footerBlocks } : {});
     }
   }
 
