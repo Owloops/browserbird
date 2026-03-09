@@ -1,3 +1,10 @@
+## [1.2.10](https://github.com/Owloops/browserbird/compare/v1.2.9...v1.2.10) (2026-03-09)
+
+
+### Bug Fixes
+
+* **daemon:** defer env resolution until slack tokens are confirmed ([bddda22](https://github.com/Owloops/browserbird/commit/bddda226a98294fa5e272a0f50b3e8f52dab935f))
+
 ## [1.2.9](https://github.com/Owloops/browserbird/compare/v1.2.8...v1.2.9) (2026-03-09)
 
 
