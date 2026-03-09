@@ -4,6 +4,7 @@ import { logger } from './core/logger.ts';
 import { BANNER } from './cli/banner.ts';
 import {
   loadConfig,
+  loadRawConfig,
   loadDotEnv,
   hasSlackTokens,
   ensureMcpConfig,
@@ -77,8 +78,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   startWorker(controller.signal);
 
   loadDotEnv(envPath);
-  let currentConfig: Config = loadConfig(configPath);
-  ensureMcpConfig(currentConfig, configDir);
+  let currentConfig: Config = loadRawConfig(configPath) as unknown as Config;
   let slackHandle: ChannelHandle | null = null;
   let setupMode = true;
 
@@ -138,12 +138,8 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   };
 
   if (hasSlackTokens(configPath)) {
-    if (!currentConfig.slack.botToken || !currentConfig.slack.appToken) {
-      throw new Error(
-        'slack tokens not resolvable (set SLACK_BOT_TOKEN/SLACK_APP_TOKEN or configure in browserbird.json)',
-      );
-    }
-
+    currentConfig = loadConfig(configPath);
+    ensureMcpConfig(currentConfig, configDir);
     setSetting('onboarding_completed', 'true');
     startFull(currentConfig);
   } else {
