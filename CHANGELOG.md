@@ -1,3 +1,10 @@
+## [1.2.11](https://github.com/Owloops/browserbird/compare/v1.2.10...v1.2.11) (2026-03-09)
+
+
+### Bug Fixes
+
+* **settings:** add per-agent process timeout with global fallback ([a5c7846](https://github.com/Owloops/browserbird/commit/a5c784646077ea93f574e3557dbcb4126981c868))
+
 ## [1.2.10](https://github.com/Owloops/browserbird/compare/v1.2.9...v1.2.10) (2026-03-09)
 
 
