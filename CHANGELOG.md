@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/Owloops/browserbird/compare/v1.2.11...v1.3.0) (2026-03-09)
+
+
+### Features
+
+* **daemon:** make slack optional with progressive activation ([b06564a](https://github.com/Owloops/browserbird/commit/b06564aa22755ababe5972e05230d453baa632e9))
+
 ## [1.2.11](https://github.com/Owloops/browserbird/compare/v1.2.10...v1.2.11) (2026-03-09)
 
 
