@@ -42,7 +42,6 @@
   let secretEditing: SecretField | null = $state(null);
   let secretValue = $state('');
   let secretSaving = $state(false);
-  let slackRestartNotice = $state(false);
 
   function startSecretEdit(field: SecretField): void {
     secretEditing = field;
@@ -64,14 +63,10 @@
           secretEditing === 'slackBotToken'
             ? { botToken: secretValue.trim() }
             : { appToken: secretValue.trim() };
-        const result = await api<{ success: boolean; requiresRestart: boolean }>(
-          '/api/secrets/slack',
-          { method: 'PUT', body },
-        );
+        await api<{ success: boolean }>('/api/secrets/slack', { method: 'PUT', body });
         showToast('Slack token saved', 'success');
-        if (result.requiresRestart) slackRestartNotice = true;
       } else {
-        await api<{ success: boolean; requiresRestart: boolean }>('/api/secrets/anthropic', {
+        await api<{ success: boolean }>('/api/secrets/anthropic', {
           method: 'PUT',
           body: { apiKey: secretValue.trim() },
         });
@@ -323,9 +318,6 @@
       {/if}
     </div>
     <div class="panel-body">
-      {#if slackRestartNotice}
-        <div class="notice">Restart the daemon to apply new Slack tokens.</div>
-      {/if}
       {#snippet secretRow(
         field: SecretField,
         label: string,
@@ -735,14 +727,6 @@
   .inline-btn-cancel:hover {
     background: var(--color-bg-elevated);
     color: var(--color-text-secondary);
-  }
-
-  .notice {
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--text-xs);
-    color: var(--color-warning);
-    background: var(--color-warning-bg);
-    border-bottom: 1px solid rgba(230, 180, 60, 0.2);
   }
 
   @media (max-width: 960px) {

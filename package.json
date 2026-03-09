@@ -1,7 +1,7 @@
 {
   "name": "@owloops/browserbird",
   "version": "1.2.11",
-  "description": "Self-hosted AI agent for Slack with a real browser, a scheduler, and a web dashboard",
+  "description": "AI agent orchestrator with a real browser, a cron scheduler, and a web dashboard",
   "type": "module",
   "bin": {
     "browserbird": "./bin/browserbird"
@@ -28,12 +28,14 @@
     "prepublishOnly": "npm run lint && npm run format:check && npm run typecheck && npm run build && cd web && npm ci && npm run build"
   },
   "keywords": [
-    "slack",
-    "claude",
-    "claude-code",
-    "orchestrator",
     "cli",
-    "bot"
+    "ai-agent",
+    "orchestrator",
+    "browser-automation",
+    "scheduler",
+    "cron",
+    "claude",
+    "playwright"
   ],
   "author": "Owloops",
   "license": "FSL-1.1-MIT",

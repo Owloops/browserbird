@@ -17,7 +17,7 @@
 
   let { oncomplete }: Props = $props();
 
-  const STEPS = ['Slack', 'Agent', 'Browser'] as const;
+  const STEPS = ['Agent', 'Slack', 'Browser'] as const;
   const SLACK_MANIFEST_URL =
     'https://api.slack.com/apps?new_app=1&manifest_json=%7B%22display_information%22%3A%7B%22name%22%3A%22BrowserBird%22%2C%22description%22%3A%22A%20self-hosted%20AI%20assistant%20in%20Slack%2C%20with%20a%20real%20browser%20and%20a%20scheduler.%22%2C%22background_color%22%3A%22%231a1a2e%22%7D%2C%22features%22%3A%7B%22assistant_view%22%3A%7B%22assistant_description%22%3A%22A%20self-hosted%20AI%20assistant%20in%20Slack%2C%20with%20a%20real%20browser%20and%20a%20scheduler.%22%7D%2C%22app_home%22%3A%7B%22home_tab_enabled%22%3Atrue%2C%22messages_tab_enabled%22%3Atrue%2C%22messages_tab_read_only_enabled%22%3Afalse%7D%2C%22bot_user%22%3A%7B%22display_name%22%3A%22BrowserBird%22%2C%22always_online%22%3Atrue%7D%2C%22slash_commands%22%3A%5B%7B%22command%22%3A%22%2Fbird%22%2C%22description%22%3A%22Manage%20BrowserBird%20birds%22%2C%22usage_hint%22%3A%22list%20%7C%20fly%20%7C%20logs%20%7C%20enable%20%7C%20disable%20%7C%20create%20%7C%20status%22%2C%22should_escape%22%3Afalse%7D%5D%7D%2C%22oauth_config%22%3A%7B%22scopes%22%3A%7B%22bot%22%3A%5B%22app_mentions%3Aread%22%2C%22assistant%3Awrite%22%2C%22channels%3Ahistory%22%2C%22channels%3Aread%22%2C%22chat%3Awrite%22%2C%22files%3Aread%22%2C%22files%3Awrite%22%2C%22groups%3Ahistory%22%2C%22groups%3Aread%22%2C%22im%3Ahistory%22%2C%22im%3Aread%22%2C%22im%3Awrite%22%2C%22mpim%3Ahistory%22%2C%22mpim%3Aread%22%2C%22reactions%3Aread%22%2C%22reactions%3Awrite%22%2C%22users%3Aread%22%2C%22commands%22%5D%7D%7D%2C%22settings%22%3A%7B%22event_subscriptions%22%3A%7B%22bot_events%22%3A%5B%22app_mention%22%2C%22assistant_thread_context_changed%22%2C%22assistant_thread_started%22%2C%22message.channels%22%2C%22message.groups%22%2C%22message.im%22%2C%22message.mpim%22%5D%7D%2C%22interactivity%22%3A%7B%22is_enabled%22%3Atrue%7D%2C%22org_deploy_enabled%22%3Afalse%2C%22socket_mode_enabled%22%3Atrue%2C%22token_rotation_enabled%22%3Afalse%7D%7D';
 
@@ -30,7 +30,7 @@
     name: 'BrowserBird',
     provider: 'claude',
     model: 'sonnet',
-    systemPrompt: 'You are responding in a Slack workspace. Be concise, helpful, and natural.',
+    systemPrompt: 'You are a helpful AI assistant. Be concise and direct.',
     maxTurns: 50,
     channels: ['*'],
     apiKey: '',
@@ -72,7 +72,7 @@
       );
       slackData.team = result.team;
       slackData.botUser = result.botUser;
-      step = 1;
+      step = 2;
     } catch (err) {
       error = (err as Error).message;
     } finally {
@@ -99,12 +99,16 @@
         channels: agentData.channels,
       });
       await saveAuthConfig({ apiKey: agentData.apiKey.trim() });
-      step = 2;
+      step = 1;
     } catch (err) {
       error = (err as Error).message;
     } finally {
       loading = false;
     }
+  }
+
+  function skipSlack(): void {
+    step = 2;
   }
 
   async function handleBrowserSubmit(e: SubmitEvent): Promise<void> {
@@ -199,9 +203,9 @@
 
     <h2 class="onboarding-heading">
       {#if step === 0}
-        Connect Slack
-      {:else if step === 1}
         Configure Agent
+      {:else if step === 1}
+        Connect Slack
       {:else if step === 2}
         Browser
       {:else}
@@ -210,47 +214,6 @@
     </h2>
 
     {#if step === 0}
-      <p class="onboarding-desc">
-        <a href={SLACK_MANIFEST_URL} target="_blank" rel="noopener" class="onboarding-link"
-          >Create a Slack app from the manifest</a
-        >.
-      </p>
-      <form onsubmit={handleSlackSubmit}>
-        <label class="form-label">
-          Bot Token
-          <input
-            type="password"
-            class="form-input"
-            placeholder="xoxb-..."
-            autocomplete="off"
-            bind:value={slackData.botToken}
-          />
-          <span class="form-hint"
-            >OAuth & Permissions, click "Install to Workspace", then copy the token</span
-          >
-        </label>
-        <label class="form-label">
-          App Token
-          <input
-            type="password"
-            class="form-input"
-            placeholder="xapp-..."
-            autocomplete="off"
-            bind:value={slackData.appToken}
-          />
-          <span class="form-hint"
-            >Basic Information, click "Generate Token and Scopes", add connections:write, then copy
-            the token</span
-          >
-        </label>
-        {#if error}
-          <div class="login-error">{error}</div>
-        {/if}
-        <button type="submit" class="btn btn-primary onboarding-submit" disabled={loading}>
-          {loading ? 'Validating...' : 'Validate & Save'}
-        </button>
-      </form>
-    {:else if step === 1}
       <p class="onboarding-desc">
         Configure your first agent. You can add more agents and change settings later.
       </p>
@@ -300,11 +263,57 @@
         {#if error}
           <div class="login-error">{error}</div>
         {/if}
+        <button type="submit" class="btn btn-primary onboarding-submit" disabled={loading}>
+          {loading ? 'Saving...' : 'Save & Continue'}
+        </button>
+      </form>
+    {:else if step === 1}
+      <p class="onboarding-desc">
+        <a href={SLACK_MANIFEST_URL} target="_blank" rel="noopener" class="onboarding-link"
+          >Create a Slack app from the manifest</a
+        >. You can skip this and add Slack later from Settings.
+      </p>
+      <form onsubmit={handleSlackSubmit}>
+        <label class="form-label">
+          Bot Token
+          <input
+            type="password"
+            class="form-input"
+            placeholder="xoxb-..."
+            autocomplete="off"
+            bind:value={slackData.botToken}
+          />
+          <span class="form-hint"
+            >OAuth & Permissions, click "Install to Workspace", then copy the token</span
+          >
+        </label>
+        <label class="form-label">
+          App Token
+          <input
+            type="password"
+            class="form-input"
+            placeholder="xapp-..."
+            autocomplete="off"
+            bind:value={slackData.appToken}
+          />
+          <span class="form-hint"
+            >Basic Information, click "Generate Token and Scopes", add connections:write, then copy
+            the token</span
+          >
+        </label>
+        {#if error}
+          <div class="login-error">{error}</div>
+        {/if}
         <div class="onboarding-actions">
           <button type="button" class="btn btn-outline" onclick={back}>Back</button>
-          <button type="submit" class="btn btn-primary" disabled={loading}>
-            {loading ? 'Saving...' : 'Save & Continue'}
-          </button>
+          <div class="onboarding-actions-right">
+            <button type="button" class="btn btn-outline" disabled={loading} onclick={skipSlack}>
+              Skip
+            </button>
+            <button type="submit" class="btn btn-primary" disabled={loading}>
+              {loading ? 'Validating...' : 'Validate & Save'}
+            </button>
+          </div>
         </div>
       </form>
     {:else if step === 2}
@@ -375,7 +384,7 @@
       <div class="launch-summary">
         <div class="summary-row">
           <span class="summary-label">Slack</span>
-          <span class="summary-value">{slackData.team || 'Connected'}</span>
+          <span class="summary-value">{slackData.team || 'Not configured'}</span>
         </div>
         <div class="summary-row">
           <span class="summary-label">Agent</span>
@@ -389,24 +398,39 @@
         </div>
       </div>
       <div class="done-tips">
-        <div class="done-tip">
-          <span class="done-tip-label">Mention your bot</span>
-          <span class="done-tip-detail">@{agentData.name} in any channel</span>
-        </div>
-        <div class="done-tip">
-          <span class="done-tip-label">Direct message</span>
-          <span class="done-tip-detail">Open a DM with your bot in Slack</span>
-        </div>
-        <div class="done-tip">
-          <span class="done-tip-label">Slash commands</span>
-          <span class="done-tip-detail">Type /bird in Slack to manage scheduled tasks</span>
-        </div>
-        <div class="done-tip">
-          <span class="done-tip-label">Scheduled tasks</span>
-          <span class="done-tip-detail"
-            >Create birds from the dashboard, via /bird create, or ask your bot in Slack</span
-          >
-        </div>
+        {#if slackData.team}
+          <div class="done-tip">
+            <span class="done-tip-label">Mention your bot</span>
+            <span class="done-tip-detail">@{agentData.name} in any channel</span>
+          </div>
+          <div class="done-tip">
+            <span class="done-tip-label">Direct message</span>
+            <span class="done-tip-detail">Open a DM with your bot in Slack</span>
+          </div>
+          <div class="done-tip">
+            <span class="done-tip-label">Slash commands</span>
+            <span class="done-tip-detail">Type /bird in Slack to manage scheduled tasks</span>
+          </div>
+          <div class="done-tip">
+            <span class="done-tip-label">Scheduled tasks</span>
+            <span class="done-tip-detail"
+              >Create birds from the dashboard, via /bird create, or ask your bot in Slack</span
+            >
+          </div>
+        {:else}
+          <div class="done-tip">
+            <span class="done-tip-label">Create birds</span>
+            <span class="done-tip-detail"
+              >Schedule tasks from the Birds page or the CLI</span
+            >
+          </div>
+          <div class="done-tip">
+            <span class="done-tip-label">Add Slack later</span>
+            <span class="done-tip-detail"
+              >Go to Settings to connect Slack whenever you are ready</span
+            >
+          </div>
+        {/if}
       </div>
       <button type="button" class="btn btn-primary onboarding-submit" onclick={oncomplete}>
         Go to Dashboard

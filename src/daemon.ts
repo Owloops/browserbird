@@ -6,12 +6,11 @@ import {
   loadConfig,
   loadRawConfig,
   loadDotEnv,
-  hasSlackTokens,
   ensureMcpConfig,
   getBrowserMode,
 } from './config.ts';
 import { clearBrowserLock } from './browser/lock.ts';
-import { openDatabase, closeDatabase, setSetting, resolveDbPath } from './db/index.ts';
+import { openDatabase, closeDatabase, resolveDbPath } from './db/index.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
@@ -52,12 +51,6 @@ interface DaemonOptions {
   flags: { verbose: boolean; config?: string; db?: string };
 }
 
-const stubDeps: WebServerDeps = {
-  slackConnected: () => false,
-  activeProcessCount: () => 0,
-  serviceHealth: () => ({ agent: { available: false }, browser: { connected: false } }),
-};
-
 export async function startDaemon(options: DaemonOptions): Promise<void> {
   setupShutdown();
   logger.setMode('daemon');
@@ -78,43 +71,65 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   startWorker(controller.signal);
 
   loadDotEnv(envPath);
-  let currentConfig: Config = loadRawConfig(configPath) as unknown as Config;
+  let currentConfig: Config;
   let slackHandle: ChannelHandle | null = null;
-  let setupMode = true;
+
+  let schedulerStarted = false;
+  let slackStarted = false;
+  let healthStarted = false;
+
+  try {
+    currentConfig = loadConfig(configPath);
+    ensureMcpConfig(currentConfig, configDir);
+  } catch (err) {
+    logger.warn(`config validation failed: ${err instanceof Error ? err.message : String(err)}`);
+    currentConfig = loadRawConfig(configPath) as unknown as Config;
+  }
 
   const getConfig = (): Config => currentConfig;
-  const getDeps = (): WebServerDeps => {
-    if (setupMode) return stubDeps;
-    return {
-      slackConnected: () => slackHandle?.isConnected() ?? false,
-      activeProcessCount: () => slackHandle?.activeCount() ?? 0,
-      serviceHealth: () => getServiceHealth(currentConfig),
-    };
-  };
+  const getDeps = (): WebServerDeps => ({
+    slackConnected: () => slackHandle?.isConnected() ?? false,
+    activeProcessCount: () => slackHandle?.activeCount() ?? 0,
+    serviceHealth: () => getServiceHealth(currentConfig),
+  });
 
-  const startFull = (config: Config) => {
+  let activated = false;
+
+  const activateLayers = (config: Config) => {
     currentConfig = config;
-    setupMode = false;
 
-    logger.info('connecting to slack...');
-    slackHandle = createSlackChannel(config, controller.signal);
+    if (!schedulerStarted && config.agents.length > 0) {
+      logger.info('starting scheduler...');
+      startScheduler(config, controller.signal, {
+        postToSlack: (channel, text, opts) =>
+          slackHandle ? slackHandle.postMessage(channel, text, opts) : Promise.resolve(),
+      });
+      schedulerStarted = true;
+    }
 
-    logger.info('starting scheduler...');
-    startScheduler(config, controller.signal, {
-      postToSlack: (channel, text, opts) => slackHandle!.postMessage(channel, text, opts),
-    });
+    if (!healthStarted) {
+      startHealthChecks(getConfig, controller.signal);
+      healthStarted = true;
+    }
 
-    slackHandle.start().catch((err: unknown) => {
-      logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
-    });
+    if (!slackStarted && config.slack.botToken && config.slack.appToken) {
+      logger.info('connecting to slack...');
+      slackHandle = createSlackChannel(config, controller.signal);
+      slackHandle.start().catch((err: unknown) => {
+        logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
+      });
+      slackStarted = true;
+    }
 
-    startHealthChecks(getConfig, controller.signal);
-
-    logger.success('browserbird orchestrator started');
-    logger.info(`agents: ${config.agents.map((a) => a.id).join(', ')}`);
-    logger.info(`max concurrent sessions: ${config.sessions.maxConcurrent}`);
-    if (config.browser.enabled) {
-      logger.info(`browser mode: ${getBrowserMode()}`);
+    if (!activated) {
+      logger.success('browserbird orchestrator started');
+      logger.info(`agents: ${config.agents.map((a) => a.id).join(', ') || 'none'}`);
+      if (!slackStarted) logger.info('slack: not configured');
+      logger.info(`max concurrent sessions: ${config.sessions.maxConcurrent}`);
+      if (config.browser.enabled) {
+        logger.info(`browser mode: ${getBrowserMode()}`);
+      }
+      activated = true;
     }
   };
 
@@ -122,29 +137,21 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     loadDotEnv(envPath);
     const config = loadConfig(configPath);
     ensureMcpConfig(config, configDir);
-
-    if (!config.slack.botToken || !config.slack.appToken) {
-      throw new Error('Slack tokens are required to launch');
-    }
-
-    startFull(config);
+    activateLayers(config);
   };
 
   const reloadConfig = (): void => {
     loadDotEnv(envPath);
-    currentConfig = loadConfig(configPath);
-    ensureMcpConfig(currentConfig, configDir);
+    const config = loadConfig(configPath);
+    ensureMcpConfig(config, configDir);
+    activateLayers(config);
     logger.info('config reloaded');
   };
 
-  if (hasSlackTokens(configPath)) {
-    currentConfig = loadConfig(configPath);
-    ensureMcpConfig(currentConfig, configDir);
-    setSetting('onboarding_completed', 'true');
-    startFull(currentConfig);
+  if (currentConfig.agents.length > 0) {
+    activateLayers(currentConfig);
   } else {
-    setSetting('onboarding_completed', '');
-    logger.info('starting in setup mode (onboarding not completed)');
+    logger.info('no agents configured');
   }
 
   let webServer: Awaited<ReturnType<typeof createWebServer>> | null = null;
@@ -158,10 +165,6 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
       onConfigReload: reloadConfig,
     });
     await webServer.start();
-  }
-
-  if (setupMode) {
-    logger.info('waiting for onboarding to complete via web UI');
   }
 
   await new Promise<void>((resolvePromise) => {

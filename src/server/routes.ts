@@ -536,7 +536,7 @@ export function buildRoutes(
           loadDotEnv(envPath);
           options.onConfigReload();
           broadcastSSE('invalidate', { resource: 'secrets' });
-          json(res, { success: true, requiresRestart: true });
+          json(res, { success: true, requiresRestart: false });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           jsonError(res, `Failed to save Slack tokens: ${msg}`, 500);
