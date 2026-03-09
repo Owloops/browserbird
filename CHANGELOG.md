@@ -1,3 +1,10 @@
+## [1.2.9](https://github.com/Owloops/browserbird/compare/v1.2.8...v1.2.9) (2026-03-09)
+
+
+### Bug Fixes
+
+* **handler:** always show timeout block when session times out ([c3481c8](https://github.com/Owloops/browserbird/commit/c3481c8e048a6121f0a2c6cd163cf61863ca5d9d))
+
 ## [1.2.8](https://github.com/Owloops/browserbird/compare/v1.2.7...v1.2.8) (2026-03-06)
 
 
