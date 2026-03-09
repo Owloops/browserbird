@@ -117,6 +117,33 @@
       {/if}
     </div>
     <div class="agent-field">
+      <span class="row-label">Timeout</span>
+      {#if isEditing('processTimeoutMs')}
+        <InlineEdit
+          bind:value={editValue}
+          mono
+          saving={editor.editingSaving}
+          placeholder="global"
+          onsave={(v) =>
+            onsavefield('processTimeoutMs', v, (s) => {
+              const trimmed = s.trim();
+              if (!trimmed) return null;
+              return Number(trimmed) * 1000;
+            })}
+          oncancel={editor.cancelEdit}
+        />
+      {:else}
+        <button
+          class="val-btn mono editable"
+          onclick={() =>
+            handleStartEdit(
+              'processTimeoutMs',
+              agent.processTimeoutMs ? String(agent.processTimeoutMs / 1000) : '',
+            )}>{agent.processTimeoutMs ? `${agent.processTimeoutMs / 1000}s` : 'global'}</button
+        >
+      {/if}
+    </div>
+    <div class="agent-field">
       <span class="row-label">Channels</span>
       {#if isEditing('channels')}
         <InlineEdit
@@ -219,7 +246,7 @@
 
   .agent-fields {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     border-top: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
   }

@@ -157,6 +157,7 @@ function sanitizeConfig(config: Config): object {
       model: a.model,
       fallbackModel: a.fallbackModel ?? null,
       maxTurns: a.maxTurns,
+      processTimeoutMs: a.processTimeoutMs ?? null,
       systemPrompt: a.systemPrompt,
       channels: a.channels,
     })),

@@ -250,6 +250,7 @@ export function createHandler(
           agent,
           mcpConfigPath: config.browser.mcpConfigPath,
           timezone: config.timezone,
+          globalTimeoutMs: config.sessions.processTimeoutMs,
         },
         signal,
       );

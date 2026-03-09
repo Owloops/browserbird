@@ -553,7 +553,8 @@
               <button
                 class="val-btn mono editable"
                 onclick={() => handleStartEdit('browser.novncHost', config.browser.novncHost)}
-              >{config.browser.novncHost}</button>
+                >{config.browser.novncHost}</button
+              >
             {/if}
           </span>
         </div>

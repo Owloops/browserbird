@@ -44,6 +44,7 @@ export interface ConfigResponse {
     model: string;
     fallbackModel: string | null;
     maxTurns: number;
+    processTimeoutMs: number | null;
     systemPrompt: string;
     channels: string[];
   }[];

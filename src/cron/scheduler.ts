@@ -109,6 +109,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
           agent,
           mcpConfigPath: config.browser.mcpConfigPath,
           timezone: config.timezone,
+          globalTimeoutMs: config.sessions.processTimeoutMs,
         },
         signal,
       );

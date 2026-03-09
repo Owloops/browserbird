@@ -62,7 +62,7 @@ export function spawnProvider(
 ): SpawnResult {
   const mod = PROVIDERS[provider];
   const cmd = mod.buildCommand(options);
-  const timeoutMs = options.agent.processTimeoutMs ?? 300_000;
+  const timeoutMs = options.agent.processTimeoutMs ?? options.globalTimeoutMs ?? 300_000;
 
   logger.debug(`spawning: ${cmd.binary} ${cmd.args.join(' ')} (timeout: ${timeoutMs}ms)`);
 
