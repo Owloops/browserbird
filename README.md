@@ -265,6 +265,8 @@ The **opencode** provider inherits standard env vars per model provider: `OPENAI
 
 Available on npm: `npx @owloops/browserbird`
 
+<img src="assets/demo.gif" alt="BrowserBird CLI demo" />
+
 ```
 $ browserbird --help
 
