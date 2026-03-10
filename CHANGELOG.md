@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/Owloops/browserbird/compare/v1.3.1...v1.3.2) (2026-03-10)
+
+
+### Bug Fixes
+
+* **db:** reduce database open/close logs to debug level ([b988614](https://github.com/Owloops/browserbird/commit/b988614f7a3ea9de8254a807ad3497d37e6441e7))
+
 ## [1.3.1](https://github.com/Owloops/browserbird/compare/v1.3.0...v1.3.1) (2026-03-10)
 
 
