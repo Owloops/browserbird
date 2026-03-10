@@ -156,22 +156,23 @@ interface SocketModeEvent {
   retry_reason?: string;
 }
 
-export function createSlackChannel(config: Config, signal: AbortSignal): ChannelHandle {
+export function createSlackChannel(getConfig: () => Config, signal: AbortSignal): ChannelHandle {
   const recentEvents = new Map<string, number>();
   let botUserId = '';
   let teamId = '';
 
+  const initConfig = getConfig();
   const socketClient = new SocketModeClient({
-    appToken: config.slack.appToken,
+    appToken: initConfig.slack.appToken,
     logLevel: LogLevel.WARN,
     clientPingTimeout: 15_000,
     serverPingTimeout: 60_000,
   });
 
-  const webClient = new WebClient(config.slack.botToken);
+  const webClient = new WebClient(initConfig.slack.botToken);
   const channelClient = new SlackChannelClient(webClient);
-  const handler = createHandler(channelClient, config, signal, () => teamId);
-  const coalescer = createCoalescer(config.slack.coalesce, (dispatch) => {
+  const handler = createHandler(channelClient, getConfig, signal, () => teamId);
+  const coalescer = createCoalescer(initConfig.slack.coalesce, (dispatch) => {
     handler.handle(dispatch).catch(logDispatchError);
   });
 
@@ -207,6 +208,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     if (event['bot_id']) return;
     if (isDuplicate(body)) return;
 
+    const config = getConfig();
     const channelType = event['channel_type'] as string | undefined;
     const isDm = channelType === 'im';
 
@@ -236,12 +238,13 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     }
   });
 
-  if (config.slack.requireMention) {
+  if (initConfig.slack.requireMention) {
     socketClient.on('app_mention', async ({ ack, body, event }: SocketModeEvent) => {
       await ack();
       if (!event) return;
       if (isDuplicate(body)) return;
 
+      const config = getConfig();
       const channelId = event['channel'] as string;
       if (!isChannelAllowed(channelId, config.slack.channels)) return;
       if (isQuietHours(config.slack.quietHours)) return;
@@ -294,7 +297,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
     if (commandBody.command !== '/bird') return;
 
     try {
-      await handleSlashCommand(commandBody, webClient, channelClient, config, statusProvider);
+      await handleSlashCommand(commandBody, webClient, channelClient, getConfig(), statusProvider);
     } catch (err) {
       logger.error(`/bird command error: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -331,7 +334,7 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
         if (selected.startsWith('retry:')) {
           const sessionUid = selected.slice('retry:'.length);
           if (!sessionUid) continue;
-          await handleSessionRetry(sessionUid, channel, user ?? 'unknown', config, handler);
+          await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
         }
       }
     }
@@ -376,8 +379,8 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
       }
     }
 
-    collectNames(config.slack.channels);
-    for (const agent of config.agents) {
+    collectNames(initConfig.slack.channels);
+    for (const agent of initConfig.agents) {
       collectNames(agent.channels);
     }
     if (namesToResolve.size === 0) return;
@@ -420,8 +423,8 @@ export function createSlackChannel(config: Config, signal: AbortSignal): Channel
       });
     }
 
-    config.slack.channels = resolveList(config.slack.channels, 'slack');
-    for (const agent of config.agents) {
+    initConfig.slack.channels = resolveList(initConfig.slack.channels, 'slack');
+    for (const agent of initConfig.agents) {
       agent.channels = resolveList(agent.channels, `agent "${agent.id}"`);
     }
   }

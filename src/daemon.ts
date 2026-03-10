@@ -100,7 +100,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
 
     if (!schedulerStarted && config.agents.length > 0) {
       logger.info('starting scheduler...');
-      startScheduler(config, controller.signal, {
+      startScheduler(getConfig, controller.signal, {
         postToSlack: (channel, text, opts) =>
           slackHandle ? slackHandle.postMessage(channel, text, opts) : Promise.resolve(),
       });
@@ -114,7 +114,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
 
     if (!slackStarted && config.slack.botToken && config.slack.appToken) {
       logger.info('connecting to slack...');
-      slackHandle = createSlackChannel(config, controller.signal);
+      slackHandle = createSlackChannel(getConfig, controller.signal);
       slackHandle.start().catch((err: unknown) => {
         logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
       });

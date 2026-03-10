@@ -38,7 +38,7 @@ export interface Handler {
 
 export function createHandler(
   client: ChannelClient,
-  config: Config,
+  getConfig: () => Config,
   signal: AbortSignal,
   getTeamId: () => string,
 ): Handler {
@@ -197,6 +197,8 @@ export function createHandler(
       }
       return;
     }
+
+    const config = getConfig();
 
     if (activeSpawns >= config.sessions.maxConcurrent) {
       const blocks = busyBlocks(activeSpawns, config.sessions.maxConcurrent);

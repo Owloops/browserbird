@@ -87,11 +87,17 @@ function registerSystemCronJobs(config: Config, retentionDays: number): void {
 }
 
 /** Registers the cron_run job handler and starts the scheduler tick loop. */
-export function startScheduler(config: Config, signal: AbortSignal, deps?: SchedulerDeps): void {
-  registerSystemCronJobs(config, config.database.retentionDays);
+export function startScheduler(
+  getConfig: () => Config,
+  signal: AbortSignal,
+  deps?: SchedulerDeps,
+): void {
+  const initialConfig = getConfig();
+  registerSystemCronJobs(initialConfig, initialConfig.database.retentionDays);
 
   registerHandler('cron_run', async (raw) => {
     const payload = raw as CronRunPayload;
+    const config = getConfig();
     const agent = config.agents.find((a) => a.id === payload.agentId);
     if (!agent) {
       throw new Error(`agent "${payload.agentId}" not found`);
@@ -208,6 +214,7 @@ export function startScheduler(config: Config, signal: AbortSignal, deps?: Sched
   const tick = () => {
     if (signal.aborted) return;
 
+    const config = getConfig();
     const now = new Date();
     const jobs = getEnabledCronJobs();
 
