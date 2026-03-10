@@ -319,14 +319,14 @@ export function openDatabase(dbPath: string): void {
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA busy_timeout = 5000');
   migrate(db);
-  logger.info(`database opened at ${dbPath}`);
+  logger.debug(`database opened at ${dbPath}`);
 }
 
 export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
-    logger.info('database closed');
+    logger.debug('database closed');
   }
 }
 
