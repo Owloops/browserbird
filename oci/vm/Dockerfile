@@ -27,6 +27,7 @@ COPY --chown=$USERNAME:$USERNAME oci/vm/config/foot/foot.ini /home/$USERNAME/.co
 COPY --chown=$USERNAME:$USERNAME oci/vm/config/fontconfig/fonts.conf /home/$USERNAME/.config/fontconfig/fonts.conf
 COPY oci/vm/config/playwright.config.json /opt/browserbird/
 COPY oci/vm/config/stealth.js /opt/browserbird/
+COPY oci/vm/config/supervisord.conf /opt/browserbird/supervisord.conf
 
 COPY oci/vm/scripts/runtime/ /opt/browserbird/runtime/
 RUN chmod +x /opt/browserbird/runtime/*.sh
@@ -41,4 +42,4 @@ USER root
 
 EXPOSE 5900 6080 3000
 
-ENTRYPOINT ["/opt/browserbird/runtime/vm_entrypoint.sh"]
+ENTRYPOINT ["/opt/browserbird/runtime/entrypoint.sh"]
