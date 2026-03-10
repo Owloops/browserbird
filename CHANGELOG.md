@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/Owloops/browserbird/compare/v1.3.3...v1.3.4) (2026-03-10)
+
+
+### Bug Fixes
+
+* use config getter for live config reload without restart ([f239d89](https://github.com/Owloops/browserbird/commit/f239d892bb040418ad100b83135df7e5442acfef))
+
 ## [1.3.3](https://github.com/Owloops/browserbird/compare/v1.3.2...v1.3.3) (2026-03-10)
 
 
