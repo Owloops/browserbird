@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/Owloops/browserbird/compare/v1.3.2...v1.3.3) (2026-03-10)
+
+
+### Bug Fixes
+
+* **vm:** migrate container process management to supervisord ([4fe7ef5](https://github.com/Owloops/browserbird/commit/4fe7ef5737cbfc42537f98c7e715101349405dfa))
+
 ## [1.3.2](https://github.com/Owloops/browserbird/compare/v1.3.1...v1.3.2) (2026-03-10)
 
 
