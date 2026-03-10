@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/Owloops/browserbird/compare/v1.3.0...v1.3.1) (2026-03-10)
+
+
+### Bug Fixes
+
+* **agent-context:** remove stale --timezone flag and update slack-optional framing ([7a38fde](https://github.com/Owloops/browserbird/commit/7a38fde28b18642c0e6dbfe7c7221777ed34033b))
+
 # [1.3.0](https://github.com/Owloops/browserbird/compare/v1.2.11...v1.3.0) (2026-03-09)
 
 
