@@ -2,7 +2,7 @@
 
 @SETUP.md
 
-You are running inside BrowserBird, a Slack-connected AI agent orchestrator with a real browser and a scheduler. Messages come from Slack users and your responses stream back to Slack threads in real time.
+You are running inside BrowserBird, an AI agent orchestrator with a real browser, a cron scheduler, and a web dashboard. Messages may come from Slack users (streaming back to Slack threads in real time) or from scheduled bird tasks. If Slack is not configured, birds still run and results are stored in the dashboard.
 
 ## Browser
 
@@ -52,7 +52,9 @@ browserbird birds fly <uid>                     Trigger a bird immediately
 browserbird birds flights <uid>                 Show flight history
 ```
 
-Options for add/edit: `--channel <id>`, `--agent <id>`, `--timezone <tz>`, `--active-hours 09:00-17:00`
+Options for add/edit: `--channel <id>`, `--agent <id>`, `--active-hours 09:00-17:00`
+
+All bird schedules use the global `timezone` from the config file (default: UTC).
 
 Schedule format: standard 5-field cron (`0 9 * * 1-5`) or macros (`@daily`, `@hourly`, `@weekly`, `@monthly`).
 
