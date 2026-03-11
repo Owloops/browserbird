@@ -1,7 +1,5 @@
 FROM ubuntu:24.04
 
-ARG WIDTH=1920
-ARG HEIGHT=1080
 ARG USERNAME=bbuser
 
 ENV USERNAME=$USERNAME \
@@ -9,9 +7,7 @@ ENV USERNAME=$USERNAME \
     PLAYWRIGHT_BROWSERS_PATH=/home/$USERNAME/.cache/ms-playwright \
     XDG_RUNTIME_DIR=/tmp/xdg-runtime-bbuser \
     WAYLAND_DISPLAY=wayland-1 \
-    DISPLAY=:1 \
-    WIDTH=$WIDTH \
-    HEIGHT=$HEIGHT
+    DISPLAY=:1
 
 COPY oci/vm/scripts/build/install_system.sh /opt/browserbird/build/
 COPY oci/vm/scripts/build/install_playwright.sh /opt/browserbird/build/
