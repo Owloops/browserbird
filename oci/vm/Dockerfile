@@ -40,6 +40,6 @@ WORKDIR /opt/browserbird
 
 USER root
 
-EXPOSE 5900 6080 3000
+EXPOSE 5900 6080 3000 3001
 
 ENTRYPOINT ["/opt/browserbird/runtime/entrypoint.sh"]

@@ -21,6 +21,17 @@ The browser operates in one of two modes depending on the deployment configurati
 
 **Isolated mode**: Each agent session gets its own fresh browser context with no saved state. Multiple agents can browse in parallel without interfering with each other, but logins are not preserved between sessions.
 
+### Uploading Files to the Browser
+
+The browser runs in a separate container. To attach a locally generated file (image, PDF, etc.) to a website via the browser, transfer it to the browser VM first using the file server on port 3001. The VM hostname is the same as `browser.novncHost` in the config (check with `browserbird config`).
+
+```bash
+curl -X POST -H "x-filename: card.png" --data-binary @/tmp/card.png http://<vm-host>:3001/upload
+# Returns: {"path":"/tmp/uploads/card.png"}
+```
+
+Then use `browser_set_input_files` with the returned path (`/tmp/uploads/card.png`).
+
 ## When the user asks to "open" or "go to" a website
 
 Use the `browser_navigate` Playwright tool. Do not use `Bash` to launch chromium.
