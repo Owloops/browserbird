@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/Owloops/browserbird/compare/v1.4.3...v1.4.4) (2026-03-11)
+
+
+### Bug Fixes
+
+* **slack:** handle streaming expiry, timeout retry button, and session stop ([375bdde](https://github.com/Owloops/browserbird/commit/375bddeed3d924b80bab61dff759ab031fdb3201))
+
 ## [1.4.3](https://github.com/Owloops/browserbird/compare/v1.4.2...v1.4.3) (2026-03-11)
 
 
