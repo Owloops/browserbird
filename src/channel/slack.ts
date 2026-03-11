@@ -325,16 +325,36 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
       if (!actionsArr || !channel) return;
 
       for (const action of actionsArr) {
-        if (action['action_id'] !== 'session_error_overflow') continue;
-        const selected = (action['selected_option'] as Record<string, unknown> | undefined)?.[
-          'value'
-        ] as string | undefined;
-        if (!selected) continue;
+        const actionId = action['action_id'] as string | undefined;
 
-        if (selected.startsWith('retry:')) {
-          const sessionUid = selected.slice('retry:'.length);
+        if (actionId === 'session_error_overflow') {
+          const selected = (action['selected_option'] as Record<string, unknown> | undefined)?.[
+            'value'
+          ] as string | undefined;
+          if (!selected) continue;
+
+          if (selected.startsWith('retry:')) {
+            const sessionUid = selected.slice('retry:'.length);
+            if (!sessionUid) continue;
+            await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
+          }
+        }
+
+        if (actionId === 'session_retry') {
+          const value = action['value'] as string | undefined;
+          if (!value?.startsWith('retry:')) continue;
+          const sessionUid = value.slice('retry:'.length);
           if (!sessionUid) continue;
           await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
+        }
+
+        if (actionId === 'session_stop') {
+          const sessionKey = action['value'] as string | undefined;
+          if (!sessionKey) continue;
+          const killed = handler.killSession(sessionKey);
+          if (killed) {
+            logger.info(`session stopped by ${user}: ${sessionKey}`);
+          }
         }
       }
     }

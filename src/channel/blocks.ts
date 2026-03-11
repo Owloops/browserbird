@@ -306,6 +306,23 @@ export function sessionTimeoutBlocks(timeoutMs: number, opts?: { sessionUid?: st
   return blocks;
 }
 
+export function sessionStopBlocks(sessionKey: string): Block[] {
+  return [
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: plain('Stop Session'),
+          action_id: 'session_stop',
+          value: sessionKey,
+          style: 'danger',
+        },
+      ],
+    },
+  ];
+}
+
 export function busyBlocks(activeCount: number, maxConcurrent: number): Block[] {
   return [
     section('*Too many active sessions*'),

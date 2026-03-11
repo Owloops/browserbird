@@ -13,6 +13,7 @@ import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
 import {
   sessionErrorBlocks,
+  sessionStopBlocks,
   busyBlocks,
   noAgentBlocks,
   completionFooterBlocks,
@@ -34,6 +35,7 @@ export interface Handler {
   handle(dispatch: CoalesceDispatch): Promise<void>;
   activeCount(): number;
   killAll(): void;
+  killSession(key: string): boolean;
 }
 
 export function createHandler(
@@ -76,11 +78,41 @@ export function createHandler(
     meta: { birdName?: string; onToolUse?: (toolName: string) => void },
   ): Promise<void> {
     const streamer = client.startStream({ channelId, threadTs, teamId, userId });
+    let streamDead = false;
     let fullText = '';
     let completion: StreamEventCompletion | undefined;
     let hasError = false;
     let timedOut = false;
     let timedOutMs = 0;
+
+    async function safeAppend(content: Parameters<typeof streamer.append>[0]): Promise<void> {
+      if (streamDead) return;
+      try {
+        await streamer.append(content);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not_in_streaming_state') || msg.includes('streaming')) {
+          streamDead = true;
+          logger.warn('slack stream expired, falling back to regular messages');
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    async function safeStop(opts: Parameters<typeof streamer.stop>[0]): Promise<void> {
+      if (streamDead) return;
+      try {
+        await streamer.stop(opts);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not_in_streaming_state') || msg.includes('streaming')) {
+          streamDead = true;
+        } else {
+          throw err;
+        }
+      }
+    }
 
     for await (const event of events) {
       if (signal.aborted) break;
@@ -94,7 +126,7 @@ export function createHandler(
         case 'text_delta': {
           const safe = redact(event.delta);
           fullText += safe;
-          await streamer.append({ markdown_text: safe });
+          await safeAppend({ markdown_text: safe });
           break;
         }
 
@@ -131,7 +163,7 @@ export function createHandler(
           const safeError = redact(event.error);
           logger.error(`agent error: ${safeError}`);
           db.insertLog('error', 'spawn', safeError, channelId);
-          await streamer.append({ markdown_text: `\n\nError: ${safeError}` });
+          await safeAppend({ markdown_text: `\n\nError: ${safeError}` });
           break;
         }
 
@@ -144,7 +176,7 @@ export function createHandler(
     }
 
     if (timedOut) {
-      await streamer.stop({});
+      await safeStop({});
       const blocks = sessionTimeoutBlocks(timedOutMs, { sessionUid });
       await client.postMessage(
         channelId,
@@ -156,7 +188,7 @@ export function createHandler(
       const footerBlocks = completion
         ? completionFooterBlocks(completion, hasError, meta.birdName, userId)
         : undefined;
-      await streamer.stop(footerBlocks ? { blocks: footerBlocks } : {});
+      await safeStop(footerBlocks ? { blocks: footerBlocks } : {});
     }
   }
 
@@ -260,6 +292,11 @@ export function createHandler(
       lock.killCurrent = kill;
 
       client.setStatus?.(channelId, threadTs, 'is thinking...').catch(() => {});
+      client
+        .postEphemeral(channelId, threadTs, userId, 'Session running.', {
+          blocks: sessionStopBlocks(key),
+        })
+        .catch(() => {});
 
       if (isNew) {
         const title = prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt;
@@ -320,6 +357,14 @@ export function createHandler(
     return activeSpawns;
   }
 
+  function killSession(key: string): boolean {
+    const lock = locks.get(key);
+    if (!lock?.killCurrent) return false;
+    lock.killCurrent();
+    lock.queue.length = 0;
+    return true;
+  }
+
   function killAll(): void {
     for (const lock of locks.values()) {
       lock.killCurrent?.();
@@ -328,5 +373,5 @@ export function createHandler(
     locks.clear();
   }
 
-  return { handle, activeCount, killAll };
+  return { handle, activeCount, killAll, killSession };
 }
