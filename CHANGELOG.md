@@ -1,3 +1,10 @@
+## [1.4.7](https://github.com/Owloops/browserbird/compare/v1.4.6...v1.4.7) (2026-03-11)
+
+
+### Bug Fixes
+
+* **vm:** restore dbus-launch with env file, add crash reporter flag, revert resolution, remove unused build args ([5806f4b](https://github.com/Owloops/browserbird/commit/5806f4bdd4515f52eae5bf576cb97fa1e32bf2f1))
+
 ## [1.4.6](https://github.com/Owloops/browserbird/compare/v1.4.5...v1.4.6) (2026-03-11)
 
 
