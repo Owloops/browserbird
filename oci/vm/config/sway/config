@@ -1,5 +1,5 @@
 output * bg #0c0f13 solid_color
-output * resolution 1280x720
+output * resolution 1920x1080
 
 font pango:monospace 12
 
@@ -23,5 +23,5 @@ input type:keyboard {
 set $mod Mod4
 
 bindsym $mod+Return exec foot
-bindsym $mod+b exec chromium --user-data-dir=/home/bbuser/.browserbird/browser-profile --disable-gpu --no-sandbox --disable-dev-shm-usage --ozone-platform=wayland --disable-blink-features=AutomationControlled
+bindsym $mod+b exec /opt/browserbird/runtime/launch_chromium.sh
 bindsym $mod+q kill

@@ -4,6 +4,8 @@
     "launchOptions": {
       "args": [
         "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--in-process-gpu",
         "--no-sandbox",
         "--disable-dev-shm-usage",
         "--ozone-platform=wayland",

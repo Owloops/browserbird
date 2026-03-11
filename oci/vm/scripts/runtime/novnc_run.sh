@@ -2,7 +2,7 @@
 # Wait for wayvnc
 timeout=30
 while [ $timeout -gt 0 ]; do
-    netstat -tuln | grep -q ":5900 " && break
+    ss -tln | grep -q ":5900 " && break
     sleep 1
     ((timeout--))
 done

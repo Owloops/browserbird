@@ -22,7 +22,7 @@
     },
     "custom/chromium": {
         "format": "\uf0ac",
-        "on-click": "chromium --user-data-dir=/home/bbuser/.browserbird/browser-profile --disable-gpu --no-sandbox --disable-dev-shm-usage --ozone-platform=wayland --disable-blink-features=AutomationControlled",
+        "on-click": "/opt/browserbird/runtime/launch_chromium.sh",
         "tooltip": false
     },
     "custom/terminal": {

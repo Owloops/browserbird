@@ -1,7 +1,4 @@
 #!/bin/bash
-export XDG_RUNTIME_DIR=/tmp/xdg-runtime-bbuser
-export WAYLAND_DISPLAY=wayland-1
-
 # Wait for sway
 timeout=30
 while [ $timeout -gt 0 ]; do

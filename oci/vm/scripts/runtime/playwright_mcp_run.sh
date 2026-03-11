@@ -1,11 +1,10 @@
 #!/bin/bash
-export XDG_RUNTIME_DIR=/tmp/xdg-runtime-bbuser
-export WAYLAND_DISPLAY=wayland-1
 export PLAYWRIGHT_MCP_PORT=3000
 export PLAYWRIGHT_MCP_HOST=0.0.0.0
 export PLAYWRIGHT_MCP_ALLOWED_HOSTNAMES='*'
 export PLAYWRIGHT_MCP_CONFIG=/opt/browserbird/playwright.config.json
 export PLAYWRIGHT_MCP_INIT_SCRIPT=/opt/browserbird/stealth.js
+export PLAYWRIGHT_MCP_ALLOW_UNRESTRICTED_FILE_ACCESS=true
 
 # Wait for sway
 timeout=30
@@ -26,4 +25,4 @@ else
     export PLAYWRIGHT_MCP_USER_DATA_DIR="$BROWSER_PROFILE"
 fi
 
-exec playwright-mcp --allow-unrestricted-file-access
+exec playwright-mcp
