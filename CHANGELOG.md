@@ -1,3 +1,10 @@
+## [1.3.5](https://github.com/Owloops/browserbird/compare/v1.3.4...v1.3.5) (2026-03-11)
+
+
+### Bug Fixes
+
+* **agent-context:** add repocard and lastgen to tools section ([154697c](https://github.com/Owloops/browserbird/commit/154697cdd9182c429331fba77a21d8ba35d708b5))
+
 ## [1.3.4](https://github.com/Owloops/browserbird/compare/v1.3.3...v1.3.4) (2026-03-10)
 
 
