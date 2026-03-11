@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/Owloops/browserbird/compare/v1.4.1...v1.4.2) (2026-03-11)
+
+
+### Bug Fixes
+
+* **app:** install comfortaa font for repocard rendering ([f6a42fa](https://github.com/Owloops/browserbird/commit/f6a42fafa0c1579a02218396225be1f54c24a261))
+
 ## [1.4.1](https://github.com/Owloops/browserbird/compare/v1.4.0...v1.4.1) (2026-03-11)
 
 
