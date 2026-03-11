@@ -1,3 +1,11 @@
+## [1.4.8](https://github.com/Owloops/browserbird/compare/v1.4.7...v1.4.8) (2026-03-11)
+
+
+### Bug Fixes
+
+* **slack:** defer stream creation to keep thinking status visible ([f527025](https://github.com/Owloops/browserbird/commit/f527025a836211425b6b415f8518f0fbeb18e39a))
+* **vm:** set sway resolution to 1920x1080 ([9201c05](https://github.com/Owloops/browserbird/commit/9201c051a7435e6c942b52adcfd897a7272c8b81))
+
 ## [1.4.7](https://github.com/Owloops/browserbird/compare/v1.4.6...v1.4.7) (2026-03-11)
 
 
