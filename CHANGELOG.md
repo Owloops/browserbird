@@ -1,3 +1,10 @@
+## [1.4.9](https://github.com/Owloops/browserbird/compare/v1.4.8...v1.4.9) (2026-03-11)
+
+
+### Bug Fixes
+
+* **vm:** revert sway resolution to 1280x720 ([b7c5b93](https://github.com/Owloops/browserbird/commit/b7c5b9354ed71dfec364a7b532b34a84cd3fa3d2))
+
 ## [1.4.8](https://github.com/Owloops/browserbird/compare/v1.4.7...v1.4.8) (2026-03-11)
 
 
