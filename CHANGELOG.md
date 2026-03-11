@@ -1,3 +1,10 @@
+## [1.4.5](https://github.com/Owloops/browserbird/compare/v1.4.4...v1.4.5) (2026-03-11)
+
+
+### Bug Fixes
+
+* **vm:** fix manual chromium crash and improve process management ([f4bc842](https://github.com/Owloops/browserbird/commit/f4bc842b65499225705fc0f4239dc5a6cd6ba131))
+
 ## [1.4.4](https://github.com/Owloops/browserbird/compare/v1.4.3...v1.4.4) (2026-03-11)
 
 
