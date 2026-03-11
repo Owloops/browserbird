@@ -340,14 +340,6 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
           await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
         }
 
-        if (actionId === 'session_stop') {
-          const sessionKey = action['value'] as string | undefined;
-          if (!sessionKey) continue;
-          const killed = handler.killSession(sessionKey);
-          if (killed) {
-            logger.info(`session stopped by ${user}: ${sessionKey}`);
-          }
-        }
       }
     }
   });
