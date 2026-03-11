@@ -1,5 +1,5 @@
 output * bg #0c0f13 solid_color
-output * resolution 1920x1080
+output * resolution 1280x720
 
 font pango:monospace 12
 
