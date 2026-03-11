@@ -31,7 +31,7 @@ function handleUpload(req: IncomingMessage, res: ServerResponse): void {
     if (size > MAX_SIZE) {
       aborted = true;
       stream.destroy();
-      try { unlinkSync(dest); } catch {}
+      try { unlinkSync(dest); } catch { }
       json(res, 413, { error: 'file too large' });
       req.destroy();
       return;
@@ -46,7 +46,7 @@ function handleUpload(req: IncomingMessage, res: ServerResponse): void {
 
   req.on('error', () => {
     stream.destroy();
-    try { unlinkSync(dest); } catch {}
+    try { unlinkSync(dest); } catch { }
     json(res, 500, { error: 'upload failed' });
   });
 }
