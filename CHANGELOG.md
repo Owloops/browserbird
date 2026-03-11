@@ -1,3 +1,10 @@
+## [1.4.6](https://github.com/Owloops/browserbird/compare/v1.4.5...v1.4.6) (2026-03-11)
+
+
+### Bug Fixes
+
+* **vm:** revert ss back to netstat in novnc wait loop ([a189e73](https://github.com/Owloops/browserbird/commit/a189e73ec8ee3ec06b6208d4ddf195925dda4bb9))
+
 ## [1.4.5](https://github.com/Owloops/browserbird/compare/v1.4.4...v1.4.5) (2026-03-11)
 
 
