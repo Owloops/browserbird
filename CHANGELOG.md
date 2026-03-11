@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/Owloops/browserbird/compare/v1.4.0...v1.4.1) (2026-03-11)
+
+
+### Bug Fixes
+
+* **vm:** allow playwright-mcp unrestricted file access for uploads ([7d425f2](https://github.com/Owloops/browserbird/commit/7d425f2d9d473bfa44347e9bdd1e636409b2191f))
+
 # [1.4.0](https://github.com/Owloops/browserbird/compare/v1.3.5...v1.4.0) (2026-03-11)
 
 
