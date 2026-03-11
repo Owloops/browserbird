@@ -26,4 +26,4 @@ else
     export PLAYWRIGHT_MCP_USER_DATA_DIR="$BROWSER_PROFILE"
 fi
 
-exec playwright-mcp
+exec playwright-mcp --allow-unrestricted-file-access
