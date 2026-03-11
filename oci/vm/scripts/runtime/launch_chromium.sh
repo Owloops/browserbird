@@ -5,11 +5,10 @@
 PROFILE="/home/${USERNAME:-bbuser}/.browserbird/browser-profile"
 exec chromium \
   --user-data-dir="$PROFILE" \
-  --disable-gpu \
-  --disable-software-rasterizer \
-  --in-process-gpu \
+  --use-gl=disabled \
+  --disable-gpu-compositing \
   --no-sandbox \
   --disable-dev-shm-usage \
-  --disable-crash-reporter \
+  --disable-breakpad \
   --ozone-platform=wayland \
   --disable-blink-features=AutomationControlled
