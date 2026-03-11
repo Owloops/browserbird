@@ -327,23 +327,15 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
       for (const action of actionsArr) {
         const actionId = action['action_id'] as string | undefined;
 
-        if (actionId === 'session_error_overflow') {
-          const selected = (action['selected_option'] as Record<string, unknown> | undefined)?.[
-            'value'
-          ] as string | undefined;
-          if (!selected) continue;
-
-          if (selected.startsWith('retry:')) {
-            const sessionUid = selected.slice('retry:'.length);
-            if (!sessionUid) continue;
-            await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
-          }
-        }
-
-        if (actionId === 'session_retry') {
-          const value = action['value'] as string | undefined;
-          if (!value?.startsWith('retry:')) continue;
-          const sessionUid = value.slice('retry:'.length);
+        if (actionId === 'session_error_overflow' || actionId === 'session_retry') {
+          const raw =
+            actionId === 'session_error_overflow'
+              ? ((action['selected_option'] as Record<string, unknown> | undefined)?.['value'] as
+                  | string
+                  | undefined)
+              : (action['value'] as string | undefined);
+          if (!raw?.startsWith('retry:')) continue;
+          const sessionUid = raw.slice('retry:'.length);
           if (!sessionUid) continue;
           await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
         }

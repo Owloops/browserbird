@@ -85,13 +85,17 @@ export function createHandler(
     let timedOut = false;
     let timedOutMs = 0;
 
+    function isStreamExpired(err: unknown): boolean {
+      const msg = err instanceof Error ? err.message : String(err);
+      return msg.includes('not_in_streaming_state') || msg.includes('streaming');
+    }
+
     async function safeAppend(content: Parameters<typeof streamer.append>[0]): Promise<void> {
       if (streamDead) return;
       try {
         await streamer.append(content);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes('not_in_streaming_state') || msg.includes('streaming')) {
+        if (isStreamExpired(err)) {
           streamDead = true;
           logger.warn('slack stream expired, falling back to regular messages');
         } else {
@@ -105,8 +109,7 @@ export function createHandler(
       try {
         await streamer.stop(opts);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes('not_in_streaming_state') || msg.includes('streaming')) {
+        if (isStreamExpired(err)) {
           streamDead = true;
         } else {
           throw err;
