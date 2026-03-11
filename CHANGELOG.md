@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/Owloops/browserbird/compare/v1.4.2...v1.4.3) (2026-03-11)
+
+
+### Bug Fixes
+
+* **app:** add fontconfig explicitly for resvg font discovery ([ac29c6e](https://github.com/Owloops/browserbird/commit/ac29c6ef3291c3a780f22631a2fcf22a7adb3fef))
+
 ## [1.4.2](https://github.com/Owloops/browserbird/compare/v1.4.1...v1.4.2) (2026-03-11)
 
 
