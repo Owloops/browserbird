@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Owloops/browserbird/compare/v1.3.5...v1.4.0) (2026-03-11)
+
+
+### Features
+
+* **vm:** add file server for cross-container file transfer to browser ([21388fc](https://github.com/Owloops/browserbird/commit/21388fc75d7c7d2d07d37ba6d6c21b52eb753c45))
+
 ## [1.3.5](https://github.com/Owloops/browserbird/compare/v1.3.4...v1.3.5) (2026-03-11)
 
 
