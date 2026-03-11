@@ -3,7 +3,7 @@
 import type { Config } from '../core/types.ts';
 import type { CoalesceDispatch } from './coalesce.ts';
 import type { StreamEvent, StreamEventCompletion, ToolImage } from '../provider/stream.ts';
-import type { ChannelClient } from './types.ts';
+import type { ChannelClient, StreamHandle } from './types.ts';
 
 import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
@@ -13,7 +13,6 @@ import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
 import {
   sessionErrorBlocks,
-  sessionStopBlocks,
   busyBlocks,
   noAgentBlocks,
   completionFooterBlocks,
@@ -77,7 +76,7 @@ export function createHandler(
     userId: string,
     meta: { birdName?: string; onToolUse?: (toolName: string) => void },
   ): Promise<void> {
-    const streamer = client.startStream({ channelId, threadTs, teamId, userId });
+    let streamer: ReturnType<typeof client.startStream> | null = null;
     let streamDead = false;
     let fullText = '';
     let completion: StreamEventCompletion | undefined;
@@ -90,10 +89,17 @@ export function createHandler(
       return msg.includes('not_in_streaming_state') || msg.includes('streaming');
     }
 
-    async function safeAppend(content: Parameters<typeof streamer.append>[0]): Promise<void> {
+    function ensureStream(): ReturnType<typeof client.startStream> {
+      if (!streamer) {
+        streamer = client.startStream({ channelId, threadTs, teamId, userId });
+      }
+      return streamer;
+    }
+
+    async function safeAppend(content: Parameters<StreamHandle['append']>[0]): Promise<void> {
       if (streamDead) return;
       try {
-        await streamer.append(content);
+        await ensureStream().append(content);
       } catch (err) {
         if (isStreamExpired(err)) {
           streamDead = true;
@@ -104,8 +110,8 @@ export function createHandler(
       }
     }
 
-    async function safeStop(opts: Parameters<typeof streamer.stop>[0]): Promise<void> {
-      if (streamDead) return;
+    async function safeStop(opts: Parameters<StreamHandle['stop']>[0]): Promise<void> {
+      if (!streamer || streamDead) return;
       try {
         await streamer.stop(opts);
       } catch (err) {
@@ -295,11 +301,6 @@ export function createHandler(
       lock.killCurrent = kill;
 
       client.setStatus?.(channelId, threadTs, 'is thinking...').catch(() => {});
-      client
-        .postEphemeral(channelId, threadTs, userId, 'Session running.', {
-          blocks: sessionStopBlocks(key),
-        })
-        .catch(() => {});
 
       if (isNew) {
         const title = prompt.length > 60 ? prompt.slice(0, 57) + '...' : prompt;
