@@ -1,3 +1,10 @@
+## [1.4.10](https://github.com/Owloops/browserbird/compare/v1.4.9...v1.4.10) (2026-03-11)
+
+
+### Bug Fixes
+
+* **vm:** use correct gl and gpu flags to prevent chromium crash in container ([f7951d5](https://github.com/Owloops/browserbird/commit/f7951d573d695e4d7e43452fd8ef6b150828b63b))
+
 ## [1.4.9](https://github.com/Owloops/browserbird/compare/v1.4.8...v1.4.9) (2026-03-11)
 
 
