@@ -1,3 +1,10 @@
+## [1.4.11](https://github.com/Owloops/browserbird/compare/v1.4.10...v1.4.11) (2026-03-11)
+
+
+### Bug Fixes
+
+* **slack:** restore eager stream creation for realtime delta streaming ([afb8a9c](https://github.com/Owloops/browserbird/commit/afb8a9cd1a061c41a693ba7afab3c7c68dddb413))
+
 ## [1.4.10](https://github.com/Owloops/browserbird/compare/v1.4.9...v1.4.10) (2026-03-11)
 
 
