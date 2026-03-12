@@ -339,7 +339,6 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
           if (!sessionUid) continue;
           await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
         }
-
       }
     }
   });

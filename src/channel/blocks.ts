@@ -306,7 +306,6 @@ export function sessionTimeoutBlocks(timeoutMs: number, opts?: { sessionUid?: st
   return blocks;
 }
 
-
 export function busyBlocks(activeCount: number, maxConcurrent: number): Block[] {
   return [
     section('*Too many active sessions*'),
