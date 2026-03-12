@@ -337,7 +337,7 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
           if (!raw?.startsWith('retry:')) continue;
           const sessionUid = raw.slice('retry:'.length);
           if (!sessionUid) continue;
-          await handleSessionRetry(sessionUid, channel, user ?? 'unknown', getConfig(), handler);
+          await handleSessionRetry(sessionUid, user ?? 'unknown', handler);
         }
       }
     }
@@ -372,6 +372,7 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
   });
 
   async function resolveChannelNames(): Promise<void> {
+    const target = getConfig();
     const namesToResolve = new Set<string>();
 
     function collectNames(channels: string[]): void {
@@ -382,8 +383,8 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
       }
     }
 
-    collectNames(initConfig.slack.channels);
-    for (const agent of initConfig.agents) {
+    collectNames(target.slack.channels);
+    for (const agent of target.agents) {
       collectNames(agent.channels);
     }
     if (namesToResolve.size === 0) return;
@@ -426,8 +427,8 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
       });
     }
 
-    initConfig.slack.channels = resolveList(initConfig.slack.channels, 'slack');
-    for (const agent of initConfig.agents) {
+    target.slack.channels = resolveList(target.slack.channels, 'slack');
+    for (const agent of target.agents) {
       agent.channels = resolveList(agent.channels, `agent "${agent.id}"`);
     }
   }
@@ -465,7 +466,14 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     });
   }
 
-  return { start, stop, isConnected, activeCount: () => handler.activeCount(), postMessage };
+  return {
+    start,
+    stop,
+    isConnected,
+    activeCount: () => handler.activeCount(),
+    postMessage,
+    resolveChannelNames,
+  };
 }
 
 async function handleBirdCreateSubmission(
@@ -523,9 +531,7 @@ async function handleBirdCreateSubmission(
 
 async function handleSessionRetry(
   sessionUid: string,
-  channelId: string,
   userId: string,
-  config: Config,
   handler: Handler,
 ): Promise<void> {
   try {

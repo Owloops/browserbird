@@ -56,4 +56,5 @@ export interface ChannelHandle {
   isConnected(): boolean;
   activeCount(): number;
   postMessage(channel: string, text: string, opts?: MessageOptions): Promise<void>;
+  resolveChannelNames(): Promise<void>;
 }

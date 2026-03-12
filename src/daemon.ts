@@ -152,6 +152,13 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     const config = loadConfig(configPath);
     ensureMcpConfig(config, configDir);
     activateLayers(config);
+    if (slackHandle) {
+      slackHandle.resolveChannelNames().catch((err: unknown) => {
+        logger.warn(
+          `failed to resolve channel names on reload: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
+    }
     logger.info('config reloaded');
   };
 
