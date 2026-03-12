@@ -112,13 +112,20 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
       healthStarted = true;
     }
 
-    if (!slackStarted && config.slack.botToken && config.slack.appToken) {
+    const hasSlackTokens =
+      typeof config.slack.botToken === 'string' &&
+      config.slack.botToken.startsWith('xoxb-') &&
+      typeof config.slack.appToken === 'string' &&
+      config.slack.appToken.startsWith('xapp-');
+    if (!slackStarted && hasSlackTokens) {
       logger.info('connecting to slack...');
       slackHandle = createSlackChannel(getConfig, controller.signal);
+      slackStarted = true;
       slackHandle.start().catch((err: unknown) => {
         logger.error(`slack failed to start: ${err instanceof Error ? err.message : String(err)}`);
+        slackStarted = false;
+        slackHandle = null;
       });
-      slackStarted = true;
     }
 
     if (!activated) {
