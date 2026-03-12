@@ -18,11 +18,11 @@ import {
   completionFooterBlocks,
   sessionTimeoutBlocks,
 } from './blocks.ts';
-import { acquireBrowserLock, releaseBrowserLock, refreshBrowserLock } from '../browser/lock.ts';
+import { acquireBrowserLockWithHeartbeat } from '../browser/lock.ts';
+import type { BrowserLockHandle } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
 
 const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
-const LOCK_HEARTBEAT_MS = 30_000;
 
 interface SessionLock {
   processing: boolean;
@@ -247,8 +247,7 @@ export function createHandler(
     }
 
     const needsBrowserLock = config.browser.enabled && getBrowserMode() === 'persistent';
-    let browserLockAcquired = false;
-    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    const browser = { lock: null as BrowserLockHandle | null };
 
     lock.processing = true;
     activeSpawns++;
@@ -301,12 +300,11 @@ export function createHandler(
       }
 
       const onToolUse = (toolName: string) => {
-        if (!needsBrowserLock || browserLockAcquired) return;
+        if (!needsBrowserLock || browser.lock) return;
         if (!toolName.startsWith(BROWSER_TOOL_PREFIX)) return;
 
-        if (acquireBrowserLock(key, config.sessions.processTimeoutMs)) {
-          browserLockAcquired = true;
-          heartbeatTimer = setInterval(() => refreshBrowserLock(key), LOCK_HEARTBEAT_MS);
+        browser.lock = acquireBrowserLockWithHeartbeat(key, config.sessions.processTimeoutMs);
+        if (browser.lock) {
           logger.info(`browser lock acquired lazily for ${key} (tool: ${toolName})`);
         } else {
           logger.warn(`browser lock unavailable for ${key} (tool: ${toolName})`);
@@ -333,8 +331,7 @@ export function createHandler(
         /* channel may no longer be accessible */
       }
     } finally {
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      if (browserLockAcquired) releaseBrowserLock(key);
+      browser.lock?.release();
       activeSpawns--;
       lock.processing = false;
       lock.killCurrent = null;

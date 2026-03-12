@@ -34,6 +34,30 @@ export function releaseBrowserLock(holder: string): void {
   getDb().prepare('DELETE FROM browser_lock WHERE id = 1 AND holder = ?').run(holder);
 }
 
+export const LOCK_HEARTBEAT_MS = 30_000;
+
+export interface BrowserLockHandle {
+  release(): void;
+}
+
+/**
+ * Acquires the browser lock and starts a heartbeat interval.
+ * Returns a handle with a `release()` method, or null if the lock is unavailable.
+ */
+export function acquireBrowserLockWithHeartbeat(
+  holder: string,
+  timeoutMs: number,
+): BrowserLockHandle | null {
+  if (!acquireBrowserLock(holder, timeoutMs)) return null;
+  const timer = setInterval(() => refreshBrowserLock(holder), LOCK_HEARTBEAT_MS);
+  return {
+    release() {
+      clearInterval(timer);
+      releaseBrowserLock(holder);
+    },
+  };
+}
+
 /** Clears any browser lock unconditionally. Called on startup before any sessions exist. */
 export function clearBrowserLock(): void {
   getDb().prepare('DELETE FROM browser_lock WHERE id = 1').run();

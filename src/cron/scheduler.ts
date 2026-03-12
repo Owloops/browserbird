@@ -28,11 +28,11 @@ import { spawnProvider } from '../provider/spawn.ts';
 import { redact } from '../core/redact.ts';
 import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
 import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
-import { acquireBrowserLock, releaseBrowserLock, refreshBrowserLock } from '../browser/lock.ts';
+import { acquireBrowserLockWithHeartbeat } from '../browser/lock.ts';
+import type { BrowserLockHandle } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
 
 const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
-const LOCK_HEARTBEAT_MS = 30_000;
 
 const TICK_INTERVAL_MS = 60_000;
 const MAX_SCHEDULE_ERRORS = 3;
@@ -104,8 +104,7 @@ export function startScheduler(
     }
 
     const needsBrowserLock = config.browser.enabled && getBrowserMode() === 'persistent';
-    let browserLockAcquired = false;
-    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    let browserLock: BrowserLockHandle | null = null;
 
     try {
       const { events } = spawnProvider(
@@ -128,19 +127,12 @@ export function startScheduler(
       let completion: StreamEventCompletion | undefined;
       for await (const event of events) {
         if (event.type === 'tool_use') {
-          if (
-            needsBrowserLock &&
-            !browserLockAcquired &&
-            event.toolName.startsWith(BROWSER_TOOL_PREFIX)
-          ) {
-            if (!acquireBrowserLock(payload.cronJobUid, config.sessions.processTimeoutMs)) {
-              throw new Error('browser is locked by another session');
-            }
-            browserLockAcquired = true;
-            heartbeatTimer = setInterval(
-              () => refreshBrowserLock(payload.cronJobUid),
-              LOCK_HEARTBEAT_MS,
+          if (needsBrowserLock && !browserLock && event.toolName.startsWith(BROWSER_TOOL_PREFIX)) {
+            browserLock = acquireBrowserLockWithHeartbeat(
+              payload.cronJobUid,
+              config.sessions.processTimeoutMs,
             );
+            if (!browserLock) throw new Error('browser is locked by another session');
             logger.info(`browser lock acquired lazily for bird ${shortUid(payload.cronJobUid)}`);
           }
         } else if (event.type === 'text_delta') {
@@ -192,8 +184,7 @@ export function startScheduler(
 
       return result;
     } finally {
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      if (browserLockAcquired) releaseBrowserLock(payload.cronJobUid);
+      browserLock?.release();
     }
   });
 
