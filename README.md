@@ -42,7 +42,7 @@ Set up a bird (scheduled task) and it runs on a cron, browses the web, and posts
 | **Job and listing tracker** | Browses job boards, real estate sites, or marketplaces for new listings matching your criteria. |
 | **Review and form monitor** | Checks Google Reviews, App Store reviews, or form submissions and summarizes new entries in your support channel. |
 
-These are starting points. Every bird has a full AI agent (Claude Code or opencode) behind it that can browse the web, run shell commands, write and analyze code, call APIs, use MCP servers, and work with any CLI tool installed in the environment.
+These are starting points. Every bird has a full AI agent behind it that can browse the web, run shell commands, write and analyze code, call APIs, use MCP servers, and work with any CLI tool installed in the environment.
 
 ## Installation
 
