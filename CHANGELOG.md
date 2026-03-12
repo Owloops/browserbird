@@ -1,3 +1,10 @@
+## [1.4.15](https://github.com/Owloops/browserbird/compare/v1.4.14...v1.4.15) (2026-03-12)
+
+
+### Bug Fixes
+
+* **slack:** resolve channel names against live config on reload ([d1793a3](https://github.com/Owloops/browserbird/commit/d1793a3eaee8e6d63526c28dcdca1e3598d384a9))
+
 ## [1.4.14](https://github.com/Owloops/browserbird/compare/v1.4.13...v1.4.14) (2026-03-12)
 
 
