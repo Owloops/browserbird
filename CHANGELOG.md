@@ -1,3 +1,10 @@
+## [1.4.14](https://github.com/Owloops/browserbird/compare/v1.4.13...v1.4.14) (2026-03-12)
+
+
+### Bug Fixes
+
+* **container:** add agent cli deny rules for destructive sudo commands ([b382416](https://github.com/Owloops/browserbird/commit/b38241676b0cfb906f92f85c02adcfc544353f75))
+
 ## [1.4.13](https://github.com/Owloops/browserbird/compare/v1.4.12...v1.4.13) (2026-03-12)
 
 
