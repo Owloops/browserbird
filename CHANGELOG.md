@@ -1,3 +1,11 @@
+## [1.4.12](https://github.com/Owloops/browserbird/compare/v1.4.11...v1.4.12) (2026-03-12)
+
+
+### Bug Fixes
+
+* **slack:** remove unused session stop button and action handler ([9ce27c3](https://github.com/Owloops/browserbird/commit/9ce27c33ca3c62231037856099c6df9e5e166577))
+* **vm:** use playwright-bundled chrome for manual browser launch ([931ed3f](https://github.com/Owloops/browserbird/commit/931ed3fe208ff0a63441d1c49aa8cca77ef80723))
+
 ## [1.4.11](https://github.com/Owloops/browserbird/compare/v1.4.10...v1.4.11) (2026-03-11)
 
 
