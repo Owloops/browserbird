@@ -1,3 +1,10 @@
+## [1.4.13](https://github.com/Owloops/browserbird/compare/v1.4.12...v1.4.13) (2026-03-12)
+
+
+### Bug Fixes
+
+* **slack:** validate token prefixes before connecting and allow retry on failure ([378d698](https://github.com/Owloops/browserbird/commit/378d6983064be8a4ec44ad5e090f8f80f3d7d7b3))
+
 ## [1.4.12](https://github.com/Owloops/browserbird/compare/v1.4.11...v1.4.12) (2026-03-12)
 
 
