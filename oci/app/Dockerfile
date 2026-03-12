@@ -12,6 +12,9 @@ RUN chmod +x /opt/browserbird/build/*.sh
 RUN /opt/browserbird/build/install_app.sh
 RUN /opt/browserbird/build/setup_user.sh
 
+COPY --chown=$USERNAME:$USERNAME oci/app/config/claude-settings.json /home/$USERNAME/.claude/settings.json
+COPY --chown=$USERNAME:$USERNAME oci/app/config/opencode-settings.json /home/$USERNAME/.config/opencode/opencode.json
+
 USER $USERNAME
 
 WORKDIR /app

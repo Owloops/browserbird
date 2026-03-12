@@ -1,0 +1,10 @@
+{
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "sudo rm *": "deny",
+      "sudo reboot*": "deny",
+      "sudo shutdown*": "deny"
+    }
+  }
+}
