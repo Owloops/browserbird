@@ -42,6 +42,7 @@ export function createHandler(
   getConfig: () => Config,
   signal: AbortSignal,
   getTeamId: () => string,
+  getChannelNameToId?: () => Map<string, string>,
 ): Handler {
   const locks = new Map<string, SessionLock>();
   let activeSpawns = 0;
@@ -254,7 +255,7 @@ export function createHandler(
 
     let sessionUid: string | undefined;
     try {
-      const resolved = resolveSession(channelId, threadTs, config);
+      const resolved = resolveSession(channelId, threadTs, config, getChannelNameToId?.());
       if (!resolved) {
         const blocks = noAgentBlocks(channelId);
         await client.postMessage(channelId, threadTs, 'No agent configured for this channel.', {

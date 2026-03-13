@@ -171,7 +171,13 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
 
   const webClient = new WebClient(initConfig.slack.botToken);
   const channelClient = new SlackChannelClient(webClient);
-  const handler = createHandler(channelClient, getConfig, signal, () => teamId);
+  const handler = createHandler(
+    channelClient,
+    getConfig,
+    signal,
+    () => teamId,
+    () => channelNameToId,
+  );
   const coalescer = createCoalescer(initConfig.slack.coalesce, (dispatch) => {
     handler.handle(dispatch).catch(logDispatchError);
   });
@@ -215,7 +221,7 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     if (!isDm && config.slack.requireMention) return;
 
     const channelId = event['channel'] as string;
-    if (!isChannelAllowed(channelId, config.slack.channels)) return;
+    if (!isChannelAllowed(channelId, config.slack.channels, channelNameToId)) return;
     if (!isDm && isQuietHours(config.slack.quietHours)) return;
 
     const threadTs = (event['thread_ts'] as string | undefined) ?? (event['ts'] as string);
@@ -246,7 +252,7 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
 
       const config = getConfig();
       const channelId = event['channel'] as string;
-      if (!isChannelAllowed(channelId, config.slack.channels)) return;
+      if (!isChannelAllowed(channelId, config.slack.channels, channelNameToId)) return;
       if (isQuietHours(config.slack.quietHours)) return;
 
       const messageTs = event['ts'] as string | undefined;
@@ -371,6 +377,9 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     }
   });
 
+  /** Rebuilt on connect and config reload via resolveChannelNames(). */
+  const channelNameToId = new Map<string, string>();
+
   async function resolveChannelNames(): Promise<void> {
     const target = getConfig();
     const namesToResolve = new Set<string>();
@@ -389,7 +398,7 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     }
     if (namesToResolve.size === 0) return;
 
-    const nameToId = new Map<string, string>();
+    channelNameToId.clear();
     try {
       let cursor: string | undefined;
       do {
@@ -401,7 +410,8 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
         });
         for (const ch of result.channels ?? []) {
           if (ch.name && ch.id && namesToResolve.has(ch.name)) {
-            nameToId.set(ch.name, ch.id);
+            channelNameToId.set(ch.name, ch.id);
+            logger.info(`resolved channel "${ch.name}" -> ${ch.id}`);
           }
         }
         cursor = result.response_metadata?.next_cursor || undefined;
@@ -413,23 +423,10 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
       return;
     }
 
-    function resolveList(channels: string[], label: string): string[] {
-      return channels.map((ch) => {
-        const resolved = nameToId.get(ch);
-        if (resolved) {
-          logger.info(`${label}: resolved channel "${ch}" -> ${resolved}`);
-          return resolved;
-        }
-        if (namesToResolve.has(ch)) {
-          logger.warn(`${label}: channel "${ch}" not found in workspace`);
-        }
-        return ch;
-      });
-    }
-
-    target.slack.channels = resolveList(target.slack.channels, 'slack');
-    for (const agent of target.agents) {
-      agent.channels = resolveList(agent.channels, `agent "${agent.id}"`);
+    for (const name of namesToResolve) {
+      if (!channelNameToId.has(name)) {
+        logger.warn(`channel "${name}" not found in workspace`);
+      }
     }
   }
 
@@ -562,9 +559,18 @@ async function handleSessionRetry(
   }
 }
 
-function isChannelAllowed(channelId: string, channels: string[]): boolean {
+function isChannelAllowed(
+  channelId: string,
+  channels: string[],
+  nameToId: Map<string, string>,
+): boolean {
   if (channels.includes('*')) return true;
-  return channels.includes(channelId);
+  for (const ch of channels) {
+    if (ch === channelId) return true;
+    const resolved = nameToId.get(ch);
+    if (resolved === channelId) return true;
+  }
+  return false;
 }
 
 function isQuietHours(quietHours: SlackConfig['quietHours']): boolean {

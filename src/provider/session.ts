@@ -9,11 +9,19 @@ import * as db from '../db/index.ts';
  * Matches an incoming message to the correct agent based on channel config.
  * Agents are checked in order; first match wins.
  * A wildcard `"*"` in the agent's channels array matches everything.
+ * The optional `nameToId` map resolves human-readable channel names to Slack IDs.
  */
-export function matchAgent(channelId: string, agents: AgentConfig[]): AgentConfig | undefined {
+export function matchAgent(
+  channelId: string,
+  agents: AgentConfig[],
+  nameToId?: Map<string, string>,
+): AgentConfig | undefined {
   for (const agent of agents) {
     for (const pattern of agent.channels) {
       if (pattern === '*' || pattern === channelId) {
+        return agent;
+      }
+      if (nameToId?.get(pattern) === channelId) {
         return agent;
       }
     }
@@ -29,8 +37,9 @@ export function resolveSession(
   channelId: string,
   threadTs: string | null,
   config: Config,
+  nameToId?: Map<string, string>,
 ): { session: SessionRow; agent: AgentConfig; isNew: boolean } | null {
-  const agent = matchAgent(channelId, config.agents);
+  const agent = matchAgent(channelId, config.agents, nameToId);
   if (!agent) {
     logger.warn(`no agent matched for channel ${channelId}`);
     return null;
