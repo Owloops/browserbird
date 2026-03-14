@@ -10,7 +10,6 @@
 
   let newAgent = $state({
     name: '',
-    provider: 'claude',
     model: '',
     maxTurns: '50',
     systemPrompt: '',
@@ -33,7 +32,6 @@
     const agent: NewAgentPayload = {
       id,
       name: newAgent.name,
-      provider: newAgent.provider,
       model: newAgent.model,
       fallbackModel: null,
       maxTurns: Number(newAgent.maxTurns) || 50,
@@ -46,7 +44,6 @@
     if (ok) {
       newAgent = {
         name: '',
-        provider: 'claude',
         model: '',
         maxTurns: '50',
         systemPrompt: '',
@@ -72,13 +69,6 @@
         bind:value={newAgent.name}
         placeholder="Agent name"
       />
-    </div>
-    <div class="form-row">
-      <label class="form-lbl" for="new-agent-provider">Provider</label>
-      <select id="new-agent-provider" class="inline-select mono" bind:value={newAgent.provider}>
-        <option value="claude">claude</option>
-        <option value="opencode">opencode</option>
-      </select>
     </div>
     <div class="form-row">
       <label class="form-lbl" for="new-agent-model">Model</label>

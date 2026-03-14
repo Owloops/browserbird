@@ -50,14 +50,6 @@
       <span class="agent-id mono">{agent.id}</span>
     </div>
     <div class="agent-actions">
-      <select
-        class="inline-select mono"
-        value={agent.provider}
-        onchange={(e) => onsavefield('provider', e.currentTarget.value)}
-      >
-        <option value="claude">claude</option>
-        <option value="opencode">opencode</option>
-      </select>
       {#if agentCount > 1}
         <button class="btn btn-outline btn-sm btn-danger" onclick={ondelete}>Delete</button>
       {/if}

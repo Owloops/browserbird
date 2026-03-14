@@ -3,7 +3,6 @@
 export interface NewAgentPayload {
   id: string;
   name: string;
-  provider: string;
   model: string;
   fallbackModel: null;
   maxTurns: number;

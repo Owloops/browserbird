@@ -139,7 +139,6 @@ export async function validateSlackTokens(
 
 export async function saveAgentConfig(data: {
   name: string;
-  provider: string;
   model: string;
   systemPrompt: string;
   maxTurns: number;

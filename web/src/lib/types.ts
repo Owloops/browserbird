@@ -40,7 +40,6 @@ export interface ConfigResponse {
   agents: {
     id: string;
     name: string;
-    provider: string;
     model: string;
     fallbackModel: string | null;
     maxTurns: number;
@@ -189,14 +188,12 @@ export interface SecretsResponse {
 
 export interface DoctorResponse {
   claude: { available: boolean; version: string | null };
-  opencode: { available: boolean; version: string | null };
   node: string;
 }
 
 export interface OnboardingDefaults {
   agent: {
     name: string;
-    provider: string;
     model: string;
     systemPrompt: string;
     maxTurns: number;
