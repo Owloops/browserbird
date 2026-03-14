@@ -1,3 +1,10 @@
+## [1.4.16](https://github.com/Owloops/browserbird/compare/v1.4.15...v1.4.16) (2026-03-14)
+
+
+### Bug Fixes
+
+* **provider:** remove opencode provider and provider abstraction ([#6](https://github.com/Owloops/browserbird/issues/6)) ([b807d93](https://github.com/Owloops/browserbird/commit/b807d937b0d78743f9de1d49acfe9cc32165fe4f))
+
 ## [1.4.15](https://github.com/Owloops/browserbird/compare/v1.4.14...v1.4.15) (2026-03-12)
 
 
