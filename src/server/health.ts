@@ -20,13 +20,12 @@ let agentCheckedAt = 0;
 let browserConnected = false;
 let browserCheckPending = false;
 
-function refreshAgent(config: Config): void {
+function refreshAgent(): void {
   const now = Date.now();
   if (now - agentCheckedAt < AGENT_CHECK_INTERVAL_MS) return;
 
   const result = checkDoctor();
-  const usedProviders = new Set(config.agents.map((a) => a.provider));
-  agentAvailable = [...usedProviders].some((p) => result[p]?.available === true);
+  agentAvailable = result.claude.available;
   agentCheckedAt = now;
 }
 
@@ -64,7 +63,7 @@ function refreshBrowser(config: Config): void {
 }
 
 export function getServiceHealth(config: Config): ServiceHealth {
-  refreshAgent(config);
+  refreshAgent();
   return {
     agent: { available: agentAvailable },
     browser: { connected: config.browser.enabled ? browserConnected : false },
@@ -72,7 +71,7 @@ export function getServiceHealth(config: Config): ServiceHealth {
 }
 
 export function startHealthChecks(getConfig: () => Config, signal: AbortSignal): void {
-  refreshAgent(getConfig());
+  refreshAgent();
   refreshBrowser(getConfig());
 
   const timer = setInterval(() => {

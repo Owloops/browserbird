@@ -28,7 +28,6 @@
   let slackData = $state({ botToken: '', appToken: '', team: '', botUser: '' });
   let agentData = $state({
     name: 'BrowserBird',
-    provider: 'claude',
     model: 'sonnet',
     systemPrompt: 'You are a helpful AI assistant. Be concise and direct.',
     maxTurns: 50,
@@ -46,7 +45,6 @@
       .then((d) => {
         defaults = d;
         agentData.name = d.agent.name;
-        agentData.provider = d.agent.provider;
         agentData.model = d.agent.model;
         agentData.systemPrompt = d.agent.systemPrompt;
         agentData.maxTurns = d.agent.maxTurns;
@@ -82,7 +80,7 @@
 
   async function handleAgentSubmit(e: SubmitEvent): Promise<void> {
     e.preventDefault();
-    if (!agentData.name.trim() || !agentData.provider.trim() || !agentData.model.trim()) return;
+    if (!agentData.name.trim() || !agentData.model.trim()) return;
     if (!agentData.apiKey.trim()) {
       error = 'API key is required';
       return;
@@ -92,7 +90,6 @@
     try {
       await saveAgentConfig({
         name: agentData.name.trim(),
-        provider: agentData.provider.trim(),
         model: agentData.model.trim(),
         systemPrompt: agentData.systemPrompt.trim(),
         maxTurns: agentData.maxTurns,
@@ -228,13 +225,6 @@
           />
         </label>
         <div class="form-row">
-          <label class="form-label">
-            Provider
-            <select class="form-input" bind:value={agentData.provider}>
-              <option value="claude">Claude</option>
-              <option value="opencode">OpenCode</option>
-            </select>
-          </label>
           <label class="form-label">
             Model
             <input
@@ -388,9 +378,7 @@
         </div>
         <div class="summary-row">
           <span class="summary-label">Agent</span>
-          <span class="summary-value"
-            >{agentData.name} ({agentData.provider}/{agentData.model})</span
-          >
+          <span class="summary-value">{agentData.name} ({agentData.model})</span>
         </div>
         <div class="summary-row">
           <span class="summary-label">Browser</span>
@@ -420,9 +408,7 @@
         {:else}
           <div class="done-tip">
             <span class="done-tip-label">Create birds</span>
-            <span class="done-tip-detail"
-              >Schedule tasks from the Birds page or the CLI</span
-            >
+            <span class="done-tip-detail">Schedule tasks from the Birds page or the CLI</span>
           </div>
           <div class="done-tip">
             <span class="done-tip-label">Add Slack later</span>

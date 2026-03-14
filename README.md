@@ -25,7 +25,7 @@ Self-hosted AI agent orchestrator with a real browser, a cron scheduler, and a w
    </tr>
 </table>
 
-Schedule AI agents to run on a cron, browse the web with a real Chromium browser you can watch live through VNC, and manage everything from a web dashboard or the CLI. Optionally connect Slack for conversational threads and slash commands. BrowserBird is the orchestration layer; the agent CLI ([claude](https://docs.anthropic.com/en/docs/claude-code/overview), [opencode](https://github.com/anomalyco/opencode)) handles reasoning, memory, tools, and sub-agents.
+Schedule AI agents to run on a cron, browse the web with a real Chromium browser you can watch live through VNC, and manage everything from a web dashboard or the CLI. Optionally connect Slack for conversational threads and slash commands. BrowserBird is the orchestration layer; the agent CLI ([Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)) handles reasoning, memory, tools, and sub-agents.
 
 Built by [Owloops](https://github.com/Owloops), building browser automation tools since 2020.
 
@@ -131,7 +131,6 @@ The top-level `timezone` field (IANA format, default `"UTC"`) is used for cron s
   {
     "id": "default",
     "name": "BrowserBird",
-    "provider": "claude",
     "model": "sonnet",
     "fallbackModel": "haiku",
     "maxTurns": 50,
@@ -144,9 +143,8 @@ The top-level `timezone` field (IANA format, default `"UTC"`) is used for cron s
 Each agent is scoped to specific channels. Multiple agents are matched in order, first match wins.
 
 - `id`, `name`: Required. Unique identifier and display name
-- `provider`: `"claude"` or `"opencode"`
-- `model`: Claude uses short names (`sonnet`, `haiku`). OpenCode uses `provider/model` format (`anthropic/claude-sonnet-4-20250514`)
-- `fallbackModel`: Fallback when primary is unavailable (claude only)
+- `model`: Short names (`sonnet`, `haiku`) or full model IDs
+- `fallbackModel`: Fallback when primary model is unavailable
 - `maxTurns`: Max conversation turns per session
 - `systemPrompt`: Instructions prepended to every session
 - `channels`: Channel names or IDs this agent handles, or `"*"` for all
@@ -249,17 +247,15 @@ Authentication is handled via the web UI. On first visit, you create an account.
 | ------------------------- | ------------------------------------------------------------------------------------------------ |
 | `SLACK_BOT_TOKEN`         | Bot user OAuth token (optional, for Slack integration)                                           |
 | `SLACK_APP_TOKEN`         | App-level token for Socket Mode (optional, for Slack integration)                                |
-| `ANTHROPIC_API_KEY`       | Anthropic API key (pay-per-token). Used by both claude and opencode providers                    |
-| `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for claude provider only (uses your Claude Pro/Max subscription)                     |
+| `ANTHROPIC_API_KEY`       | Anthropic API key (pay-per-token)                                                                |
+| `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token (uses your Claude Pro/Max subscription)                                              |
 | `BROWSER_MODE`            | `persistent` (default) or `isolated`. Requires container restart                                 |
 | `BROWSERBIRD_CONFIG`      | Path to `browserbird.json`. Overridden by `--config` flag                                        |
 | `BROWSERBIRD_DB`          | Path to SQLite database file. Overridden by `--db` flag                                          |
 | `NO_COLOR`                | Disable colored output                                                                           |
 
-The **opencode** provider inherits standard env vars per model provider: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, etc. See the full list at [models.dev](https://models.dev).
-
 > [!NOTE]
-> **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use (claude provider only). When both are set, the claude provider uses OAuth and the opencode provider uses the API key.
+> **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. When both are set, OAuth takes priority.
 
 ## CLI
 

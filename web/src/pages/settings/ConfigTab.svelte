@@ -28,10 +28,6 @@
 
   let editValue = $state('');
 
-  const configuredProviders = $derived.by(() => {
-    return new Set(config.agents.map((a) => a.provider));
-  });
-
   function handleStartEdit(field: string, currentValue: string | number): void {
     editValue = String(currentValue);
     editor.startEdit(field, currentValue);
@@ -130,34 +126,17 @@
         <span class="row-label">Agent CLI</span>
         <span class="row-value">
           {#if doctorLoading}
-            {@const claude = configuredProviders.has('claude')}
-            {@const opencode = configuredProviders.has('opencode')}
-            {#if claude}
-              <span class="cli-pill"><span class="dot dot-muted"></span> claude ...</span>
-            {/if}
-            {#if opencode}
-              <span class="cli-pill"><span class="dot dot-muted"></span> opencode ...</span>
-            {/if}
-            {#if !claude && !opencode}
-              <span class="dim">Checking...</span>
-            {/if}
+            <span class="cli-pill"><span class="dot dot-muted"></span> claude ...</span>
           {:else if doctor}
-            {#each [{ key: 'claude', info: doctor.claude }, { key: 'opencode', info: doctor.opencode }] as { key, info }}
-              {@const configured = configuredProviders.has(key)}
-              {#if configured && info.available}
-                <span class="cli-pill cli-pill-ok"
-                  ><span class="dot dot-on"></span> {key} {info.version}</span
-                >
-              {:else if configured && !info.available}
-                <span class="cli-pill cli-pill-err"
-                  ><span class="dot dot-off"></span> {key} not found</span
-                >
-              {:else if !configured && info.available}
-                <span class="cli-pill"
-                  ><span class="dot dot-muted"></span> {key} {info.version}</span
-                >
-              {/if}
-            {/each}
+            {#if doctor.claude.available}
+              <span class="cli-pill cli-pill-ok"
+                ><span class="dot dot-on"></span> claude {doctor.claude.version}</span
+              >
+            {:else}
+              <span class="cli-pill cli-pill-err"
+                ><span class="dot dot-off"></span> claude not found</span
+              >
+            {/if}
           {/if}
         </span>
       </div>

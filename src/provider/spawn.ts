@@ -1,19 +1,15 @@
-/** @fileoverview Spawn a CLI provider as a subprocess. */
+/** @fileoverview Spawn the Claude CLI as a subprocess with streaming output. */
 
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { ProviderName, ProviderModule, SpawnOptions } from './types.ts';
+import type { SpawnOptions } from './claude.ts';
+import { buildCommand, parseStreamLine } from './claude.ts';
 import type { StreamEvent } from './stream.ts';
 import { splitLines } from './stream.ts';
 import { logger } from '../core/logger.ts';
-import { claude } from './claude.ts';
-import { opencode } from './opencode.ts';
+
+export type { SpawnOptions } from './claude.ts';
 
 const SIGKILL_GRACE_MS = 5_000;
-
-const PROVIDERS: Record<ProviderName, ProviderModule> = {
-  claude,
-  opencode,
-};
 
 /** Sends SIGTERM, then SIGKILL after a grace period if the process is still alive. */
 function gracefulKill(proc: ChildProcess): void {
@@ -52,16 +48,11 @@ interface SpawnResult {
 }
 
 /**
- * Spawns a provider CLI with streaming output.
+ * Spawns the Claude CLI with streaming output.
  * Returns an async iterable of parsed stream events and a kill handle.
  */
-export function spawnProvider(
-  provider: ProviderName,
-  options: SpawnOptions,
-  signal: AbortSignal,
-): SpawnResult {
-  const mod = PROVIDERS[provider];
-  const cmd = mod.buildCommand(options);
+export function spawnProvider(options: SpawnOptions, signal: AbortSignal): SpawnResult {
+  const cmd = buildCommand(options);
   const timeoutMs = options.agent.processTimeoutMs ?? options.globalTimeoutMs ?? 300_000;
 
   logger.debug(`spawning: ${cmd.binary} ${cmd.args.join(' ')} (timeout: ${timeoutMs}ms)`);
@@ -98,12 +89,12 @@ export function spawnProvider(
     let buffer = '';
 
     try {
-      yield* parseStdout(proc, mod, buffer, (b) => {
+      yield* parseStdout(proc, buffer, (b) => {
         buffer = b;
       });
 
       if (buffer.trim()) {
-        yield* mod.parseStreamLine(buffer);
+        yield* parseStreamLine(buffer);
       }
       if (timedOut) {
         yield { type: 'timeout' as const, timeoutMs };
@@ -125,7 +116,6 @@ export function spawnProvider(
 
 async function* parseStdout(
   proc: ChildProcess,
-  mod: ProviderModule,
   buffer: string,
   setBuffer: (b: string) => void,
 ): AsyncIterable<StreamEvent> {
@@ -167,7 +157,7 @@ async function* parseStdout(
       setBuffer(buffer);
 
       for (const line of lines) {
-        yield* mod.parseStreamLine(line);
+        yield* parseStreamLine(line);
       }
     }
   }

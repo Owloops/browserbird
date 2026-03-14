@@ -1,8 +1,23 @@
 /** @fileoverview Claude Code CLI provider: arg building and stream-json parsing. */
 
 import { resolve } from 'node:path';
-import type { ProviderModule, SpawnOptions, ProviderCommand } from './types.ts';
 import type { StreamEvent, ToolImage } from './stream.ts';
+
+interface ProviderCommand {
+  binary: string;
+  args: string[];
+  cwd?: string;
+  env?: Record<string, string>;
+}
+
+export interface SpawnOptions {
+  message: string;
+  sessionId?: string;
+  agent: import('../core/types.ts').AgentConfig;
+  mcpConfigPath?: string;
+  timezone?: string;
+  globalTimeoutMs?: number;
+}
 
 type CompletionSubtype =
   | 'success'
@@ -11,7 +26,7 @@ type CompletionSubtype =
   | 'error_max_budget_usd'
   | 'error_max_structured_output_retries';
 
-function buildCommand(options: SpawnOptions): ProviderCommand {
+export function buildCommand(options: SpawnOptions): ProviderCommand {
   const { message, sessionId, agent, mcpConfigPath } = options;
 
   const args: string[] = [
@@ -68,7 +83,7 @@ function buildCommand(options: SpawnOptions): ProviderCommand {
  * Only extracts text, images, completion, and error events. Tool use/result
  * events are internal to the agent and not surfaced to the channel layer.
  */
-function parseStreamLine(line: string): StreamEvent[] {
+export function parseStreamLine(line: string): StreamEvent[] {
   const trimmed = line.trim();
   if (!trimmed || !trimmed.startsWith('{')) return [];
 
@@ -203,5 +218,3 @@ function extractImages(parsed: Record<string, unknown>): StreamEvent[] {
 
   return [];
 }
-
-export const claude: ProviderModule = { buildCommand, parseStreamLine };

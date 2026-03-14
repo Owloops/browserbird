@@ -1,7 +1,5 @@
 /** @fileoverview Shared interfaces and type definitions for BrowserBird. */
 
-import type { ProviderName } from '../provider/types.ts';
-
 export interface SlackConfig {
   botToken: string;
   appToken: string;
@@ -22,7 +20,6 @@ export interface SlackConfig {
 export interface AgentConfig {
   id: string;
   name: string;
-  provider: ProviderName;
   model: string;
   fallbackModel?: string;
   maxTurns: number;
