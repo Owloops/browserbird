@@ -255,7 +255,7 @@ Authentication is handled via the web UI. On first visit, you create an account.
 | `NO_COLOR`                | Disable colored output                                                                           |
 
 > [!NOTE]
-> **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. When both are set, OAuth takes priority.
+> **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. When both are set, OAuth takes priority. This is also why BrowserBird uses the CLI rather than the [Agent SDK](https://docs.anthropic.com/en/docs/agent-sdk/overview); the SDK requires API key auth per Anthropic's [usage policy](https://docs.anthropic.com/en/docs/claude-code/legal-and-compliance).
 
 ## CLI
 
