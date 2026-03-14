@@ -3,7 +3,7 @@
 import { resolve } from 'node:path';
 import type { StreamEvent, ToolImage } from './stream.ts';
 
-export interface ProviderCommand {
+interface ProviderCommand {
   binary: string;
   args: string[];
   cwd?: string;
