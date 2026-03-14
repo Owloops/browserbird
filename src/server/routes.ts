@@ -126,8 +126,6 @@ function resolveBirdParam(
   return result.row;
 }
 
-const VALID_PROVIDERS = new Set(['claude', 'opencode']);
-
 function maskSecret(value: string | undefined): { set: boolean; hint: string } {
   if (!value) return { set: false, hint: '' };
   const prefixes = ['xoxb-', 'xapp-', 'sk-ant-api', 'sk-ant-oat'];
@@ -153,7 +151,6 @@ function sanitizeConfig(config: Config): object {
     agents: config.agents.map((a: AgentConfig) => ({
       id: a.id,
       name: a.name,
-      provider: a.provider,
       model: a.model,
       fallbackModel: a.fallbackModel ?? null,
       maxTurns: a.maxTurns,
@@ -205,9 +202,6 @@ function validateConfigPatch(body: Record<string, unknown>): string | null {
       if (!a['id'] || typeof a['id'] !== 'string') return 'Each agent must have a string "id"';
       if (!a['name'] || typeof a['name'] !== 'string')
         return 'Each agent must have a string "name"';
-      if (!a['provider'] || !VALID_PROVIDERS.has(a['provider'] as string)) {
-        return `Agent "${a['id']}": invalid provider (expected: ${[...VALID_PROVIDERS].join(', ')})`;
-      }
       if (!a['model'] || typeof a['model'] !== 'string') {
         return `Agent "${a['id']}": "model" is required`;
       }
@@ -972,7 +966,6 @@ export function buildRoutes(
         json(res, {
           agent: {
             name: defaultAgent.name,
-            provider: defaultAgent.provider,
             model: defaultAgent.model,
             systemPrompt: defaultAgent.systemPrompt,
             maxTurns: defaultAgent.maxTurns,
@@ -1074,7 +1067,6 @@ export function buildRoutes(
       async handler(req, res) {
         let body: {
           name?: string;
-          provider?: string;
           model?: string;
           systemPrompt?: string;
           maxTurns?: number;
@@ -1090,10 +1082,6 @@ export function buildRoutes(
           jsonError(res, '"name" is required', 400);
           return;
         }
-        if (!body.provider || typeof body.provider !== 'string') {
-          jsonError(res, '"provider" is required', 400);
-          return;
-        }
         if (!body.model || typeof body.model !== 'string') {
           jsonError(res, '"model" is required', 400);
           return;
@@ -1105,7 +1093,6 @@ export function buildRoutes(
           {
             id: 'default',
             name: body.name.trim(),
-            provider: body.provider.trim(),
             model: body.model.trim(),
             maxTurns: body.maxTurns ?? DEFAULTS.agents[0]!.maxTurns,
             systemPrompt: body.systemPrompt?.trim() ?? DEFAULTS.agents[0]!.systemPrompt,

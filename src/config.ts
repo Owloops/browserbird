@@ -5,7 +5,6 @@ import { resolve } from 'node:path';
 import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
 
-const VALID_PROVIDERS = new Set<string>(['claude', 'opencode']);
 export const DEFAULTS: Config = {
   timezone: 'UTC',
   slack: {
@@ -20,7 +19,6 @@ export const DEFAULTS: Config = {
     {
       id: 'default',
       name: 'BrowserBird',
-      provider: 'claude',
       model: 'sonnet',
       maxTurns: 50,
       systemPrompt: 'You are responding in a Slack workspace. Be concise, helpful, and natural.',
@@ -142,11 +140,6 @@ function validateConfig(config: Config): void {
   for (const agent of config.agents) {
     if (!agent.id || !agent.name) {
       throw new Error('each agent must have an "id" and "name"');
-    }
-    if (!VALID_PROVIDERS.has(agent.provider)) {
-      throw new Error(
-        `agent "${agent.id}": unknown provider "${agent.provider}" (expected: ${[...VALID_PROVIDERS].join(', ')})`,
-      );
     }
     if (!agent.model) {
       throw new Error(`agent "${agent.id}": "model" is required`);

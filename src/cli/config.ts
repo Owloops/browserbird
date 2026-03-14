@@ -37,7 +37,6 @@ function printConfig(configPath?: string): void {
   console.log(`\n${c('cyan', 'agents:')}`);
   for (const a of config.agents) {
     console.log(`  ${c('cyan', a.id)} (${a.name})`);
-    console.log(`    ${c('dim', 'provider:')}  ${a.provider}`);
     console.log(`    ${c('dim', 'model:')}     ${a.model}`);
     console.log(`    ${c('dim', 'max turns:')} ${a.maxTurns}`);
     console.log(`    ${c('dim', 'channels:')}  ${a.channels.join(', ') || '*'}`);

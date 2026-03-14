@@ -2,11 +2,11 @@
 
 import { describe, it } from 'node:test';
 import { deepStrictEqual, strictEqual } from 'node:assert';
-import { claude } from './claude.ts';
+import { parseStreamLine } from './claude.ts';
 
 describe('claude parseStreamLine', () => {
   it('parses system event into init', () => {
-    const events = claude.parseStreamLine(
+    const events = parseStreamLine(
       '{"type":"system","session_id":"abc-123","model":"claude-sonnet-4-20250514"}',
     );
     strictEqual(events.length, 1);
@@ -18,7 +18,7 @@ describe('claude parseStreamLine', () => {
   });
 
   it('parses assistant text content', () => {
-    const events = claude.parseStreamLine(
+    const events = parseStreamLine(
       '{"type":"assistant","message":{"content":[{"type":"text","text":"4"}]}}',
     );
     strictEqual(events.length, 1);
@@ -26,7 +26,7 @@ describe('claude parseStreamLine', () => {
   });
 
   it('parses result into completion with full metrics', () => {
-    const events = claude.parseStreamLine(
+    const events = parseStreamLine(
       JSON.stringify({
         type: 'result',
         subtype: 'success',
@@ -60,22 +60,22 @@ describe('claude parseStreamLine', () => {
   });
 
   it('parses error event', () => {
-    const events = claude.parseStreamLine('{"type":"error","error":"something broke"}');
+    const events = parseStreamLine('{"type":"error","error":"something broke"}');
     strictEqual(events.length, 1);
     deepStrictEqual(events[0], { type: 'error', error: 'something broke' });
   });
 
   it('returns empty for blank lines', () => {
-    strictEqual(claude.parseStreamLine('').length, 0);
-    strictEqual(claude.parseStreamLine('   ').length, 0);
+    strictEqual(parseStreamLine('').length, 0);
+    strictEqual(parseStreamLine('   ').length, 0);
   });
 
   it('returns empty for non-json', () => {
-    strictEqual(claude.parseStreamLine('not json at all').length, 0);
+    strictEqual(parseStreamLine('not json at all').length, 0);
   });
 
   it('emits tool_use event from content blocks', () => {
-    const events = claude.parseStreamLine(
+    const events = parseStreamLine(
       '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"mcp__playwright__navigate","input":{}}]}}',
     );
     strictEqual(events.length, 1);
@@ -83,7 +83,7 @@ describe('claude parseStreamLine', () => {
   });
 
   it('parses rate_limit_event', () => {
-    const events = claude.parseStreamLine(
+    const events = parseStreamLine(
       '{"type":"rate_limit_event","rate_limit_info":{"status":"rate_limited","resetsAt":1700000000}}',
     );
     strictEqual(events.length, 1);

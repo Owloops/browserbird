@@ -7,7 +7,7 @@ import { c } from './style.ts';
 export const DOCTOR_HELP = `
 ${c('cyan', 'usage:')} browserbird doctor
 
-check system dependencies (agent clis, node.js).
+check system dependencies (agent cli, node.js).
 `.trim();
 
 interface CliStatus {
@@ -17,7 +17,6 @@ interface CliStatus {
 
 export interface DoctorResult {
   claude: CliStatus;
-  opencode: CliStatus;
   node: string;
 }
 
@@ -38,7 +37,6 @@ function checkCli(binary: string, versionArgs: string[]): CliStatus {
 export function checkDoctor(): DoctorResult {
   return {
     claude: checkCli('claude', ['--version']),
-    opencode: checkCli('opencode', ['--version']),
     node: process.version,
   };
 }
@@ -52,12 +50,6 @@ export function handleDoctor(): void {
   } else {
     logger.error('claude cli: not found');
     process.stderr.write('  install: npm install -g @anthropic-ai/claude-code\n');
-  }
-  if (result.opencode.available) {
-    logger.success(`opencode cli: ${result.opencode.version}`);
-  } else {
-    logger.warn('opencode cli: not found (optional)');
-    process.stderr.write('  install: npm install -g opencode\n');
   }
   logger.success(`node.js: ${result.node}`);
 }

@@ -108,7 +108,6 @@ export function startScheduler(
 
     try {
       const { events } = spawnProvider(
-        agent.provider,
         {
           message: payload.prompt,
           agent,

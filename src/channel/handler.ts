@@ -279,7 +279,6 @@ export function createHandler(
 
       const existingSessionId = isNew ? undefined : session.provider_session_id || undefined;
       const { events, kill } = spawnProvider(
-        agent.provider,
         {
           message: prompt,
           sessionId: existingSessionId,
