@@ -1,3 +1,10 @@
+## [1.4.20](https://github.com/Owloops/browserbird/compare/v1.4.19...v1.4.20) (2026-03-15)
+
+
+### Bug Fixes
+
+* **container:** suppress default browser check and first-run prompt ([e530e3f](https://github.com/Owloops/browserbird/commit/e530e3fd3fc189a83f22c2e98b41356fd1c894cc))
+
 ## [1.4.19](https://github.com/Owloops/browserbird/compare/v1.4.18...v1.4.19) (2026-03-15)
 
 
