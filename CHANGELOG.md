@@ -1,3 +1,10 @@
+## [1.4.19](https://github.com/Owloops/browserbird/compare/v1.4.18...v1.4.19) (2026-03-15)
+
+
+### Bug Fixes
+
+* **container:** suppress chromium command-line flag security warnings via policy ([3dcbb65](https://github.com/Owloops/browserbird/commit/3dcbb65854e8d5af24c15430628785bd9ef40efb))
+
 ## [1.4.18](https://github.com/Owloops/browserbird/compare/v1.4.17...v1.4.18) (2026-03-15)
 
 
