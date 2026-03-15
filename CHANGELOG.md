@@ -1,3 +1,10 @@
+## [1.4.18](https://github.com/Owloops/browserbird/compare/v1.4.17...v1.4.18) (2026-03-15)
+
+
+### Bug Fixes
+
+* **onboarding:** detect pre-configured secrets and make key fields optional ([4fc7746](https://github.com/Owloops/browserbird/commit/4fc7746795e7ecf4c12cfc343e72e2bebdf86024))
+
 ## [1.4.17](https://github.com/Owloops/browserbird/compare/v1.4.16...v1.4.17) (2026-03-15)
 
 
