@@ -204,6 +204,13 @@ export interface OnboardingDefaults {
     novncHost: string;
     novncPort: number;
   };
+  secrets: {
+    anthropic: SecretHint;
+    slack: {
+      botToken: SecretHint;
+      appToken: SecretHint;
+    };
+  };
   doctor: DoctorResponse;
 }
 

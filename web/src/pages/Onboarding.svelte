@@ -39,6 +39,8 @@
   let probeState: 'idle' | 'checking' | 'reachable' | 'unreachable' = $state('idle');
 
   let defaults: OnboardingDefaults | null = $state(null);
+  let authHint = $state('');
+  let slackAlreadySet = $state(false);
 
   $effect(() => {
     getOnboardingDefaults()
@@ -52,6 +54,8 @@
         browserData.enabled = d.browser.enabled;
         browserData.novncHost = d.browser.novncHost;
         browserData.novncPort = d.browser.novncPort;
+        if (d.secrets.anthropic.set) authHint = d.secrets.anthropic.hint;
+        if (d.secrets.slack.botToken.set && d.secrets.slack.appToken.set) slackAlreadySet = true;
       })
       .catch(() => {
         /* defaults are pre-filled, not critical */
@@ -81,7 +85,7 @@
   async function handleAgentSubmit(e: SubmitEvent): Promise<void> {
     e.preventDefault();
     if (!agentData.name.trim() || !agentData.model.trim()) return;
-    if (!agentData.apiKey.trim()) {
+    if (!agentData.apiKey.trim() && !authHint) {
       error = 'API key is required';
       return;
     }
@@ -95,7 +99,9 @@
         maxTurns: agentData.maxTurns,
         channels: agentData.channels,
       });
-      await saveAuthConfig({ apiKey: agentData.apiKey.trim() });
+      if (agentData.apiKey.trim()) {
+        await saveAuthConfig({ apiKey: agentData.apiKey.trim() });
+      }
       step = 1;
     } catch (err) {
       error = (err as Error).message;
@@ -244,11 +250,18 @@
           <input
             type="password"
             class="form-input"
-            placeholder="sk-ant-..."
+            placeholder={authHint ? `Configured (${authHint})` : 'sk-ant-...'}
             autocomplete="off"
             bind:value={agentData.apiKey}
           />
-          <span class="form-hint">API key from platform.claude.com/settings/keys</span>
+          {#if authHint}
+            <span class="form-hint"
+              >Already configured. Leave blank to keep current key, or enter a new one to replace
+              it.</span
+            >
+          {:else}
+            <span class="form-hint">API key from platform.claude.com/settings/keys</span>
+          {/if}
         </label>
         {#if error}
           <div class="login-error">{error}</div>
@@ -259,9 +272,13 @@
       </form>
     {:else if step === 1}
       <p class="onboarding-desc">
-        <a href={SLACK_MANIFEST_URL} target="_blank" rel="noopener" class="onboarding-link"
-          >Create a Slack app from the manifest</a
-        >. You can skip this and add Slack later from Settings.
+        {#if slackAlreadySet}
+          Slack tokens are already configured. You can skip this step or re-enter them to update.
+        {:else}
+          <a href={SLACK_MANIFEST_URL} target="_blank" rel="noopener" class="onboarding-link"
+            >Create a Slack app from the manifest</a
+          >. You can skip this and add Slack later from Settings.
+        {/if}
       </p>
       <form onsubmit={handleSlackSubmit}>
         <label class="form-label">

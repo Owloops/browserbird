@@ -977,6 +977,15 @@ export function buildRoutes(
             novncHost: novncHost,
             novncPort: config.browser.novncPort,
           },
+          secrets: {
+            anthropic: maskSecret(
+              process.env['CLAUDE_CODE_OAUTH_TOKEN'] || process.env['ANTHROPIC_API_KEY'],
+            ),
+            slack: {
+              botToken: maskSecret(process.env['SLACK_BOT_TOKEN']),
+              appToken: maskSecret(process.env['SLACK_APP_TOKEN']),
+            },
+          },
           doctor,
         });
       },
