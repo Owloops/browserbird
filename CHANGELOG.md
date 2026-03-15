@@ -1,3 +1,10 @@
+## [1.4.17](https://github.com/Owloops/browserbird/compare/v1.4.16...v1.4.17) (2026-03-15)
+
+
+### Bug Fixes
+
+* **onboarding:** use loaded config for defaults instead of hardcoded values ([4e97679](https://github.com/Owloops/browserbird/commit/4e976792ac1f38e4ad5ba619163daa52cc482ae1))
+
 ## [1.4.16](https://github.com/Owloops/browserbird/compare/v1.4.15...v1.4.16) (2026-03-14)
 
 
