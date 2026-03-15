@@ -5,6 +5,8 @@
       "args": [
         "--no-sandbox",
         "--disable-dev-shm-usage",
+        "--no-default-browser-check",
+        "--no-first-run",
         "--ozone-platform=wayland",
         "--disable-blink-features=AutomationControlled"
       ]

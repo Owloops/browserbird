@@ -11,5 +11,7 @@ exec /opt/google/chrome/chrome \
   --disable-dev-shm-usage \
   --disable-breakpad \
   --disable-field-trial-config \
+  --no-default-browser-check \
+  --no-first-run \
   --ozone-platform=wayland \
   --disable-blink-features=AutomationControlled
