@@ -1,3 +1,11 @@
+## [1.4.21](https://github.com/Owloops/browserbird/compare/v1.4.20...v1.4.21) (2026-03-16)
+
+
+### Bug Fixes
+
+* **birds:** format jobs.ts ([e1ba35f](https://github.com/Owloops/browserbird/commit/e1ba35fad0d7d361985d65e8ebbbb8401a37d866))
+* **birds:** reset failure count on successful run ([ec5c099](https://github.com/Owloops/browserbird/commit/ec5c099c9b40e9f55459d369f92b7088045dfa82))
+
 ## [1.4.20](https://github.com/Owloops/browserbird/compare/v1.4.19...v1.4.20) (2026-03-15)
 
 
