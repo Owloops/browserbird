@@ -89,7 +89,7 @@ async function processJob(job: JobRow): Promise<void> {
       const cronJob = getCronJob(job.cron_job_uid);
       if (cronJob != null) {
         const newFailureCount =
-          finalStatus === 'failed' ? cronJob.failure_count + 1 : cronJob.failure_count;
+          finalStatus === 'failed' ? cronJob.failure_count + 1 : 0;
         updateCronJobStatus(job.cron_job_uid, finalStatus, newFailureCount);
       }
     }
