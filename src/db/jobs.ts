@@ -112,6 +112,13 @@ export function claimNextJob(): JobRow | undefined {
   });
 }
 
+export function getJobStatus(jobId: number): JobStatus | undefined {
+  const row = getDb().prepare('SELECT status FROM jobs WHERE id = ?').get(jobId) as unknown as
+    | { status: JobStatus }
+    | undefined;
+  return row?.status;
+}
+
 export function completeJob(jobId: number, result?: string): void {
   getDb()
     .prepare(

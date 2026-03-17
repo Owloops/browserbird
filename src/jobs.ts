@@ -7,6 +7,7 @@ import {
   completeJob,
   failJob,
   failStaleJobs,
+  getJobStatus,
   insertLog,
   updateCronJobStatus,
   getCronJob,
@@ -86,10 +87,14 @@ async function processJob(job: JobRow): Promise<void> {
       );
     }
     if (isCronRun && job.cron_job_uid != null) {
-      const cronJob = getCronJob(job.cron_job_uid);
-      if (cronJob != null) {
-        const newFailureCount = finalStatus === 'failed' ? cronJob.failure_count + 1 : 0;
-        updateCronJobStatus(job.cron_job_uid, finalStatus, newFailureCount);
+      const currentStatus = getJobStatus(job.id);
+      const alreadyHandled = currentStatus === 'failed' && finalStatus === 'failed';
+      if (!alreadyHandled) {
+        const cronJob = getCronJob(job.cron_job_uid);
+        if (cronJob != null) {
+          const newFailureCount = finalStatus === 'failed' ? cronJob.failure_count + 1 : 0;
+          updateCronJobStatus(job.cron_job_uid, finalStatus, newFailureCount);
+        }
       }
     }
     const resource = isCronRun ? 'birds' : 'sessions';
