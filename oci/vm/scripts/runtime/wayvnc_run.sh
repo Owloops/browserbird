@@ -8,4 +8,4 @@ while [ $timeout -gt 0 ]; do
 done
 [ $timeout -eq 0 ] && { echo "sway socket not found" >&2; exit 1; }
 
-exec wayvnc 0.0.0.0 5900
+exec wayvnc -r --max-fps=30 0.0.0.0 5900

@@ -64,7 +64,7 @@
       rfb = new RFB(viewerEl, wsUrl);
       rfb.scaleViewport = true;
       rfb.resizeSession = false;
-      rfb.qualityLevel = 7;
+      rfb.qualityLevel = 5;
       rfb.compressionLevel = 2;
       rfbInstance = rfb;
 
