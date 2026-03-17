@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/Owloops/browserbird/compare/v1.5.0...v1.5.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* **docs:** add stop command to readme and slack manifest urls ([0d1414e](https://github.com/Owloops/browserbird/commit/0d1414edef187ed0095841e1797891744c83476f))
+
 # [1.5.0](https://github.com/Owloops/browserbird/compare/v1.4.22...v1.5.0) (2026-03-17)
 
 
