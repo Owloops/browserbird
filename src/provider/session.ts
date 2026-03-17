@@ -65,10 +65,10 @@ export function resolveSession(
   return { session, agent, isNew: true };
 }
 
-export function expireStaleSessions(ttlHours: number): number {
-  const deleted = db.deleteStaleSessions(ttlHours);
+export function deleteExpiredSessions(retentionDays: number): number {
+  const deleted = db.deleteOldSessions(retentionDays);
   if (deleted > 0) {
-    logger.info(`expired ${deleted} stale session(s)`);
+    logger.info(`deleted ${deleted} expired session(s)`);
   }
   return deleted;
 }

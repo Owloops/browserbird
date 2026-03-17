@@ -150,11 +150,11 @@ export function getSessionCount(): number {
   return row.count;
 }
 
-export function deleteStaleSessions(ttlHours: number): number {
+export function deleteOldSessions(retentionDays: number): number {
   const stmt = getDb().prepare(
-    `DELETE FROM sessions WHERE last_active < datetime('now', ? || ' hours')`,
+    `DELETE FROM sessions WHERE last_active < datetime('now', ? || ' days')`,
   );
-  const result = stmt.run(`-${ttlHours}`);
+  const result = stmt.run(`-${retentionDays}`);
   return Number(result.changes);
 }
 

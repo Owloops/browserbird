@@ -21,7 +21,7 @@ import {
   optimizeDatabase,
   logMessage,
 } from '../db/index.ts';
-import { expireStaleSessions } from '../provider/session.ts';
+import { deleteExpiredSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { spawnProvider } from '../provider/spawn.ts';
@@ -62,13 +62,13 @@ function registerSystemCronJobs(config: Config, retentionDays: number): void {
   const optimizeName = `${SYSTEM_CRON_PREFIX}db_optimize__`;
 
   systemHandlers.set(cleanupName, () => {
-    expireStaleSessions(config.sessions.ttlHours);
+    const sessions = deleteExpiredSessions(retentionDays);
     const msgs = deleteOldMessages(retentionDays);
     const runs = deleteOldCronRuns(retentionDays);
     const jobs = deleteOldJobs(retentionDays);
     const logs = deleteOldLogs(retentionDays);
-    if (msgs > 0 || runs > 0 || jobs > 0 || logs > 0) {
-      const summary = `${msgs} messages, ${runs} flight logs, ${jobs} jobs, ${logs} logs older than ${retentionDays}d`;
+    if (sessions > 0 || msgs > 0 || runs > 0 || jobs > 0 || logs > 0) {
+      const summary = `${sessions} sessions, ${msgs} messages, ${runs} flight logs, ${jobs} jobs, ${logs} logs older than ${retentionDays}d`;
       logger.info(`system cleanup: ${summary}`);
       return summary;
     }
