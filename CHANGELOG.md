@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/Owloops/browserbird/compare/v1.5.1...v1.5.2) (2026-03-17)
+
+
+### Bug Fixes
+
+* **docs:** add railway deployment guidance for region, auto-updates, and service urls ([b6ae4a7](https://github.com/Owloops/browserbird/commit/b6ae4a7e4bd2c72bd08d2d5289f6886e8b17dce6))
+
 ## [1.5.1](https://github.com/Owloops/browserbird/compare/v1.5.0...v1.5.1) (2026-03-17)
 
 
