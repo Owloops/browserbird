@@ -34,6 +34,20 @@ import { getBrowserMode } from '../config.ts';
 
 const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
 
+const activeKills = new Map<string, () => void>();
+
+export function killBird(cronJobUid: string): boolean {
+  const kill = activeKills.get(cronJobUid);
+  if (!kill) return false;
+  kill();
+  activeKills.delete(cronJobUid);
+  return true;
+}
+
+export function getRunningBirdUids(): string[] {
+  return [...activeKills.keys()];
+}
+
 const TICK_INTERVAL_MS = 60_000;
 const MAX_SCHEDULE_ERRORS = 3;
 
@@ -107,7 +121,7 @@ export function startScheduler(
     let browserLock: BrowserLockHandle | null = null;
 
     try {
-      const { events } = spawnProvider(
+      const { events, kill } = spawnProvider(
         {
           message: payload.prompt,
           agent,
@@ -117,6 +131,7 @@ export function startScheduler(
         },
         signal,
       );
+      activeKills.set(payload.cronJobUid, kill);
 
       if (payload.channelId) {
         logMessage(payload.channelId, null, agent.id, 'in', payload.prompt);
@@ -183,6 +198,7 @@ export function startScheduler(
 
       return result;
     } finally {
+      activeKills.delete(payload.cronJobUid);
       browserLock?.release();
     }
   });
@@ -286,6 +302,7 @@ export function startScheduler(
     clearInterval(timer);
     scheduleCache.clear();
     scheduleErrors.clear();
+    activeKills.clear();
   });
 
   logger.info('bird scheduler started (60s tick)');

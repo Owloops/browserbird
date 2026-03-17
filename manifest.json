@@ -21,7 +21,7 @@
       {
         "command": "/bird",
         "description": "Manage BrowserBird birds",
-        "usage_hint": "list | fly | logs | enable | disable | create | status",
+        "usage_hint": "list | fly | stop | logs | enable | disable | create | status",
         "should_escape": false
       }
     ]

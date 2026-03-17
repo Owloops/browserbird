@@ -231,6 +231,17 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
 
     if (!cleanText.trim()) return;
 
+    if (cleanText.trim().toLowerCase() === 'stop') {
+      const key = `${channelId}:${threadTs}`;
+      const killed = handler.killSession(key);
+      if (killed) {
+        webClient.reactions
+          .add({ channel: channelId, timestamp: messageTs, name: 'octagonal_sign' })
+          .catch(() => {});
+      }
+      return;
+    }
+
     if (isDm && config.slack.coalesce.bypassDms) {
       handler
         .handle({
@@ -263,6 +274,17 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
       const text = stripMention((event['text'] as string) ?? '');
 
       if (!text.trim()) return;
+
+      if (text.trim().toLowerCase() === 'stop') {
+        const key = `${channelId}:${threadTs}`;
+        const killed = handler.killSession(key);
+        if (killed) {
+          webClient.reactions
+            .add({ channel: channelId, timestamp: messageTs!, name: 'octagonal_sign' })
+            .catch(() => {});
+        }
+        return;
+      }
 
       coalescer.push(channelId, threadTs, userId, text, messageTs);
     });

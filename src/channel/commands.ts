@@ -6,6 +6,7 @@ import type { ChannelClient } from './types.ts';
 
 import * as db from '../db/index.ts';
 import { enqueue } from '../jobs.ts';
+import { killBird, getRunningBirdUids } from '../cron/scheduler.ts';
 import { logger } from '../core/logger.ts';
 import {
   birdListBlocks,
@@ -187,14 +188,43 @@ export async function handleSlashCommand(
 
     case 'status': {
       const cronJobs = db.listCronJobs(1, 1, false);
+      const runningUids = getRunningBirdUids();
+      const runningBirds = runningUids.map((uid) => {
+        const bird = db.getCronJob(uid);
+        return bird?.name ?? uid;
+      });
       const blocks = statusBlocks({
         slackConnected: status.slackConnected(),
         activeCount: status.activeCount(),
         maxConcurrent: config.sessions.maxConcurrent,
         birdCount: cronJobs.totalItems,
         uptime: formatUptime(),
+        runningBirds,
       });
       await say({ text: 'BrowserBird status', blocks });
+      break;
+    }
+
+    case 'stop': {
+      const birdName = parts.slice(1).join(' ');
+      if (!birdName) {
+        await say({ text: 'Usage: `/bird stop <name or id>`' });
+        return;
+      }
+
+      const bird = findBird(birdName);
+      if (!bird) {
+        await say({ text: `Bird not found: \`${birdName}\`` });
+        return;
+      }
+
+      const killed = killBird(bird.uid);
+      if (killed) {
+        await say({ text: `Stopped *${bird.name}*.` });
+        logger.info(`/bird stop: ${bird.name} killed by ${body.user_id}`);
+      } else {
+        await say({ text: `*${bird.name}* is not currently in flight.` });
+      }
       break;
     }
 
@@ -205,6 +235,7 @@ export async function handleSlashCommand(
           '',
           '`/bird list` - Show all configured birds',
           '`/bird fly <name>` - Trigger a bird immediately',
+          '`/bird stop [name]` - Stop a running bird',
           '`/bird logs <name>` - Show recent flights',
           '`/bird enable <name>` - Enable a bird',
           '`/bird disable <name>` - Disable a bird',

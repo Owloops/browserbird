@@ -491,10 +491,11 @@ export function statusBlocks(opts: {
   maxConcurrent: number;
   birdCount: number;
   uptime: string;
+  runningBirds?: string[];
 }): Block[] {
   const slackStatus = opts.slackConnected ? 'Connected' : 'Disconnected';
 
-  return [
+  const result: Block[] = [
     header('BrowserBird Status'),
     fields(
       ['Slack', slackStatus],
@@ -503,6 +504,12 @@ export function statusBlocks(opts: {
       ['Uptime', opts.uptime],
     ),
   ];
+
+  if (opts.runningBirds && opts.runningBirds.length > 0) {
+    result.push(section(`*In flight:* ${opts.runningBirds.join(', ')}`));
+  }
+
+  return result;
 }
 
 function truncate(text: string, maxLength: number): string {

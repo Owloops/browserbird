@@ -187,11 +187,14 @@ export function createHandler(
         `Session timed out after ${Math.round(timedOutMs / 60_000)} minutes.`,
         { blocks },
       );
+    } else if (completion) {
+      const footerBlocks = completionFooterBlocks(completion, hasError, meta.birdName, userId);
+      await safeStop({ blocks: footerBlocks });
     } else {
-      const footerBlocks = completion
-        ? completionFooterBlocks(completion, hasError, meta.birdName, userId)
-        : undefined;
-      await safeStop(footerBlocks ? { blocks: footerBlocks } : {});
+      if (!fullText) {
+        await safeAppend({ markdown_text: '_Stopped._' });
+      }
+      await safeStop({});
     }
   }
 
