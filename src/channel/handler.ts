@@ -270,7 +270,7 @@ export function createHandler(
       for (const msg of messages) {
         db.logMessage(channelId, threadTs, msg.userId, 'in', msg.text);
       }
-      db.touchSession(session.uid, messages.length + 1);
+      db.touchSession(session.uid, messages.length);
       broadcastSSE('invalidate', { resource: 'sessions' });
 
       const prompt = formatPrompt(messages);
