@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/Owloops/browserbird/compare/v1.5.3...v1.5.4) (2026-03-17)
+
+
+### Bug Fixes
+
+* **vnc:** lower quality level and render cursor for better internet performance ([4a82f9a](https://github.com/Owloops/browserbird/commit/4a82f9a566d00d4039e7d1f267abb31f0de265d2))
+
 ## [1.5.3](https://github.com/Owloops/browserbird/compare/v1.5.2...v1.5.3) (2026-03-17)
 
 
