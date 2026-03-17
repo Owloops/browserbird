@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/Owloops/browserbird/compare/v1.5.2...v1.5.3) (2026-03-17)
+
+
+### Bug Fixes
+
+* **web:** rename status page to mission control and browser page to computer ([ce9aa99](https://github.com/Owloops/browserbird/commit/ce9aa99be792902e0f402f5e1185faf613a25972))
+
 ## [1.5.2](https://github.com/Owloops/browserbird/compare/v1.5.1...v1.5.2) (2026-03-17)
 
 
