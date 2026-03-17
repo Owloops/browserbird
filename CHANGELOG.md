@@ -1,3 +1,12 @@
+## [1.4.22](https://github.com/Owloops/browserbird/compare/v1.4.21...v1.4.22) (2026-03-17)
+
+
+### Bug Fixes
+
+* **birds:** prevent double failure count when stale checker and process both fail ([ca3e1f3](https://github.com/Owloops/browserbird/commit/ca3e1f31e21ec1d9885f339564f85c835b6d0105))
+* **sessions:** remove off-by-one in session message count ([3ea0a27](https://github.com/Owloops/browserbird/commit/3ea0a27ebc3b44d35e715e83888d857a1bdb9406))
+* **sessions:** use database retention for session cleanup instead of session ttl ([6b68cb0](https://github.com/Owloops/browserbird/commit/6b68cb0894c3003327ae0831a48a83038a9a2f48))
+
 ## [1.4.21](https://github.com/Owloops/browserbird/compare/v1.4.20...v1.4.21) (2026-03-16)
 
 
