@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Owloops/browserbird/compare/v1.4.22...v1.5.0) (2026-03-17)
+
+
+### Features
+
+* **slack:** add stop command for sessions and birds ([8a71557](https://github.com/Owloops/browserbird/commit/8a715575d2cfba34d6be3d948660af50a731ab0d))
+
 ## [1.4.22](https://github.com/Owloops/browserbird/compare/v1.4.21...v1.4.22) (2026-03-17)
 
 
