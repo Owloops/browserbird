@@ -322,10 +322,10 @@ Runs at `http://localhost:18800` by default.
 
 | Page         | Description                                                                        |
 | ------------ | ---------------------------------------------------------------------------------- |
-| **Status**   | System overview, failing birds, upcoming runs, active sessions                     |
-| **Sessions** | Session list with message history, token usage, and conversation detail            |
-| **Birds**    | Scheduled birds: create, edit, enable/disable, trigger, inline flight history      |
-| **Browser**  | Live noVNC viewer (Docker only)                                                    |
+| **Mission Control** | System overview, failing birds, upcoming runs, active sessions                |
+| **Sessions**        | Session list with message history, token usage, and conversation detail       |
+| **Birds**           | Scheduled birds: create, edit, enable/disable, trigger, inline flight history |
+| **Computer**        | Live noVNC viewer (Docker only)                                               |
 | **Settings** | Config editor, agent management, secrets, system birds, job queue, and log viewer  |
 
 ## Development

@@ -127,9 +127,9 @@
         <line x1="12" y1="17" x2="12" y2="21" />
       </svg>
     </div>
-    <h2 class="disabled-title">Browser Not Enabled</h2>
+    <h2 class="disabled-title">Computer Not Connected</h2>
     <p class="disabled-text">
-      Enable the browser from Settings to connect to a running VM with noVNC.
+      Enable the browser from Settings to connect to a running VM.
     </p>
     <a href="#/settings" class="btn btn-outline btn-sm">Go to Settings</a>
   </div>

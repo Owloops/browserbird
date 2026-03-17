@@ -19,20 +19,20 @@
   import ServiceStatus from './components/ServiceStatus.svelte';
   import Toast from './components/Toast.svelte';
   import ConfirmDialog from './components/ConfirmDialog.svelte';
-  import Status from './pages/Status.svelte';
+  import MissionControl from './pages/MissionControl.svelte';
   import Sessions from './pages/Sessions.svelte';
   import Birds from './pages/Birds.svelte';
-  import Browser from './pages/Browser.svelte';
+  import Computer from './pages/Computer.svelte';
   import Settings from './pages/Settings.svelte';
   import SessionDetail from './pages/SessionDetail.svelte';
   import Onboarding from './pages/Onboarding.svelte';
 
   const PAGE_TITLES: Record<string, string> = {
-    status: 'Status',
+    status: 'Mission Control',
     sessions: 'Sessions',
     'session-detail': 'Session Detail',
     birds: 'Birds',
-    browser: 'Browser',
+    computer: 'Computer',
     settings: 'Settings',
   };
 
@@ -53,7 +53,7 @@
   let setupConfirmPassword = $state('');
   let setupError = $state('');
 
-  const pageTitle = $derived(PAGE_TITLES[currentPage] ?? 'Status');
+  const pageTitle = $derived(PAGE_TITLES[currentPage] ?? 'Mission Control');
 
   $effect(() => {
     document.title = `${pageTitle} - BrowserBird`;
@@ -338,12 +338,12 @@
           <SessionDetail />
         {:else if currentPage === 'birds'}
           <Birds />
-        {:else if currentPage === 'browser'}
-          <Browser {status} />
+        {:else if currentPage === 'computer'}
+          <Computer {status} />
         {:else if currentPage === 'settings'}
           <Settings {status} />
         {:else}
-          <Status {status} />
+          <MissionControl {status} />
         {/if}
       </div>
     </main>
