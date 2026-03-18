@@ -1,3 +1,11 @@
+## [1.5.7](https://github.com/Owloops/browserbird/compare/v1.5.6...v1.5.7) (2026-03-18)
+
+
+### Bug Fixes
+
+* **container:** install google chrome at build time for manual vnc launch ([981b44f](https://github.com/Owloops/browserbird/commit/981b44f5487db1d864909e7f135897db73c1a525))
+* **slack:** refresh status indicator on tool use and every 90 seconds ([3307eff](https://github.com/Owloops/browserbird/commit/3307effad6087b776fc440b892795ad8ccf428ac))
+
 ## [1.5.6](https://github.com/Owloops/browserbird/compare/v1.5.5...v1.5.6) (2026-03-18)
 
 
