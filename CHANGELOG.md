@@ -1,3 +1,10 @@
+## [1.5.9](https://github.com/Owloops/browserbird/compare/v1.5.8...v1.5.9) (2026-03-18)
+
+
+### Bug Fixes
+
+* **slack:** clear status indicator when session ends ([079abae](https://github.com/Owloops/browserbird/commit/079abaeb36f4cadf0afba256b58885e1e8280174))
+
 ## [1.5.8](https://github.com/Owloops/browserbird/compare/v1.5.7...v1.5.8) (2026-03-18)
 
 
