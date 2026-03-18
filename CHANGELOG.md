@@ -1,3 +1,10 @@
+## [1.5.5](https://github.com/Owloops/browserbird/compare/v1.5.4...v1.5.5) (2026-03-18)
+
+
+### Bug Fixes
+
+* **container:** use playwright symlink for manual chromium launch ([b8152e6](https://github.com/Owloops/browserbird/commit/b8152e64e7383a96035dc1323fbae416273086d5))
+
 ## [1.5.4](https://github.com/Owloops/browserbird/compare/v1.5.3...v1.5.4) (2026-03-17)
 
 
