@@ -198,6 +198,7 @@ export function createHandler(
     }
 
     clearInterval(statusTimer);
+    client.setStatus?.(channelId, threadTs, '').catch(() => {});
 
     if (timedOut) {
       await safeStop({});
