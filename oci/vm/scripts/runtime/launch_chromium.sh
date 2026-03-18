@@ -5,7 +5,7 @@
 [ -f /tmp/dbus-env ] && . /tmp/dbus-env
 PROFILE="/home/${USERNAME:-bbuser}/.browserbird/browser-profile"
 rm -f "$PROFILE/SingletonLock"
-exec /opt/google/chrome/chrome \
+exec /usr/local/bin/chromium \
   --user-data-dir="$PROFILE" \
   --no-sandbox \
   --disable-dev-shm-usage \
