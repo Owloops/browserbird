@@ -23,6 +23,17 @@ import type { BrowserLockHandle } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
 
 const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
+const STATUS_REFRESH_MS = 90_000;
+
+function toolStatusText(toolName: string): string {
+  if (toolName.startsWith(BROWSER_TOOL_PREFIX)) return 'is using the browser...';
+  if (toolName.startsWith('mcp__')) return 'is using a tool...';
+  if (toolName === 'Bash') return 'is running a command...';
+  if (toolName === 'Read' || toolName === 'Grep' || toolName === 'Glob')
+    return 'is reading files...';
+  if (toolName === 'Edit' || toolName === 'Write') return 'is writing code...';
+  return 'is working...';
+}
 
 interface SessionLock {
   processing: boolean;
@@ -117,6 +128,12 @@ export function createHandler(
       }
     }
 
+    let lastStatus = 'is thinking...';
+    const refreshStatus = () => {
+      client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
+    };
+    const statusTimer = setInterval(refreshStatus, STATUS_REFRESH_MS);
+
     for await (const event of events) {
       if (signal.aborted) break;
       logger.debug(`stream event: ${event.type}`);
@@ -139,6 +156,8 @@ export function createHandler(
 
         case 'tool_use':
           meta.onToolUse?.(event.toolName);
+          lastStatus = toolStatusText(event.toolName);
+          client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
           break;
 
         case 'completion':
@@ -177,6 +196,8 @@ export function createHandler(
           break;
       }
     }
+
+    clearInterval(statusTimer);
 
     if (timedOut) {
       await safeStop({});
