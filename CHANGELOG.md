@@ -1,3 +1,10 @@
+## [1.5.6](https://github.com/Owloops/browserbird/compare/v1.5.5...v1.5.6) (2026-03-18)
+
+
+### Bug Fixes
+
+* **container:** revert chromium path to /opt/google/chrome/chrome ([5c40f99](https://github.com/Owloops/browserbird/commit/5c40f992cba0195dbff888d3c8051e436f6cdfe9))
+
 ## [1.5.5](https://github.com/Owloops/browserbird/compare/v1.5.4...v1.5.5) (2026-03-18)
 
 
