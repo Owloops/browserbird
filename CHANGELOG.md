@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/Owloops/browserbird/compare/v1.5.9...v1.6.0) (2026-03-19)
+
+
+### Features
+
+* **slack:** add accuracy disclaimer to completion footer ([9fa9d86](https://github.com/Owloops/browserbird/commit/9fa9d86791b59b363d4c80e37b0ccdf9a8592e5b))
+* **slack:** add feedback buttons to completion footer with persistence ([8b0171b](https://github.com/Owloops/browserbird/commit/8b0171b668cfce9b38d80689ff2adb288afd037b))
+* **slack:** add home tab, dynamic suggested prompts, and refactor db imports ([5bf414b](https://github.com/Owloops/browserbird/commit/5bf414b3ce369f08383845cd95a206cb088165d4))
+* **slack:** add prompt titles, context-changed handling, bird thread titles, and expand on sections ([8468e25](https://github.com/Owloops/browserbird/commit/8468e2519ab927c9f810bc3af7d127829a93c83e))
+* **slack:** display tool calls as task cards in streamed messages ([3b272f1](https://github.com/Owloops/browserbird/commit/3b272f1f394b1c8ef5d048322353e627be708d2f))
+* **slack:** switch to plan display mode and add task details ([359bfda](https://github.com/Owloops/browserbird/commit/359bfdaf64e3bd0b49a1e9f03386c32d5538859a))
+
 ## [1.5.9](https://github.com/Owloops/browserbird/compare/v1.5.8...v1.5.9) (2026-03-18)
 
 
