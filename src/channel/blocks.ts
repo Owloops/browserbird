@@ -43,6 +43,23 @@ interface ContextBlock {
   elements: TextObject[];
 }
 
+interface FeedbackButtonObject {
+  text: PlainText;
+  value: string;
+}
+
+interface FeedbackButtonsElement {
+  type: 'feedback_buttons';
+  action_id: string;
+  positive_button: FeedbackButtonObject;
+  negative_button: FeedbackButtonObject;
+}
+
+interface ContextActionsBlock {
+  type: 'context_actions';
+  elements: FeedbackButtonsElement[];
+}
+
 interface ActionsBlock {
   type: 'actions';
   block_id?: string;
@@ -123,6 +140,7 @@ export type Block =
   | SectionBlock
   | DividerBlock
   | ContextBlock
+  | ContextActionsBlock
   | ActionsBlock
   | InputBlock;
 
@@ -167,6 +185,20 @@ function context(text: string): ContextBlock {
   return { type: 'context', elements: [mrkdwn(text)] };
 }
 
+function feedbackButtons(): ContextActionsBlock {
+  return {
+    type: 'context_actions',
+    elements: [
+      {
+        type: 'feedback_buttons',
+        action_id: 'response_feedback',
+        positive_button: { text: plain('Good'), value: 'good' },
+        negative_button: { text: plain('Bad'), value: 'bad' },
+      },
+    ],
+  };
+}
+
 export function formatCost(usd: number): string {
   if (usd < 0.01) return `$${usd.toFixed(4)}`;
   return `$${usd.toFixed(2)}`;
@@ -204,6 +236,7 @@ export function completionFooterBlocks(
 
   return [
     divider(),
+    feedbackButtons(),
     context(parts.join('  |  ')),
     context('BrowserBird can hallucinate and may be inaccurate.'),
   ];

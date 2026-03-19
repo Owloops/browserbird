@@ -20,6 +20,13 @@ import { createHandler } from './handler.ts';
 import { handleSlashCommand } from './commands.ts';
 import { logger } from '../core/logger.ts';
 import { isWithinTimeRange } from '../core/utils.ts';
+import { insertFeedback } from '../db/feedback.ts';
+import {
+  createCronJob,
+  setCronJobEnabled,
+  getSession,
+  getLastInboundMessage,
+} from '../db/index.ts';
 
 class SlackChannelClient implements ChannelClient {
   private readonly web: WebClient;
@@ -367,6 +374,17 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
           if (!sessionUid) continue;
           await handleSessionRetry(sessionUid, user ?? 'unknown', handler);
         }
+
+        if (actionId === 'response_feedback') {
+          const value = action['value'] as string | undefined;
+          if (value === 'good' || value === 'bad') {
+            const message = body['message'] as Record<string, unknown> | undefined;
+            const threadTs = message?.['thread_ts'] as string | undefined;
+            const messageTs = message?.['ts'] as string | undefined;
+            insertFeedback(channel, threadTs, messageTs, user ?? 'unknown', value);
+            logger.info(`feedback: ${value} from ${user} in ${channel}`);
+          }
+        }
       }
     }
   });
@@ -529,7 +547,6 @@ async function handleBirdCreateSubmission(
       return;
     }
 
-    const { createCronJob, setCronJobEnabled } = await import('../db/index.ts');
     const bird = createCronJob(name, schedule, prompt, channelId || undefined, 'default');
     if (enabledValue !== 'enabled') {
       setCronJobEnabled(bird.uid, false);
@@ -554,7 +571,6 @@ async function handleSessionRetry(
   handler: Handler,
 ): Promise<void> {
   try {
-    const { getSession, getLastInboundMessage } = await import('../db/index.ts');
     const session = getSession(sessionUid);
     if (!session) {
       logger.warn(`retry: session ${sessionUid} not found`);

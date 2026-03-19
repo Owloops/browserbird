@@ -265,6 +265,25 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    name: 'feedback',
+    up(d) {
+      d.exec(`
+        CREATE TABLE IF NOT EXISTS feedback (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          channel_id TEXT NOT NULL,
+          thread_id TEXT,
+          message_ts TEXT,
+          user_id TEXT NOT NULL,
+          value TEXT NOT NULL CHECK(value IN ('good', 'bad')),
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(channel_id, message_ts, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_feedback_channel_thread
+          ON feedback(channel_id, thread_id);
+      `);
+    },
+  },
 ];
 
 let db: DatabaseSync | null = null;
