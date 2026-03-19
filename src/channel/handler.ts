@@ -139,7 +139,12 @@ export function createHandler(
       markdown_text?: string;
       chunks?: StreamChunk[];
     }): Promise<void> {
-      if (streamDead) return;
+      if (streamDead) {
+        if (content.markdown_text) {
+          await client.postMessage(channelId, threadTs, content.markdown_text).catch(() => {});
+        }
+        return;
+      }
       try {
         await streamer.append(content);
       } catch (err) {
@@ -153,7 +158,14 @@ export function createHandler(
     }
 
     async function safeStop(opts?: Parameters<StreamHandle['stop']>[0]): Promise<void> {
-      if (streamDead) return;
+      if (streamDead) {
+        if (opts?.blocks) {
+          await client
+            .postMessage(channelId, threadTs, '', { blocks: opts.blocks })
+            .catch(() => {});
+        }
+        return;
+      }
       try {
         await streamer.stop(opts);
       } catch (err) {
