@@ -175,10 +175,12 @@ function parseAssistantContent(parsed: Record<string, unknown>): StreamEvent[] {
     if (b['type'] === 'text' && typeof b['text'] === 'string') {
       events.push({ type: 'text_delta', delta: b['text'] });
     } else if (b['type'] === 'tool_use' && typeof b['name'] === 'string') {
+      const input = b['input'] as Record<string, unknown> | undefined;
       events.push({
         type: 'tool_use',
         toolName: b['name'],
         toolCallId: typeof b['id'] === 'string' ? b['id'] : undefined,
+        details: extractToolDetails(b['name'], input),
       });
     }
   }
@@ -205,6 +207,7 @@ function parseUserContent(parsed: Record<string, unknown>): StreamEvent[] {
         type: 'tool_result',
         toolCallId: toolUseId,
         isError: b['is_error'] === true,
+        output: extractToolOutput(b['content']),
       });
     }
 
@@ -228,4 +231,59 @@ function parseUserContent(parsed: Record<string, unknown>): StreamEvent[] {
   }
 
   return events;
+}
+
+const MAX_DETAIL_LENGTH = 120;
+
+function truncate(text: string, max: number): string {
+  return text.length > max ? text.slice(0, max - 3) + '...' : text;
+}
+
+function extractToolDetails(
+  toolName: string,
+  input: Record<string, unknown> | undefined,
+): string | undefined {
+  if (!input) return undefined;
+
+  if (toolName === 'Bash') {
+    const desc = input['description'] as string | undefined;
+    const cmd = input['command'] as string | undefined;
+    return truncate(desc || cmd || '', MAX_DETAIL_LENGTH) || undefined;
+  }
+  if (toolName === 'Read' || toolName === 'Edit' || toolName === 'Write') {
+    const filePath = input['file_path'] as string | undefined;
+    return filePath || undefined;
+  }
+  if (toolName === 'Grep') {
+    const pattern = input['pattern'] as string | undefined;
+    const path = input['path'] as string | undefined;
+    if (!pattern) return undefined;
+    return path ? `${pattern} in ${path}` : pattern;
+  }
+  if (toolName === 'Glob') {
+    return (input['pattern'] as string | undefined) || undefined;
+  }
+  if (toolName === 'WebSearch') {
+    return (input['query'] as string | undefined) || undefined;
+  }
+  if (toolName === 'WebFetch') {
+    return (input['url'] as string | undefined) || undefined;
+  }
+
+  if (toolName.startsWith('mcp__playwright__')) {
+    const url = input['url'] as string | undefined;
+    if (url) return url;
+  }
+
+  return undefined;
+}
+
+function extractToolOutput(content: unknown): string | undefined {
+  if (typeof content === 'string') {
+    const lines = content.split('\n').filter((l) => l.trim());
+    if (lines.length === 0) return undefined;
+    if (lines.length === 1) return truncate(lines[0]!, MAX_DETAIL_LENGTH);
+    return `${lines.length} lines of output`;
+  }
+  return undefined;
 }

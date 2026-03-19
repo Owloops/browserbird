@@ -128,6 +128,7 @@ export function createHandler(
     let timedOutMs = 0;
 
     const activeTasks = new Map<string, string>();
+    let toolCount = 0;
 
     function isStreamExpired(err: unknown): boolean {
       const msg = err instanceof Error ? err.message : String(err);
@@ -196,18 +197,21 @@ export function createHandler(
           client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
 
           if (event.toolCallId !== undefined) {
+            toolCount++;
             activeTasks.set(event.toolCallId, event.toolName);
             const title = toolTaskTitle(event.toolName);
-            await safeAppend({
-              chunks: [
-                {
-                  type: 'task_update',
-                  id: event.toolCallId,
-                  title,
-                  status: 'in_progress',
-                },
-              ],
+            const chunks: StreamChunk[] = [];
+            if (toolCount === 1) {
+              chunks.push({ type: 'plan_update', title: 'Working on it' });
+            }
+            chunks.push({
+              type: 'task_update',
+              id: event.toolCallId,
+              title,
+              status: 'in_progress',
+              ...(event.details ? { details: event.details } : {}),
             });
+            await safeAppend({ chunks });
           }
           break;
         }
@@ -224,6 +228,7 @@ export function createHandler(
                   id: event.toolCallId,
                   title,
                   status: event.isError ? 'error' : 'complete',
+                  ...(event.output ? { output: event.output } : {}),
                 },
               ],
             });
@@ -283,6 +288,13 @@ export function createHandler(
       }
       await safeAppend({ chunks: staleChunks });
       activeTasks.clear();
+    }
+
+    if (toolCount > 0) {
+      const planTitle = hasError
+        ? 'Finished with errors'
+        : `Completed (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`;
+      await safeAppend({ chunks: [{ type: 'plan_update', title: planTitle }] });
     }
 
     if (timedOut) {

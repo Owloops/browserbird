@@ -89,7 +89,7 @@ class SlackChannelClient implements ChannelClient {
       thread_ts: opts.threadTs,
       recipient_team_id: opts.teamId,
       recipient_user_id: opts.userId,
-      task_display_mode: 'timeline',
+      task_display_mode: 'plan',
       buffer_size: 128,
     });
   }

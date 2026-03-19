@@ -20,7 +20,12 @@ export interface TaskUpdateChunk {
   output?: string;
 }
 
-export type StreamChunk = MarkdownTextChunk | TaskUpdateChunk;
+export interface PlanUpdateChunk {
+  type: 'plan_update';
+  title: string;
+}
+
+export type StreamChunk = MarkdownTextChunk | TaskUpdateChunk | PlanUpdateChunk;
 
 export interface StreamHandle {
   append(args: { markdown_text?: string; chunks?: StreamChunk[] }): Promise<unknown>;

@@ -51,12 +51,14 @@ export interface StreamEventToolUse {
   type: 'tool_use';
   toolName: string;
   toolCallId?: string;
+  details?: string;
 }
 
 export interface StreamEventToolResult {
   type: 'tool_result';
   toolCallId: string;
   isError: boolean;
+  output?: string;
 }
 
 export interface StreamEventTimeout {

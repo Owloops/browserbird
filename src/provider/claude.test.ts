@@ -74,24 +74,39 @@ describe('claude parseStreamLine', () => {
     strictEqual(parseStreamLine('not json at all').length, 0);
   });
 
-  it('emits tool_use event with toolCallId from content blocks', () => {
+  it('emits tool_use event with toolCallId and details from content blocks', () => {
     const events = parseStreamLine(
-      '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"mcp__playwright__navigate","input":{}}]}}',
+      JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_1',
+              name: 'Bash',
+              input: { command: 'ls', description: 'List files' },
+            },
+          ],
+        },
+      }),
     );
     strictEqual(events.length, 1);
     deepStrictEqual(events[0], {
       type: 'tool_use',
-      toolName: 'mcp__playwright__navigate',
+      toolName: 'Bash',
       toolCallId: 'toolu_1',
+      details: 'List files',
     });
   });
 
-  it('emits tool_result event from user content blocks', () => {
+  it('emits tool_result event with output from user content blocks', () => {
     const events = parseStreamLine(
       JSON.stringify({
         type: 'user',
         message: {
-          content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'ok' }],
+          content: [
+            { type: 'tool_result', tool_use_id: 'toolu_1', content: 'file1\nfile2\nfile3' },
+          ],
         },
       }),
     );
@@ -100,6 +115,7 @@ describe('claude parseStreamLine', () => {
       type: 'tool_result',
       toolCallId: 'toolu_1',
       isError: false,
+      output: '3 lines of output',
     });
   });
 
@@ -119,6 +135,7 @@ describe('claude parseStreamLine', () => {
       type: 'tool_result',
       toolCallId: 'toolu_2',
       isError: true,
+      output: 'failed',
     });
   });
 
