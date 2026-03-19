@@ -129,6 +129,8 @@ export function createHandler(
 
     const activeTasks = new Map<string, string>();
     let toolCount = 0;
+    let toolErrors = 0;
+    let toolSuccesses = 0;
 
     function isStreamExpired(err: unknown): boolean {
       const msg = err instanceof Error ? err.message : String(err);
@@ -233,17 +235,28 @@ export function createHandler(
           if (toolName) {
             activeTasks.delete(event.toolCallId);
             const title = toolTaskTitle(toolName);
-            await safeAppend({
-              chunks: [
-                {
-                  type: 'task_update',
-                  id: event.toolCallId,
-                  title,
-                  status: event.isError ? 'error' : 'complete',
-                  ...(event.output ? { output: event.output } : {}),
-                },
-              ],
-            });
+            if (event.isError) {
+              toolErrors++;
+            } else {
+              toolSuccesses++;
+            }
+            const chunks: StreamChunk[] = [
+              {
+                type: 'task_update',
+                id: event.toolCallId,
+                title,
+                status: event.isError ? 'error' : 'complete',
+                ...(event.output ? { output: event.output } : {}),
+              },
+            ];
+            if (activeTasks.size === 0) {
+              const label =
+                toolErrors === 0
+                  ? `Completed (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`
+                  : `${toolSuccesses} passed, ${toolErrors} failed`;
+              chunks.push({ type: 'plan_update', title: label });
+            }
+            await safeAppend({ chunks });
           }
           break;
         }
@@ -302,10 +315,10 @@ export function createHandler(
       activeTasks.clear();
     }
 
-    if (toolCount > 0) {
+    if (toolCount > 0 && (hasError || activeTasks.size > 0)) {
       const planTitle = hasError
         ? 'Finished with errors'
-        : `Completed (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`;
+        : `Interrupted (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`;
       await safeAppend({ chunks: [{ type: 'plan_update', title: planTitle }] });
     }
 
