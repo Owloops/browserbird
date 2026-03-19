@@ -6,9 +6,25 @@ export interface MessageOptions {
   blocks?: Block[];
 }
 
+export interface MarkdownTextChunk {
+  type: 'markdown_text';
+  text: string;
+}
+
+export interface TaskUpdateChunk {
+  type: 'task_update';
+  id: string;
+  title: string;
+  status: 'pending' | 'in_progress' | 'complete' | 'error';
+  details?: string;
+  output?: string;
+}
+
+export type StreamChunk = MarkdownTextChunk | TaskUpdateChunk;
+
 export interface StreamHandle {
-  append(args: { markdown_text?: string }): Promise<unknown>;
-  stop(args?: { blocks?: Block[] }): Promise<unknown>;
+  append(args: { markdown_text?: string; chunks?: StreamChunk[] }): Promise<unknown>;
+  stop(args?: { blocks?: Block[]; chunks?: StreamChunk[] }): Promise<unknown>;
 }
 
 export interface StreamStartOptions {

@@ -74,12 +74,52 @@ describe('claude parseStreamLine', () => {
     strictEqual(parseStreamLine('not json at all').length, 0);
   });
 
-  it('emits tool_use event from content blocks', () => {
+  it('emits tool_use event with toolCallId from content blocks', () => {
     const events = parseStreamLine(
       '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"mcp__playwright__navigate","input":{}}]}}',
     );
     strictEqual(events.length, 1);
-    deepStrictEqual(events[0], { type: 'tool_use', toolName: 'mcp__playwright__navigate' });
+    deepStrictEqual(events[0], {
+      type: 'tool_use',
+      toolName: 'mcp__playwright__navigate',
+      toolCallId: 'toolu_1',
+    });
+  });
+
+  it('emits tool_result event from user content blocks', () => {
+    const events = parseStreamLine(
+      JSON.stringify({
+        type: 'user',
+        message: {
+          content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'ok' }],
+        },
+      }),
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], {
+      type: 'tool_result',
+      toolCallId: 'toolu_1',
+      isError: false,
+    });
+  });
+
+  it('emits tool_result with isError when tool fails', () => {
+    const events = parseStreamLine(
+      JSON.stringify({
+        type: 'user',
+        message: {
+          content: [
+            { type: 'tool_result', tool_use_id: 'toolu_2', is_error: true, content: 'failed' },
+          ],
+        },
+      }),
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], {
+      type: 'tool_result',
+      toolCallId: 'toolu_2',
+      isError: true,
+    });
   });
 
   it('parses rate_limit_event', () => {

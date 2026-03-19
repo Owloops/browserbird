@@ -3,7 +3,7 @@
 import type { Config } from '../core/types.ts';
 import type { CoalesceDispatch } from './coalesce.ts';
 import type { StreamEvent, StreamEventCompletion, ToolImage } from '../provider/stream.ts';
-import type { ChannelClient } from './types.ts';
+import type { ChannelClient, StreamChunk, StreamHandle } from './types.ts';
 
 import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
@@ -33,6 +33,37 @@ function toolStatusText(toolName: string): string {
     return 'is reading files...';
   if (toolName === 'Edit' || toolName === 'Write') return 'is writing code...';
   return 'is working...';
+}
+
+function toolTaskTitle(toolName: string): string {
+  if (toolName.startsWith(BROWSER_TOOL_PREFIX)) {
+    const action = toolName.slice(BROWSER_TOOL_PREFIX.length);
+    return `Browser: ${action}`;
+  }
+  if (toolName.startsWith('mcp__')) {
+    const parts = toolName.slice('mcp__'.length).split('__');
+    const server = parts[0] ?? 'mcp';
+    const action = parts.slice(1).join('__') || 'call';
+    return `${server}: ${action}`;
+  }
+  switch (toolName) {
+    case 'Bash':
+      return 'Running command';
+    case 'Read':
+      return 'Reading file';
+    case 'Grep':
+      return 'Searching code';
+    case 'Glob':
+      return 'Finding files';
+    case 'Edit':
+      return 'Editing file';
+    case 'Write':
+      return 'Writing file';
+    case 'Agent':
+      return 'Running sub-agent';
+    default:
+      return toolName;
+  }
 }
 
 interface SessionLock {
@@ -96,12 +127,17 @@ export function createHandler(
     let timedOut = false;
     let timedOutMs = 0;
 
+    const activeTasks = new Map<string, string>();
+
     function isStreamExpired(err: unknown): boolean {
       const msg = err instanceof Error ? err.message : String(err);
       return msg.includes('not_in_streaming_state') || msg.includes('streaming');
     }
 
-    async function safeAppend(content: Parameters<typeof streamer.append>[0]): Promise<void> {
+    async function safeAppend(content: {
+      markdown_text?: string;
+      chunks?: StreamChunk[];
+    }): Promise<void> {
       if (streamDead) return;
       try {
         await streamer.append(content);
@@ -115,7 +151,7 @@ export function createHandler(
       }
     }
 
-    async function safeStop(opts: Parameters<typeof streamer.stop>[0]): Promise<void> {
+    async function safeStop(opts?: Parameters<StreamHandle['stop']>[0]): Promise<void> {
       if (streamDead) return;
       try {
         await streamer.stop(opts);
@@ -154,11 +190,46 @@ export function createHandler(
           await uploadImages(event.images, channelId, threadTs);
           break;
 
-        case 'tool_use':
+        case 'tool_use': {
           meta.onToolUse?.(event.toolName);
           lastStatus = toolStatusText(event.toolName);
           client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
+
+          if (event.toolCallId !== undefined) {
+            activeTasks.set(event.toolCallId, event.toolName);
+            const title = toolTaskTitle(event.toolName);
+            await safeAppend({
+              chunks: [
+                {
+                  type: 'task_update',
+                  id: event.toolCallId,
+                  title,
+                  status: 'in_progress',
+                },
+              ],
+            });
+          }
           break;
+        }
+
+        case 'tool_result': {
+          const toolName = activeTasks.get(event.toolCallId);
+          if (toolName) {
+            activeTasks.delete(event.toolCallId);
+            const title = toolTaskTitle(toolName);
+            await safeAppend({
+              chunks: [
+                {
+                  type: 'task_update',
+                  id: event.toolCallId,
+                  title,
+                  status: event.isError ? 'error' : 'complete',
+                },
+              ],
+            });
+          }
+          break;
+        }
 
         case 'completion':
           completion = event;
@@ -199,6 +270,20 @@ export function createHandler(
 
     clearInterval(statusTimer);
     client.setStatus?.(channelId, threadTs, '').catch(() => {});
+
+    if (activeTasks.size > 0) {
+      const staleChunks: StreamChunk[] = [];
+      for (const [id, toolName] of activeTasks) {
+        staleChunks.push({
+          type: 'task_update',
+          id,
+          title: toolTaskTitle(toolName),
+          status: 'error',
+        });
+      }
+      await safeAppend({ chunks: staleChunks });
+      activeTasks.clear();
+    }
 
     if (timedOut) {
       await safeStop({});

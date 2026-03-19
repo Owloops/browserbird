@@ -50,6 +50,13 @@ interface StreamEventError {
 export interface StreamEventToolUse {
   type: 'tool_use';
   toolName: string;
+  toolCallId?: string;
+}
+
+export interface StreamEventToolResult {
+  type: 'tool_result';
+  toolCallId: string;
+  isError: boolean;
 }
 
 export interface StreamEventTimeout {
@@ -65,6 +72,7 @@ export type StreamEvent =
   | StreamEventRateLimit
   | StreamEventError
   | StreamEventToolUse
+  | StreamEventToolResult
   | StreamEventTimeout;
 
 /**

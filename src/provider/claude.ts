@@ -78,11 +78,7 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
   return { binary: 'claude', args, env };
 }
 
-/**
- * Parses a single line of stream-json output into zero or more StreamEvents.
- * Only extracts text, images, completion, and error events. Tool use/result
- * events are internal to the agent and not surfaced to the channel layer.
- */
+/** Parses a single line of stream-json output into zero or more StreamEvents. */
 export function parseStreamLine(line: string): StreamEvent[] {
   const trimmed = line.trim();
   if (!trimmed || !trimmed.startsWith('{')) return [];
@@ -114,7 +110,7 @@ export function parseStreamLine(line: string): StreamEvent[] {
       return parseAssistantContent(parsed);
 
     case 'user':
-      return extractImages(parsed);
+      return parseUserContent(parsed);
 
     case 'result': {
       const usage = parsed['usage'] as Record<string, unknown> | undefined;
@@ -179,23 +175,38 @@ function parseAssistantContent(parsed: Record<string, unknown>): StreamEvent[] {
     if (b['type'] === 'text' && typeof b['text'] === 'string') {
       events.push({ type: 'text_delta', delta: b['text'] });
     } else if (b['type'] === 'tool_use' && typeof b['name'] === 'string') {
-      events.push({ type: 'tool_use', toolName: b['name'] });
+      events.push({
+        type: 'tool_use',
+        toolName: b['name'],
+        toolCallId: typeof b['id'] === 'string' ? b['id'] : undefined,
+      });
     }
   }
   return events;
 }
 
-function extractImages(parsed: Record<string, unknown>): StreamEvent[] {
+function parseUserContent(parsed: Record<string, unknown>): StreamEvent[] {
   const msg = parsed['message'];
   if (!msg || typeof msg !== 'object') return [];
   const content = (msg as Record<string, unknown>)['content'];
   if (!Array.isArray(content)) return [];
 
+  const events: StreamEvent[] = [];
   const images: ToolImage[] = [];
+
   for (const block of content) {
     if (!block || typeof block !== 'object') continue;
     const b = block as Record<string, unknown>;
     if (b['type'] !== 'tool_result') continue;
+
+    const toolUseId = b['tool_use_id'];
+    if (typeof toolUseId === 'string') {
+      events.push({
+        type: 'tool_result',
+        toolCallId: toolUseId,
+        isError: b['is_error'] === true,
+      });
+    }
 
     const inner = b['content'];
     if (!Array.isArray(inner)) continue;
@@ -213,8 +224,8 @@ function extractImages(parsed: Record<string, unknown>): StreamEvent[] {
   }
 
   if (images.length > 0) {
-    return [{ type: 'tool_images', images }];
+    events.push({ type: 'tool_images', images });
   }
 
-  return [];
+  return events;
 }
