@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/Owloops/browserbird/compare/v1.6.0...v1.6.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* **slack:** add app_home_opened event to manifest URLs and fix formatting ([ef1bf69](https://github.com/Owloops/browserbird/commit/ef1bf69c128bbeb16790f862e5173f259610511e))
+
 # [1.6.0](https://github.com/Owloops/browserbird/compare/v1.5.9...v1.6.0) (2026-03-19)
 
 
