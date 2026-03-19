@@ -1,6 +1,6 @@
 /** @fileoverview Slack adapter: SocketModeClient + WebClient, streaming, and assistant APIs. */
 
-import type { Config, SlackConfig } from '../core/types.ts';
+import type { Config, SlackConfig, SuggestedPrompt } from '../core/types.ts';
 import type {
   ChannelClient,
   ChannelHandle,
@@ -18,14 +18,17 @@ import { WebClient, LogLevel } from '@slack/web-api';
 import { createCoalescer } from './coalesce.ts';
 import { createHandler } from './handler.ts';
 import { handleSlashCommand } from './commands.ts';
+import { homeTabView } from './blocks.ts';
 import { logger } from '../core/logger.ts';
 import { isWithinTimeRange } from '../core/utils.ts';
+import { matchAgent } from '../provider/session.ts';
 import { insertFeedback } from '../db/feedback.ts';
 import {
   createCronJob,
   setCronJobEnabled,
   getSession,
   getLastInboundMessage,
+  listCronJobs,
 } from '../db/index.ts';
 
 class SlackChannelClient implements ChannelClient {
@@ -297,6 +300,12 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     });
   }
 
+  const DEFAULT_PROMPTS: SuggestedPrompt[] = [
+    { title: 'Browse a website', message: 'Browse https://example.com and summarize it' },
+    { title: 'Run a command', message: 'List files in the current directory' },
+    { title: 'Help me code', message: 'Help me write a function that...' },
+  ];
+
   socketClient.on('assistant_thread_started', async ({ ack, event }: SocketModeEvent) => {
     await ack();
     if (!event) return;
@@ -307,17 +316,48 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     const threadTs = threadInfo['thread_ts'] as string | undefined;
     if (!channelId || !threadTs) return;
 
-    channelClient
-      .setSuggestedPrompts(channelId, threadTs, [
-        { title: 'Browse a website', message: 'Browse https://example.com and summarize it' },
-        { title: 'Run a command', message: 'List files in the current directory' },
-        { title: 'Help me code', message: 'Help me write a function that...' },
-      ])
-      .catch(() => {});
+    const config = getConfig();
+    const agent = matchAgent(channelId, config.agents, channelNameToId);
+    const prompts = agent?.suggestedPrompts ?? DEFAULT_PROMPTS;
+
+    channelClient.setSuggestedPrompts?.(channelId, threadTs, prompts).catch(() => {});
   });
 
   socketClient.on('assistant_thread_context_changed', async ({ ack }: SocketModeEvent) => {
     await ack();
+  });
+
+  socketClient.on('app_home_opened', async ({ ack, event }: SocketModeEvent) => {
+    await ack();
+    if (!event) return;
+
+    const userId = event['user'] as string | undefined;
+    if (!userId) return;
+    const tab = event['tab'] as string | undefined;
+    if (tab !== 'home') return;
+
+    try {
+      const config = getConfig();
+      const agent = config.agents[0];
+      const birds = listCronJobs(1, 20).items.map((b) => ({
+        name: b.name,
+        schedule: b.schedule,
+        enabled: b.enabled === 1,
+      }));
+
+      const view = homeTabView({
+        agentName: agent?.name ?? 'BrowserBird',
+        description:
+          agent?.systemPrompt ?? 'A self-hosted AI assistant with a real browser and a scheduler.',
+        birds,
+        activeSessions: handler.activeCount(),
+        maxConcurrent: config.sessions.maxConcurrent,
+      });
+
+      await webClient.views.publish({ user_id: userId, view });
+    } catch (err) {
+      logger.warn(`home tab error: ${err instanceof Error ? err.message : String(err)}`);
+    }
   });
 
   let connected = false;

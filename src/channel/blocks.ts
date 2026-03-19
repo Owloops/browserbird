@@ -154,6 +154,11 @@ export interface ModalView {
   blocks: Block[];
 }
 
+export interface HomeView {
+  type: 'home';
+  blocks: Block[];
+}
+
 function plain(text: string): PlainText {
   return { type: 'plain_text', text, emoji: true };
 }
@@ -547,6 +552,48 @@ export function statusBlocks(opts: {
   }
 
   return result;
+}
+
+export function homeTabView(opts: {
+  agentName: string;
+  description: string;
+  birds: Array<{ name: string; schedule: string; enabled: boolean }>;
+  activeSessions: number;
+  maxConcurrent: number;
+}): HomeView {
+  const blocks: Block[] = [
+    header(opts.agentName),
+    section(opts.description),
+    divider(),
+    header('Scheduled Birds'),
+  ];
+
+  if (opts.birds.length === 0) {
+    blocks.push(section('No birds configured. Use `/bird create` to get started.'));
+  } else {
+    const lines = opts.birds.map((b) => {
+      const status = b.enabled ? 'on' : 'off';
+      return `[${status}] *${b.name}* \`${b.schedule}\``;
+    });
+    blocks.push(section(lines.join('\n')));
+  }
+
+  blocks.push(
+    divider(),
+    header('Quick Commands'),
+    section(
+      [
+        '`/bird list` -- show all birds',
+        '`/bird create` -- create a new bird',
+        '`/bird fly <name>` -- trigger a bird now',
+        '`/bird status` -- check system status',
+      ].join('\n'),
+    ),
+    divider(),
+    context(`${opts.activeSessions}/${opts.maxConcurrent} active sessions`),
+  );
+
+  return { type: 'home' as const, blocks };
 }
 
 function truncate(text: string, maxLength: number): string {

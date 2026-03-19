@@ -59,7 +59,8 @@
         "message.channels",
         "message.groups",
         "message.im",
-        "message.mpim"
+        "message.mpim",
+        "app_home_opened"
       ]
     },
     "interactivity": {

@@ -17,6 +17,11 @@ export interface SlackConfig {
   };
 }
 
+export interface SuggestedPrompt {
+  title: string;
+  message: string;
+}
+
 export interface AgentConfig {
   id: string;
   name: string;
@@ -26,6 +31,7 @@ export interface AgentConfig {
   systemPrompt: string;
   channels: string[];
   processTimeoutMs?: number;
+  suggestedPrompts?: SuggestedPrompt[];
 }
 
 export interface SessionsConfig {
