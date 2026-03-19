@@ -1,6 +1,7 @@
 /** @fileoverview Claude Code CLI provider: arg building and stream-json parsing. */
 
 import { resolve } from 'node:path';
+import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import type { StreamEvent, ToolImage } from './stream.ts';
 
 interface ProviderCommand {
@@ -73,9 +74,35 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
       ? { ANTHROPIC_API_KEY: apiKey }
       : {};
 
-  env['CLAUDE_CONFIG_DIR'] = resolve('.browserbird', 'claude');
+  const configDir = resolve('.browserbird', 'claude');
+  ensureClaudeSettings(configDir);
+  env['CLAUDE_CONFIG_DIR'] = configDir;
 
   return { binary: 'claude', args, env };
+}
+
+const CLAUDE_SETTINGS = {
+  enabledPlugins: {
+    'lua-lsp@claude-plugins-official': true,
+    'gopls-lsp@claude-plugins-official': true,
+    'frontend-design@claude-plugins-official': true,
+  },
+  alwaysThinkingEnabled: false,
+  effortLevel: 'high',
+  fastMode: false,
+};
+
+let settingsEnsured = false;
+
+function ensureClaudeSettings(configDir: string): void {
+  if (settingsEnsured) return;
+  settingsEnsured = true;
+
+  const settingsPath = resolve(configDir, 'settings.json');
+  if (existsSync(settingsPath)) return;
+
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(settingsPath, JSON.stringify(CLAUDE_SETTINGS, null, 2) + '\n');
 }
 
 /** Parses a single line of stream-json output into zero or more StreamEvents. */
