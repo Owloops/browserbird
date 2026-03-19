@@ -128,9 +128,7 @@
       </svg>
     </div>
     <h2 class="disabled-title">Computer Not Connected</h2>
-    <p class="disabled-text">
-      Enable the browser from Settings to connect to a running VM.
-    </p>
+    <p class="disabled-text">Enable the browser from Settings to connect to a running VM.</p>
     <a href="#/settings" class="btn btn-outline btn-sm">Go to Settings</a>
   </div>
 {:else}
