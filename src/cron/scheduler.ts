@@ -64,7 +64,8 @@ interface SystemCronPayload {
 }
 
 export interface SchedulerDeps {
-  postToSlack?: (channel: string, text: string, opts?: { blocks?: Block[] }) => Promise<void>;
+  postToSlack?: (channel: string, text: string, opts?: { blocks?: Block[] }) => Promise<string>;
+  setThreadTitle?: (channelId: string, threadTs: string, title: string) => Promise<void>;
 }
 
 type SystemCronHandler = () => string | void;
@@ -185,7 +186,11 @@ export function startScheduler(
       }
 
       if (payload.channelId && deps?.postToSlack) {
-        await deps.postToSlack(payload.channelId, result);
+        const ts = await deps.postToSlack(payload.channelId, result);
+        if (ts && deps.setThreadTitle) {
+          const title = `${agent.name}: ${payload.prompt.slice(0, 60)}`;
+          deps.setThreadTitle(payload.channelId, ts, title).catch(() => {});
+        }
         if (completion) {
           const blocks = sessionCompleteBlocks(completion, undefined, agent.name);
           const fallback = `Bird ${agent.name} completed: ${completion.numTurns} turns`;

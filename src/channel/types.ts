@@ -68,6 +68,7 @@ export interface ChannelClient {
     channelId: string,
     threadTs: string,
     prompts: Array<{ title: string; message: string }>,
+    title?: string,
   ): Promise<void>;
 }
 
@@ -76,6 +77,7 @@ export interface ChannelHandle {
   stop(): Promise<void>;
   isConnected(): boolean;
   activeCount(): number;
-  postMessage(channel: string, text: string, opts?: MessageOptions): Promise<void>;
+  postMessage(channel: string, text: string, opts?: MessageOptions): Promise<string>;
+  setTitle(channelId: string, threadTs: string, title: string): Promise<void>;
   resolveChannelNames(): Promise<void>;
 }

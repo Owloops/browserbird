@@ -124,11 +124,13 @@ class SlackChannelClient implements ChannelClient {
     channelId: string,
     threadTs: string,
     prompts: Array<{ title: string; message: string }>,
+    title?: string,
   ): Promise<void> {
     await this.web.assistant.threads.setSuggestedPrompts({
       channel_id: channelId,
       thread_ts: threadTs,
       prompts,
+      ...(title ? { title } : {}),
     });
   }
 }
@@ -319,12 +321,31 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     const config = getConfig();
     const agent = matchAgent(channelId, config.agents, channelNameToId);
     const prompts = agent?.suggestedPrompts ?? DEFAULT_PROMPTS;
+    const promptTitle = `What can ${agent?.name ?? 'BrowserBird'} help with?`;
 
-    channelClient.setSuggestedPrompts?.(channelId, threadTs, prompts).catch(() => {});
+    channelClient.setSuggestedPrompts?.(channelId, threadTs, prompts, promptTitle).catch(() => {});
   });
 
-  socketClient.on('assistant_thread_context_changed', async ({ ack }: SocketModeEvent) => {
+  socketClient.on('assistant_thread_context_changed', async ({ ack, event }: SocketModeEvent) => {
     await ack();
+    if (!event) return;
+
+    const threadInfo = event['assistant_thread'] as Record<string, unknown> | undefined;
+    if (!threadInfo) return;
+
+    const channelId = threadInfo['channel_id'] as string | undefined;
+    const threadTs = threadInfo['thread_ts'] as string | undefined;
+    if (!channelId || !threadTs) return;
+
+    const context = threadInfo['context'] as Record<string, unknown> | undefined;
+    const contextChannelId = context?.['channel_id'] as string | undefined;
+
+    const config = getConfig();
+    const agent = matchAgent(contextChannelId ?? channelId, config.agents, channelNameToId);
+    const prompts = agent?.suggestedPrompts ?? DEFAULT_PROMPTS;
+    const promptTitle = `What can ${agent?.name ?? 'BrowserBird'} help with?`;
+
+    channelClient.setSuggestedPrompts?.(channelId, threadTs, prompts, promptTitle).catch(() => {});
   });
 
   socketClient.on('app_home_opened', async ({ ack, event }: SocketModeEvent) => {
@@ -535,12 +556,21 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     return connected;
   }
 
-  async function postMessage(channel: string, text: string, opts?: MessageOptions): Promise<void> {
-    await webClient.chat.postMessage({
+  async function postMessage(
+    channel: string,
+    text: string,
+    opts?: MessageOptions,
+  ): Promise<string> {
+    const result = await webClient.chat.postMessage({
       channel,
       text,
       ...(opts?.blocks ? { blocks: opts.blocks } : {}),
     });
+    return (result.ts as string) ?? '';
+  }
+
+  async function setTitle(channelId: string, threadTs: string, title: string): Promise<void> {
+    await channelClient.setTitle(channelId, threadTs, title);
   }
 
   return {
@@ -549,6 +579,7 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     isConnected,
     activeCount: () => handler.activeCount(),
     postMessage,
+    setTitle,
     resolveChannelNames,
   };
 }

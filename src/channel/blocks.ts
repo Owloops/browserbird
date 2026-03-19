@@ -32,6 +32,7 @@ interface SectionBlock {
   text?: MrkdwnText;
   fields?: MrkdwnText[];
   accessory?: OverflowElement | ButtonElement;
+  expand?: boolean;
 }
 
 interface DividerBlock {
@@ -171,8 +172,8 @@ function header(text: string): HeaderBlock {
   return { type: 'header', text: plain(text) };
 }
 
-function section(text: string): SectionBlock {
-  return { type: 'section', text: mrkdwn(text) };
+function section(text: string, opts?: { expand?: boolean }): SectionBlock {
+  return { type: 'section', text: mrkdwn(text), ...(opts?.expand ? { expand: true } : {}) };
 }
 
 function fields(...pairs: [string, string][]): SectionBlock {
@@ -272,7 +273,7 @@ export function sessionCompleteBlocks(
 
   if (summary) {
     const trimmed = summary.length > 2800 ? summary.slice(0, 2800) + '...' : summary;
-    blocks.push(section(`*Summary:*\n${trimmed}`));
+    blocks.push(section(`*Summary:*\n${trimmed}`, { expand: true }));
   }
 
   const contextParts: string[] = [];
