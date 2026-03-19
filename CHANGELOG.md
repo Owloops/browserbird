@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/Owloops/browserbird/compare/v1.6.1...v1.7.0) (2026-03-19)
+
+
+### Bug Fixes
+
+* **slack:** fall back to regular messages when stream expires ([77e5c3e](https://github.com/Owloops/browserbird/commit/77e5c3e2716fa74113fb5cfbcd19fa5a9f7a1748))
+
+
+### Features
+
+* **slack:** update plan title dynamically based on tool success and failure counts ([ca88ac1](https://github.com/Owloops/browserbird/commit/ca88ac1b9f08761de2aaafc530e9a590794a626c))
+
 ## [1.6.1](https://github.com/Owloops/browserbird/compare/v1.6.0...v1.6.1) (2026-03-19)
 
 
