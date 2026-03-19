@@ -202,7 +202,11 @@ export function completionFooterBlocks(
   parts.push(`${completion.numTurns} turn${completion.numTurns === 1 ? '' : 's'}`);
   if (birdName) parts.push(birdName);
 
-  return [divider(), context(parts.join('  |  '))];
+  return [
+    divider(),
+    context(parts.join('  |  ')),
+    context('BrowserBird can hallucinate and may be inaccurate.'),
+  ];
 }
 
 /**
