@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/Owloops/browserbird/compare/v1.7.0...v1.7.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* **provider:** ensure default agent settings on first spawn ([15ead4a](https://github.com/Owloops/browserbird/commit/15ead4a5a3d42d49a5b1c8a7bb3b4bc34d32c539))
+
 # [1.7.0](https://github.com/Owloops/browserbird/compare/v1.6.1...v1.7.0) (2026-03-19)
 
 
