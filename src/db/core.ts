@@ -284,6 +284,31 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    name: 'keys vault',
+    up(d) {
+      d.exec(`
+        CREATE TABLE IF NOT EXISTS keys (
+          uid TEXT PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          value TEXT NOT NULL,
+          description TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS key_bindings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          key_uid TEXT NOT NULL REFERENCES keys(uid) ON DELETE CASCADE,
+          target_type TEXT NOT NULL CHECK(target_type IN ('channel', 'bird')),
+          target_id TEXT NOT NULL,
+          UNIQUE(key_uid, target_type, target_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_key_bindings_target
+          ON key_bindings(target_type, target_id);
+      `);
+    },
+  },
 ];
 
 let db: DatabaseSync | null = null;

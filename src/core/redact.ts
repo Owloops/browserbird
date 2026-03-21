@@ -2,6 +2,9 @@
 
 const REDACTED = '[redacted]';
 
+const ENV_SECRET_MIN_LENGTH = 8;
+export const VAULT_SECRET_MIN_LENGTH = 4;
+
 const SENSITIVE_NAME_RE = /KEY|SECRET|TOKEN|PASSWORD/i;
 
 /**
@@ -22,7 +25,7 @@ let knownSecrets: string[] | undefined;
 function collectSecrets(): string[] {
   const secrets: string[] = [];
   for (const [name, value] of Object.entries(process.env)) {
-    if (value && SENSITIVE_NAME_RE.test(name) && value.length >= 8) {
+    if (value && SENSITIVE_NAME_RE.test(name) && value.length >= ENV_SECRET_MIN_LENGTH) {
       secrets.push(value);
     }
   }
@@ -40,6 +43,23 @@ function getSecrets(): string[] {
 /** Re-collects secrets from process.env. Call after env changes (e.g. onboarding). */
 export function refreshSecrets(): void {
   knownSecrets = collectSecrets();
+}
+
+/** Merges additional secret values (e.g. vault keys) into the redactor. Additive only. */
+export function addSecrets(values: string[], minLength = ENV_SECRET_MIN_LENGTH): void {
+  const current = getSecrets();
+  const existing = new Set(current);
+  let added = false;
+  for (const v of values) {
+    if (v.length >= minLength && !existing.has(v)) {
+      current.push(v);
+      existing.add(v);
+      added = true;
+    }
+  }
+  if (added) {
+    current.sort((a, b) => b.length - a.length);
+  }
 }
 
 function escapeForRegex(s: string): string {

@@ -64,6 +64,11 @@ export function spawnProvider(options: SpawnOptions, signal: AbortSignal): Spawn
       else baseEnv[k] = v;
     }
   }
+  if (options.extraEnv) {
+    for (const [k, v] of Object.entries(options.extraEnv)) {
+      baseEnv[k] = v;
+    }
+  }
   const proc = spawn(cmd.binary, cmd.args, {
     cwd: cmd.cwd ?? process.cwd(),
     stdio: ['ignore', 'pipe', 'pipe'],

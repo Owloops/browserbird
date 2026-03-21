@@ -18,6 +18,7 @@ export interface SpawnOptions {
   mcpConfigPath?: string;
   timezone?: string;
   globalTimeoutMs?: number;
+  extraEnv?: Record<string, string>;
 }
 
 type CompletionSubtype =

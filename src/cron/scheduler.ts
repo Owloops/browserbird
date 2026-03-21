@@ -25,6 +25,7 @@ import { deleteExpiredSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { spawnProvider } from '../provider/spawn.ts';
+import { resolveExtraEnv } from '../db/keys.ts';
 import { redact } from '../core/redact.ts';
 import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
 import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
@@ -122,6 +123,11 @@ export function startScheduler(
     let browserLock: BrowserLockHandle | null = null;
 
     try {
+      const targets: Array<{ type: 'channel' | 'bird'; id: string }> = [];
+      if (payload.channelId) targets.push({ type: 'channel', id: payload.channelId });
+      targets.push({ type: 'bird', id: payload.cronJobUid });
+      const extraEnv = resolveExtraEnv(targets);
+
       const { events, kill } = spawnProvider(
         {
           message: payload.prompt,
@@ -129,6 +135,7 @@ export function startScheduler(
           mcpConfigPath: config.browser.mcpConfigPath,
           timezone: config.timezone,
           globalTimeoutMs: config.sessions.processTimeoutMs,
+          extraEnv,
         },
         signal,
       );

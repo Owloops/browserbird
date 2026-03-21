@@ -10,7 +10,15 @@ import {
   getBrowserMode,
 } from './config.ts';
 import { clearBrowserLock } from './browser/lock.ts';
-import { openDatabase, closeDatabase, resolveDbPath } from './db/index.ts';
+import {
+  openDatabase,
+  closeDatabase,
+  resolveDbPath,
+  getAllKeyValues,
+  migrateUnencryptedKeys,
+} from './db/index.ts';
+import { addSecrets, VAULT_SECRET_MIN_LENGTH } from './core/redact.ts';
+import { ensureVaultKey } from './core/crypto.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
@@ -67,10 +75,13 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const envPath = resolve(configDir, '.env');
   const dbPath = resolveDbPath(options.flags.db);
   openDatabase(dbPath);
+  loadDotEnv(envPath);
+  ensureVaultKey(envPath);
+  migrateUnencryptedKeys();
+  const vaultValues = getAllKeyValues();
+  if (vaultValues.length > 0) addSecrets(vaultValues, VAULT_SECRET_MIN_LENGTH);
   clearBrowserLock();
   startWorker(controller.signal);
-
-  loadDotEnv(envPath);
   let currentConfig: Config;
   let slackHandle: ChannelHandle | null = null;
 

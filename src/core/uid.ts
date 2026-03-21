@@ -7,6 +7,7 @@ const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 export const UID_PREFIX = {
   bird: 'br_',
   flight: 'fl_',
+  key: 'ky_',
   session: 'ss_',
 } as const;
 

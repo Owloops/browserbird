@@ -43,7 +43,15 @@ import {
   createUser,
   getSetting,
   setSetting,
+  listKeys,
+  getKey,
+  createKey,
+  updateKey,
+  deleteKey,
+  replaceBindings,
 } from '../db/index.ts';
+import type { KeyBinding } from '../db/keys.ts';
+import { addSecrets, VAULT_SECRET_MIN_LENGTH } from '../core/redact.ts';
 import {
   hashPassword,
   verifyPassword,
@@ -133,6 +141,70 @@ function maskSecret(value: string | undefined): { set: boolean; hint: string } {
   const tail = value.length > 4 ? value.slice(-4) : '';
   return { set: true, hint: prefix ? `${prefix}...${tail}` : `...${tail}` };
 }
+const KEY_NAME_RE = /^[A-Z][A-Z0-9_]*$/;
+
+const BLOCKED_KEY_PREFIXES = [
+  'LD_',
+  'DYLD_',
+  'NODE_',
+  'NPM_',
+  'GIT_',
+  'PYTHON',
+  'RUBY',
+  'PERL',
+  'JAVA_',
+  'CLAUDE_',
+  'BROWSERBIRD_',
+];
+
+const BLOCKED_KEY_NAMES = new Set([
+  'ANTHROPIC_API_KEY',
+  'CLAUDECODE',
+  'SLACK_BOT_TOKEN',
+  'SLACK_APP_TOKEN',
+  'PATH',
+  'HOME',
+  'SHELL',
+  'USER',
+  'LOGNAME',
+  'TERM',
+  'IFS',
+  'CDPATH',
+  'CPATH',
+  'CPPATH',
+  'LIBRARY_PATH',
+  'TMPDIR',
+  'TZDIR',
+  'GCONV_PATH',
+  'HOSTALIASES',
+  'MALLOC_TRACE',
+  'RESOLV_HOST_CONF',
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'ALL_PROXY',
+  'NO_PROXY',
+  'CURL_CA_BUNDLE',
+  'SSL_CERT_FILE',
+  'SSL_CERT_DIR',
+  'REQUESTS_CA_BUNDLE',
+]);
+
+function isDangerousKeyName(name: string): boolean {
+  if (BLOCKED_KEY_NAMES.has(name)) return true;
+  return BLOCKED_KEY_PREFIXES.some((p) => name.startsWith(p));
+}
+
+function validateKeyName(raw: string): { name: string } | { error: string } {
+  const name = raw.trim().toUpperCase();
+  if (!KEY_NAME_RE.test(name)) {
+    return { error: 'Name must match [A-Z][A-Z0-9_]* (e.g. GITHUB_TOKEN)' };
+  }
+  if (isDangerousKeyName(name)) {
+    return { error: `"${name}" is a reserved or dangerous name` };
+  }
+  return { name };
+}
+
 const HH_MM_RE = /^\d{2}:\d{2}$/;
 
 const ALLOWED_TOP_LEVEL_KEYS = new Set([
@@ -1200,6 +1272,170 @@ export function buildRoutes(
           const msg = err instanceof Error ? err.message : String(err);
           jsonError(res, `Launch failed: ${msg}`, 500);
         }
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/keys'),
+      handler(req, res) {
+        const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+        const { page, perPage } = parsePagination(url);
+        json(res, listKeys(page, perPage, parseSortParam(url), parseSearchParam(url)));
+      },
+    },
+    {
+      method: 'POST',
+      pattern: pathToRegex('/api/keys'),
+      async handler(req, res) {
+        let body: { name?: string; value?: string; description?: string; bindings?: KeyBinding[] };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        if (!body.name || typeof body.name !== 'string' || !body.name.trim()) {
+          jsonError(res, '"name" is required', 400);
+          return;
+        }
+        if (!body.value || typeof body.value !== 'string') {
+          jsonError(res, '"value" is required', 400);
+          return;
+        }
+        const validated = validateKeyName(body.name);
+        if ('error' in validated) {
+          jsonError(res, validated.error, 400);
+          return;
+        }
+        const { name } = validated;
+        try {
+          const key = createKey(name, body.value, body.description?.trim());
+          addSecrets([body.value], VAULT_SECRET_MIN_LENGTH);
+          if (body.bindings && body.bindings.length > 0) {
+            replaceBindings(key.uid, body.bindings);
+          }
+          broadcastSSE('invalidate', { resource: 'keys' });
+          json(res, { uid: key.uid }, 201);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes('UNIQUE constraint')) {
+            jsonError(res, `A key named "${name}" already exists`, 409);
+          } else {
+            jsonError(res, msg, 500);
+          }
+        }
+      },
+    },
+    {
+      method: 'PATCH',
+      pattern: pathToRegex('/api/keys/:id'),
+      async handler(req, res, params) {
+        const uid = params['id'];
+        if (!uid) {
+          jsonError(res, 'Missing key ID', 400);
+          return;
+        }
+        const existing = getKey(uid);
+        if (!existing) {
+          jsonError(res, `Key ${uid} not found`, 404);
+          return;
+        }
+        let body: { name?: string; value?: string; description?: string };
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        const fields: { name?: string; value?: string; description?: string } = {};
+        if (body.name !== undefined) {
+          const validated = validateKeyName(body.name);
+          if ('error' in validated) {
+            jsonError(res, validated.error, 400);
+            return;
+          }
+          fields.name = validated.name;
+        }
+        if (body.value !== undefined && body.value !== '') {
+          fields.value = body.value;
+        }
+        if (body.description !== undefined) {
+          fields.description = body.description;
+        }
+        try {
+          const updated = updateKey(uid, fields);
+          if (!updated) {
+            jsonError(res, `Key ${uid} not found`, 404);
+            return;
+          }
+          if (fields.value) addSecrets([fields.value], VAULT_SECRET_MIN_LENGTH);
+          broadcastSSE('invalidate', { resource: 'keys' });
+          json(res, { uid: updated.uid });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes('UNIQUE constraint')) {
+            jsonError(res, `A key named "${fields.name}" already exists`, 409);
+          } else {
+            jsonError(res, msg, 500);
+          }
+        }
+      },
+    },
+    {
+      method: 'DELETE',
+      pattern: pathToRegex('/api/keys/:id'),
+      handler(_req, res, params) {
+        const uid = params['id'];
+        if (!uid) {
+          jsonError(res, 'Missing key ID', 400);
+          return;
+        }
+        if (deleteKey(uid)) {
+          broadcastSSE('invalidate', { resource: 'keys' });
+          json(res, { success: true });
+        } else {
+          jsonError(res, `Key ${uid} not found`, 404);
+        }
+      },
+    },
+    {
+      method: 'PUT',
+      pattern: pathToRegex('/api/keys/:id/bindings'),
+      async handler(req, res, params) {
+        const uid = params['id'];
+        if (!uid) {
+          jsonError(res, 'Missing key ID', 400);
+          return;
+        }
+        const existing = getKey(uid);
+        if (!existing) {
+          jsonError(res, `Key ${uid} not found`, 404);
+          return;
+        }
+        let body: KeyBinding[];
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          jsonError(res, 'Invalid JSON body', 400);
+          return;
+        }
+        if (!Array.isArray(body)) {
+          jsonError(res, 'Body must be an array of bindings', 400);
+          return;
+        }
+        for (const b of body) {
+          if (b.targetType !== 'channel' && b.targetType !== 'bird') {
+            jsonError(res, '"targetType" must be "channel" or "bird"', 400);
+            return;
+          }
+          if (!b.targetId || typeof b.targetId !== 'string') {
+            jsonError(res, '"targetId" is required', 400);
+            return;
+          }
+        }
+        replaceBindings(uid, body);
+        broadcastSSE('invalidate', { resource: 'keys' });
+        json(res, { success: true });
       },
     },
   ];

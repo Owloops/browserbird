@@ -8,6 +8,7 @@ import type { ChannelClient, StreamChunk, StreamHandle } from './types.ts';
 import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import * as db from '../db/index.ts';
+import { resolveExtraEnv } from '../db/keys.ts';
 import { logger } from '../core/logger.ts';
 import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
@@ -223,7 +224,7 @@ export function createHandler(
               id: event.toolCallId,
               title,
               status: 'in_progress',
-              ...(event.details ? { details: event.details } : {}),
+              ...(event.details ? { details: redact(event.details) } : {}),
             });
             await safeAppend({ chunks });
           }
@@ -246,7 +247,7 @@ export function createHandler(
                 id: event.toolCallId,
                 title,
                 status: event.isError ? 'error' : 'complete',
-                ...(event.output ? { output: event.output } : {}),
+                ...(event.output ? { output: redact(event.output) } : {}),
               },
             ];
             if (activeTasks.size === 0) {
@@ -424,6 +425,8 @@ export function createHandler(
       const lastMessage = messages[messages.length - 1]!;
       const userId = lastMessage.userId;
 
+      const extraEnv = resolveExtraEnv([{ type: 'channel', id: channelId }]);
+
       const existingSessionId = isNew ? undefined : session.provider_session_id || undefined;
       const { events, kill } = spawnProvider(
         {
@@ -433,6 +436,7 @@ export function createHandler(
           mcpConfigPath: config.browser.mcpConfigPath,
           timezone: config.timezone,
           globalTimeoutMs: config.sessions.processTimeoutMs,
+          extraEnv,
         },
         signal,
       );
