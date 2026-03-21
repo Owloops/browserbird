@@ -15,6 +15,7 @@
   import { onInvalidate } from '../lib/invalidate.ts';
   import ConfigTab from './settings/ConfigTab.svelte';
   import DatabaseTab from './settings/DatabaseTab.svelte';
+  import KeysTab from './settings/KeysTab.svelte';
 
   interface Props {
     status: StatusResponse | null;
@@ -30,7 +31,7 @@
   let jobStats: JobStats | null = $state(null);
   let systemBirds: CronJobRow[] = $state([]);
   let loading = $state(true);
-  let activeTab: 'config' | 'database' = $state('config');
+  let activeTab: 'config' | 'database' | 'keys' = $state('config');
 
   let editingField: string | null = $state(null);
   let editingSaving = $state(false);
@@ -176,6 +177,13 @@
         activeTab = 'database';
       }}>Database</button
     >
+    <button
+      class="tab"
+      class:tab-active={activeTab === 'keys'}
+      onclick={() => {
+        activeTab = 'keys';
+      }}>Keys</button
+    >
   </div>
 
   {#if activeTab === 'config'}
@@ -192,6 +200,10 @@
 
   {#if activeTab === 'database'}
     <DatabaseTab {jobStats} {systemBirds} {recentErrors} />
+  {/if}
+
+  {#if activeTab === 'keys'}
+    <KeysTab {config} />
   {/if}
 {/if}
 

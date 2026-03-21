@@ -168,8 +168,23 @@ export interface FlightRow {
   error: string | null;
 }
 
+export interface KeyBinding {
+  targetType: 'channel' | 'bird';
+  targetId: string;
+}
+
+export interface KeyInfo {
+  uid: string;
+  name: string;
+  hint: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  bindings: KeyBinding[];
+}
+
 export interface InvalidateEvent {
-  resource: 'sessions' | 'birds' | 'config' | 'secrets';
+  resource: 'sessions' | 'birds' | 'config' | 'secrets' | 'keys';
   cronJobUid?: string;
 }
 
