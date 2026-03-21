@@ -175,6 +175,7 @@ export function createHandler(
         if (isStreamExpired(err)) {
           streamDead = true;
         } else {
+          await streamer.stop().catch(() => {});
           throw err;
         }
       }
@@ -186,160 +187,164 @@ export function createHandler(
     };
     const statusTimer = setInterval(refreshStatus, STATUS_REFRESH_MS);
 
-    for await (const event of events) {
-      if (signal.aborted) break;
-      logger.debug(`stream event: ${event.type}`);
+    try {
+      for await (const event of events) {
+        if (signal.aborted) break;
+        logger.debug(`stream event: ${event.type}`);
 
-      switch (event.type) {
-        case 'init':
-          db.updateSessionProviderId(sessionUid, event.sessionId);
-          break;
+        switch (event.type) {
+          case 'init':
+            db.updateSessionProviderId(sessionUid, event.sessionId);
+            break;
 
-        case 'text_delta': {
-          const safe = redact(event.delta);
-          fullText += safe;
-          await safeAppend({ markdown_text: safe });
-          break;
-        }
-
-        case 'tool_images':
-          await uploadImages(event.images, channelId, threadTs);
-          break;
-
-        case 'tool_use': {
-          meta.onToolUse?.(event.toolName);
-          lastStatus = toolStatusText(event.toolName);
-          client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
-
-          if (event.toolCallId !== undefined) {
-            toolCount++;
-            activeTasks.set(event.toolCallId, event.toolName);
-            const title = toolTaskTitle(event.toolName);
-            const chunks: StreamChunk[] = [];
-            if (toolCount === 1) {
-              chunks.push({ type: 'plan_update', title: 'Working on it' });
-            }
-            chunks.push({
-              type: 'task_update',
-              id: event.toolCallId,
-              title,
-              status: 'in_progress',
-              ...(event.details ? { details: redact(event.details) } : {}),
-            });
-            await safeAppend({ chunks });
+          case 'text_delta': {
+            const safe = redact(event.delta);
+            fullText += safe;
+            await safeAppend({ markdown_text: safe });
+            break;
           }
-          break;
-        }
 
-        case 'tool_result': {
-          const toolName = activeTasks.get(event.toolCallId);
-          if (toolName) {
-            activeTasks.delete(event.toolCallId);
-            const title = toolTaskTitle(toolName);
-            if (event.isError) {
-              toolErrors++;
-            } else {
-              toolSuccesses++;
-            }
-            const chunks: StreamChunk[] = [
-              {
+          case 'tool_images':
+            await uploadImages(event.images, channelId, threadTs);
+            break;
+
+          case 'tool_use': {
+            meta.onToolUse?.(event.toolName);
+            lastStatus = toolStatusText(event.toolName);
+            client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
+
+            if (event.toolCallId !== undefined) {
+              toolCount++;
+              activeTasks.set(event.toolCallId, event.toolName);
+              const title = toolTaskTitle(event.toolName);
+              const chunks: StreamChunk[] = [];
+              if (toolCount === 1) {
+                chunks.push({ type: 'plan_update', title: 'Working on it' });
+              }
+              chunks.push({
                 type: 'task_update',
                 id: event.toolCallId,
                 title,
-                status: event.isError ? 'error' : 'complete',
-                ...(event.output ? { output: redact(event.output) } : {}),
-              },
-            ];
-            if (activeTasks.size === 0) {
-              const label =
-                toolErrors === 0
-                  ? `Completed (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`
-                  : `${toolSuccesses} passed, ${toolErrors} failed`;
-              chunks.push({ type: 'plan_update', title: label });
+                status: 'in_progress',
+                ...(event.details ? { details: redact(event.details) } : {}),
+              });
+              await safeAppend({ chunks });
             }
-            await safeAppend({ chunks });
+            break;
           }
-          break;
+
+          case 'tool_result': {
+            const toolName = activeTasks.get(event.toolCallId);
+            if (toolName) {
+              activeTasks.delete(event.toolCallId);
+              const title = toolTaskTitle(toolName);
+              if (event.isError) {
+                toolErrors++;
+              } else {
+                toolSuccesses++;
+              }
+              const chunks: StreamChunk[] = [
+                {
+                  type: 'task_update',
+                  id: event.toolCallId,
+                  title,
+                  status: event.isError ? 'error' : 'complete',
+                  ...(event.output ? { output: redact(event.output) } : {}),
+                },
+              ];
+              if (activeTasks.size === 0) {
+                const label =
+                  toolErrors === 0
+                    ? `Completed (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`
+                    : `${toolSuccesses} passed, ${toolErrors} failed`;
+                chunks.push({ type: 'plan_update', title: label });
+              }
+              await safeAppend({ chunks });
+            }
+            break;
+          }
+
+          case 'completion':
+            completion = event;
+            logger.info(
+              `completion [${event.subtype}]: ${event.tokensIn}in/${event.tokensOut}out, $${event.costUsd.toFixed(4)}, ${event.numTurns} turns`,
+            );
+            db.logMessage(
+              channelId,
+              threadTs,
+              'bot',
+              'out',
+              fullText,
+              event.tokensIn,
+              event.tokensOut,
+            );
+            break;
+
+          case 'rate_limit':
+            logger.debug(
+              `rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
+            );
+            break;
+
+          case 'error': {
+            hasError = true;
+            const safeError = redact(event.error);
+            logger.error(`agent error: ${safeError}`);
+            db.insertLog('error', 'spawn', safeError, channelId);
+            await safeAppend({ markdown_text: `\n\nError: ${safeError}` });
+            break;
+          }
+
+          case 'timeout':
+            timedOut = true;
+            timedOutMs = event.timeoutMs;
+            logger.warn(`session timed out after ${event.timeoutMs}ms`);
+            break;
         }
+      }
 
-        case 'completion':
-          completion = event;
-          logger.info(
-            `completion [${event.subtype}]: ${event.tokensIn}in/${event.tokensOut}out, $${event.costUsd.toFixed(4)}, ${event.numTurns} turns`,
-          );
-          db.logMessage(
-            channelId,
-            threadTs,
-            'bot',
-            'out',
-            fullText,
-            event.tokensIn,
-            event.tokensOut,
-          );
-          break;
-
-        case 'rate_limit':
-          logger.debug(`rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`);
-          break;
-
-        case 'error': {
-          hasError = true;
-          const safeError = redact(event.error);
-          logger.error(`agent error: ${safeError}`);
-          db.insertLog('error', 'spawn', safeError, channelId);
-          await safeAppend({ markdown_text: `\n\nError: ${safeError}` });
-          break;
+      if (activeTasks.size > 0) {
+        const staleChunks: StreamChunk[] = [];
+        for (const [id, toolName] of activeTasks) {
+          staleChunks.push({
+            type: 'task_update',
+            id,
+            title: toolTaskTitle(toolName),
+            status: 'error',
+          });
         }
-
-        case 'timeout':
-          timedOut = true;
-          timedOutMs = event.timeoutMs;
-          logger.warn(`session timed out after ${event.timeoutMs}ms`);
-          break;
+        await safeAppend({ chunks: staleChunks });
+        activeTasks.clear();
       }
-    }
 
-    clearInterval(statusTimer);
-    client.setStatus?.(channelId, threadTs, '').catch(() => {});
-
-    if (activeTasks.size > 0) {
-      const staleChunks: StreamChunk[] = [];
-      for (const [id, toolName] of activeTasks) {
-        staleChunks.push({
-          type: 'task_update',
-          id,
-          title: toolTaskTitle(toolName),
-          status: 'error',
-        });
+      if (toolCount > 0 && (hasError || activeTasks.size > 0)) {
+        const planTitle = hasError
+          ? 'Finished with errors'
+          : `Interrupted (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`;
+        await safeAppend({ chunks: [{ type: 'plan_update', title: planTitle }] });
       }
-      await safeAppend({ chunks: staleChunks });
-      activeTasks.clear();
-    }
 
-    if (toolCount > 0 && (hasError || activeTasks.size > 0)) {
-      const planTitle = hasError
-        ? 'Finished with errors'
-        : `Interrupted (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`;
-      await safeAppend({ chunks: [{ type: 'plan_update', title: planTitle }] });
-    }
-
-    if (timedOut) {
-      await safeStop({});
-      const blocks = sessionTimeoutBlocks(timedOutMs, { sessionUid });
-      await client.postMessage(
-        channelId,
-        threadTs,
-        `Session timed out after ${Math.round(timedOutMs / 60_000)} minutes.`,
-        { blocks },
-      );
-    } else if (completion) {
-      const footerBlocks = completionFooterBlocks(completion, hasError, meta.birdName, userId);
-      await safeStop({ blocks: footerBlocks });
-    } else {
-      if (!fullText) {
-        await safeAppend({ markdown_text: '_Stopped._' });
+      if (timedOut) {
+        await safeStop({});
+        const blocks = sessionTimeoutBlocks(timedOutMs, { sessionUid });
+        await client.postMessage(
+          channelId,
+          threadTs,
+          `Session timed out after ${Math.round(timedOutMs / 60_000)} minutes.`,
+          { blocks },
+        );
+      } else if (completion) {
+        const footerBlocks = completionFooterBlocks(completion, hasError, meta.birdName, userId);
+        await safeStop({ blocks: footerBlocks });
+      } else {
+        if (!fullText) {
+          await safeAppend({ markdown_text: '_Stopped._' });
+        }
+        await safeStop({});
       }
-      await safeStop({});
+    } finally {
+      clearInterval(statusTimer);
+      client.setStatus?.(channelId, threadTs, '').catch(() => {});
     }
   }
 
