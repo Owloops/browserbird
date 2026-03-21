@@ -77,6 +77,7 @@ export interface Config {
 export const COMMANDS = {
   SESSIONS: 'sessions',
   BIRDS: 'birds',
+  KEYS: 'keys',
   CONFIG: 'config',
   LOGS: 'logs',
   JOBS: 'jobs',

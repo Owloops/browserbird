@@ -12,6 +12,8 @@ import { handleSessions } from './sessions.ts';
 import { SESSIONS_HELP } from './sessions.ts';
 import { handleBirds } from './birds.ts';
 import { BIRDS_HELP } from './birds.ts';
+import { handleKeys } from './keys.ts';
+import { KEYS_HELP } from './keys.ts';
 import { handleLogs } from './logs.ts';
 import { LOGS_HELP } from './logs.ts';
 import { handleJobs } from './jobs.ts';
@@ -30,6 +32,7 @@ ${c('dim', 'commands:')}
 
   ${c('cyan', 'sessions')}    manage sessions
   ${c('cyan', 'birds')}       manage scheduled birds
+  ${c('cyan', 'keys')}        manage vault keys
   ${c('cyan', 'config')}      view configuration
   ${c('cyan', 'logs')}        show recent log entries
   ${c('cyan', 'jobs')}        inspect and manage the job queue
@@ -48,6 +51,7 @@ run 'browserbird <command> --help' for command-specific options.`.trimEnd();
 const COMMAND_HELP: Record<string, string> = {
   sessions: SESSIONS_HELP,
   birds: BIRDS_HELP,
+  keys: KEYS_HELP,
   config: CONFIG_HELP,
   logs: LOGS_HELP,
   jobs: JOBS_HELP,
@@ -95,6 +99,13 @@ export async function run(argv: string[]): Promise<void> {
       }
       handleBirds(rest);
       break;
+    case COMMANDS.KEYS:
+      if (isHelp) {
+        console.log(COMMAND_HELP.keys);
+        return;
+      }
+      await handleKeys(rest);
+      break;
     case COMMANDS.CONFIG:
       if (isHelp) {
         console.log(COMMAND_HELP.config);
@@ -120,7 +131,15 @@ export async function run(argv: string[]): Promise<void> {
       handleDoctor();
       break;
     default:
-      unknownSubcommand(command, '', ['sessions', 'birds', 'config', 'logs', 'jobs', 'doctor']);
+      unknownSubcommand(command, '', [
+        'sessions',
+        'birds',
+        'keys',
+        'config',
+        'logs',
+        'jobs',
+        'doctor',
+      ]);
   }
 }
 
