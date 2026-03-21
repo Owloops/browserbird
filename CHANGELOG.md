@@ -1,3 +1,17 @@
+# [1.8.0](https://github.com/Owloops/browserbird/compare/v1.7.1...v1.8.0) (2026-03-21)
+
+
+### Bug Fixes
+
+* **slack:** close stream and clear status on msg_too_long errors ([2c657bc](https://github.com/Owloops/browserbird/commit/2c657bcf3aa7f81dcfc993a561bed0f74cacffcf))
+
+
+### Features
+
+* **cli:** add keys command for vault management ([90de0e5](https://github.com/Owloops/browserbird/commit/90de0e59aabb45923b3fb9b3ce1ead56d313e764))
+* **vault:** encrypted key storage with channel/bird binding ([ce33073](https://github.com/Owloops/browserbird/commit/ce33073698d5fb7b687a0c46785425ff8c5d60ec))
+* **web:** add keys tab with inline editing and binding management ([d6b7b9f](https://github.com/Owloops/browserbird/commit/d6b7b9f4a5f1045c66b2c4dc346876fd3053afa8))
+
 ## [1.7.1](https://github.com/Owloops/browserbird/compare/v1.7.0...v1.7.1) (2026-03-19)
 
 
