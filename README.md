@@ -263,10 +263,20 @@ Authentication is handled via the web UI. On first visit, you create an account.
 | `BROWSER_MODE`            | `persistent` (default) or `isolated`. Requires container restart                                 |
 | `BROWSERBIRD_CONFIG`      | Path to `browserbird.json`. Overridden by `--config` flag                                        |
 | `BROWSERBIRD_DB`          | Path to SQLite database file. Overridden by `--db` flag                                          |
+| `BROWSERBIRD_VAULT_KEY`   | Vault encryption key (auto-generated on first start, stored in `.env`)                           |
 | `NO_COLOR`                | Disable colored output                                                                           |
 
 > [!NOTE]
 > **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. When both are set, OAuth takes priority. This is also why BrowserBird uses the CLI rather than the [Agent SDK](https://docs.anthropic.com/en/docs/agent-sdk/overview); the SDK requires API key auth per Anthropic's [usage policy](https://docs.anthropic.com/en/docs/claude-code/legal-and-compliance).
+
+### Vault Keys
+
+Store API keys and secrets in the web UI (Settings, Keys tab) and bind them to specific channels or birds. At spawn time, bound keys are injected as environment variables into the agent subprocess.
+
+- **Encrypted at rest** with AES-256-GCM. The encryption key is auto-generated on first start and stored in `.env` as `BROWSERBIRD_VAULT_KEY`.
+- **Redacted from output.** If the agent prints a vault key value, it appears as `[redacted]` in Slack and logs.
+- **Bound to targets.** A key bound to channel `*` applies to all channels. A key bound to a specific bird applies only when that bird runs. Bird-level keys override channel-level keys on name conflict.
+- **Name restrictions.** Dangerous env var names (`PATH`, `NODE_OPTIONS`, `LD_PRELOAD`, etc.) are blocked to prevent subprocess hijacking.
 
 ## CLI
 
@@ -288,6 +298,7 @@ commands:
 
   sessions    manage sessions
   birds       manage scheduled birds
+  keys        manage vault keys
   config      view configuration
   logs        show recent log entries
   jobs        inspect and manage the job queue
@@ -326,7 +337,7 @@ Runs at `http://localhost:18800` by default.
 | **Sessions**        | Session list with message history, token usage, and conversation detail       |
 | **Birds**           | Scheduled birds: create, edit, enable/disable, trigger, inline flight history |
 | **Computer**        | Live noVNC viewer (Docker only)                                               |
-| **Settings** | Config editor, agent management, secrets, system birds, job queue, and log viewer  |
+| **Settings** | Config editor, agent management, secrets, vault keys, system birds, job queue, and log viewer |
 
 ## Development
 

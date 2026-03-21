@@ -145,6 +145,22 @@ All bird schedules use the global `timezone` from the config file (default: UTC)
 
 Schedule format: standard 5-field cron (`0 9 * * 1-5`) or macros (`@daily`, `@hourly`, `@weekly`, `@monthly`).
 
+### Keys (vault secrets)
+
+```
+browserbird keys list                           List all vault keys
+browserbird keys add <name>                     Add a key (prompts for value)
+browserbird keys edit <name>                    Update a key's value
+browserbird keys remove <name>                  Remove a key
+browserbird keys bind <name> channel <id>       Bind a key to a channel
+browserbird keys bind <name> bird <uid>         Bind a key to a bird
+browserbird keys unbind <name> channel <id>     Unbind a key from a target
+```
+
+Options for add/edit: `--value <secret>`, `--description <text>`
+
+Keys are injected as environment variables into agent sessions at spawn time. Use `keys bind` with `*` as the channel ID to make a key available in all channels.
+
 ### Sessions
 
 ```
