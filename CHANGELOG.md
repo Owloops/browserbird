@@ -1,3 +1,10 @@
+## [1.8.4](https://github.com/Owloops/browserbird/compare/v1.8.3...v1.8.4) (2026-03-22)
+
+
+### Bug Fixes
+
+* **slack:** treat msg_too_long as stream expiration and fall back to regular messages ([0c9ac36](https://github.com/Owloops/browserbird/commit/0c9ac36840820c423556f319162084f0279de38d))
+
 ## [1.8.3](https://github.com/Owloops/browserbird/compare/v1.8.2...v1.8.3) (2026-03-22)
 
 
