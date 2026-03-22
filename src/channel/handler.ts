@@ -146,6 +146,8 @@ export function createHandler(
       );
     }
 
+    let streamToolCount = 0;
+
     async function resetStream(): Promise<void> {
       try {
         await streamer.stop();
@@ -154,8 +156,12 @@ export function createHandler(
       }
       streamer = client.startStream(streamOpts);
       streamedChars = 0;
+      streamToolCount = 0;
+      needsPlanHeader = true;
       logger.debug('stream reset: started new streaming message');
     }
+
+    let needsPlanHeader = true;
 
     async function safeAppend(content: {
       markdown_text?: string;
@@ -241,11 +247,13 @@ export function createHandler(
 
             if (event.toolCallId !== undefined) {
               toolCount++;
+              streamToolCount++;
               activeTasks.set(event.toolCallId, event.toolName);
               const title = toolTaskTitle(event.toolName);
               const chunks: StreamChunk[] = [];
-              if (toolCount === 1) {
+              if (needsPlanHeader) {
                 chunks.push({ type: 'plan_update', title: 'Working on it' });
+                needsPlanHeader = false;
               }
               chunks.push({
                 type: 'task_update',
@@ -281,7 +289,7 @@ export function createHandler(
               if (activeTasks.size === 0) {
                 const label =
                   toolErrors === 0
-                    ? `Completed (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`
+                    ? `Completed (${streamToolCount} ${streamToolCount === 1 ? 'step' : 'steps'})`
                     : `${toolSuccesses} passed, ${toolErrors} failed`;
                 chunks.push({ type: 'plan_update', title: label });
               }
