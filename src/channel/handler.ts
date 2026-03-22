@@ -135,7 +135,11 @@ export function createHandler(
 
     function isStreamExpired(err: unknown): boolean {
       const msg = err instanceof Error ? err.message : String(err);
-      return msg.includes('not_in_streaming_state') || msg.includes('streaming');
+      return (
+        msg.includes('not_in_streaming_state') ||
+        msg.includes('streaming') ||
+        msg.includes('msg_too_long')
+      );
     }
 
     async function safeAppend(content: {
