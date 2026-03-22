@@ -1,3 +1,10 @@
+## [1.8.8](https://github.com/Owloops/browserbird/compare/v1.8.7...v1.8.8) (2026-03-22)
+
+
+### Bug Fixes
+
+* **web:** add mobile virtual keyboard to vnc viewer ([c38f0ae](https://github.com/Owloops/browserbird/commit/c38f0ae32085dcc693d876022de2ebe9b1b6748c))
+
 ## [1.8.7](https://github.com/Owloops/browserbird/compare/v1.8.6...v1.8.7) (2026-03-22)
 
 
