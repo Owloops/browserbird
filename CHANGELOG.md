@@ -1,3 +1,10 @@
+## [1.8.6](https://github.com/Owloops/browserbird/compare/v1.8.5...v1.8.6) (2026-03-22)
+
+
+### Bug Fixes
+
+* **docs:** add vault key usage examples for cookies and github tokens ([e7d6dbc](https://github.com/Owloops/browserbird/commit/e7d6dbc1f7c84964bea8a3982ce3f1b04128e6d8))
+
 ## [1.8.5](https://github.com/Owloops/browserbird/compare/v1.8.4...v1.8.5) (2026-03-22)
 
 
