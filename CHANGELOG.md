@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/Owloops/browserbird/compare/v1.8.1...v1.8.2) (2026-03-22)
+
+
+### Bug Fixes
+
+* **vault:** replace env var blocklist with minimal reserved names ([b40f6b0](https://github.com/Owloops/browserbird/commit/b40f6b05512cdfaf5e7b8da679e1c11b71c745e8))
+
 ## [1.8.1](https://github.com/Owloops/browserbird/compare/v1.8.0...v1.8.1) (2026-03-22)
 
 
