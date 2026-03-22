@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/Owloops/browserbird/compare/v1.8.0...v1.8.1) (2026-03-22)
+
+
+### Bug Fixes
+
+* **web:** persist settings tab selection in url hash ([b1eae90](https://github.com/Owloops/browserbird/commit/b1eae905defc5deba32405ad32f6c702a1a2c1a1))
+
 # [1.8.0](https://github.com/Owloops/browserbird/compare/v1.7.1...v1.8.0) (2026-03-21)
 
 
