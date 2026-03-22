@@ -1,3 +1,10 @@
+## [1.8.5](https://github.com/Owloops/browserbird/compare/v1.8.4...v1.8.5) (2026-03-22)
+
+
+### Bug Fixes
+
+* **slack:** reset stream before hitting message size limit ([258f644](https://github.com/Owloops/browserbird/commit/258f644d7838a281ab32e4095dd9a9fc43e603d4))
+
 ## [1.8.4](https://github.com/Owloops/browserbird/compare/v1.8.3...v1.8.4) (2026-03-22)
 
 
