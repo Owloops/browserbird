@@ -42,6 +42,17 @@ When a site requires login (X, LinkedIn, etc.), navigate to the login page using
 
 In **persistent mode**, logins are remembered. You do not need to re-authenticate on subsequent sessions unless the site's tokens have expired.
 
+### Cookie injection via vault keys
+
+If a vault key contains exported browser cookies (e.g. `X_COOKIES`, `LINKEDIN_COOKIES`), read it from the environment variable, parse the JSON array, and inject via the Playwright `browser_run_code` tool before navigating:
+
+```javascript
+const cookies = JSON.parse(process.env.X_COOKIES);
+await page.context().addCookies(cookies);
+```
+
+Check for these env vars at the start of any task that requires authenticated browsing. If the cookies are stale (site returns login page after injection), note this in your response so the user knows to re-export.
+
 ## Slack API Access
 
 When a user asks you to search Slack messages, read channel history, look up users, or interact with Slack data, use the bot token from the environment. The base URL for all methods is `https://slack.com/api/`.

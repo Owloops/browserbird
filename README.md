@@ -276,7 +276,10 @@ Store API keys and secrets in the web UI (Settings, Keys tab) and bind them to s
 - **Encrypted at rest** with AES-256-GCM. The encryption key is auto-generated on first start and stored in `.env` as `BROWSERBIRD_VAULT_KEY`.
 - **Redacted from output.** If the agent prints a vault key value, it appears as `[redacted]` in Slack and logs.
 - **Bound to targets.** A key bound to channel `*` applies to all channels. A key bound to a specific bird applies only when that bird runs. Bird-level keys override channel-level keys on name conflict.
-- **Name restrictions.** Dangerous env var names (`PATH`, `NODE_OPTIONS`, `LD_PRELOAD`, etc.) are blocked to prevent subprocess hijacking.
+
+**Example: GitHub integration.** Store a GitHub personal access token as `GITHUB_TOKEN` in the vault and bind it to a channel or bird. The agent can then create issues, open PRs, push code, review changes, and manage repositories using the GitHub API or CLI.
+
+**Example: authenticated browsing.** For birds that need to browse logged-in sites (X, LinkedIn, etc.), export cookies from your local browser using [Cookie-Editor](https://github.com/moustachauve/cookie-editor), store the JSON as a vault key (e.g. `X_COOKIES`), and bind it to the bird. In the bird's prompt, instruct it to read the cookies from the env var and inject them via `addCookies` before browsing. Pre-injecting cookies ensures the agent starts in a logged-in state, making scheduled tasks more reliable.
 
 ## CLI
 
