@@ -143,64 +143,26 @@ function maskSecret(value: string | undefined): { set: boolean; hint: string } {
 }
 const KEY_NAME_RE = /^[A-Z][A-Z0-9_]*$/;
 
-const BLOCKED_KEY_PREFIXES = [
-  'LD_',
-  'DYLD_',
-  'NODE_',
-  'NPM_',
-  'GIT_',
-  'PYTHON',
-  'RUBY',
-  'PERL',
-  'JAVA_',
-  'CLAUDE_',
-  'BROWSERBIRD_',
-];
-
-const BLOCKED_KEY_NAMES = new Set([
+const RESERVED_KEY_NAMES = new Set([
   'ANTHROPIC_API_KEY',
+  'CLAUDE_CODE_OAUTH_TOKEN',
+  'CLAUDE_CONFIG_DIR',
   'CLAUDECODE',
+  'CLAUDE_CODE_ENTRYPOINT',
   'SLACK_BOT_TOKEN',
   'SLACK_APP_TOKEN',
-  'PATH',
-  'HOME',
-  'SHELL',
-  'USER',
-  'LOGNAME',
-  'TERM',
-  'IFS',
-  'CDPATH',
-  'CPATH',
-  'CPPATH',
-  'LIBRARY_PATH',
-  'TMPDIR',
-  'TZDIR',
-  'GCONV_PATH',
-  'HOSTALIASES',
-  'MALLOC_TRACE',
-  'RESOLV_HOST_CONF',
-  'HTTP_PROXY',
-  'HTTPS_PROXY',
-  'ALL_PROXY',
-  'NO_PROXY',
-  'CURL_CA_BUNDLE',
-  'SSL_CERT_FILE',
-  'SSL_CERT_DIR',
-  'REQUESTS_CA_BUNDLE',
+  'BROWSERBIRD_VAULT_KEY',
+  'BROWSERBIRD_CONFIG',
+  'BROWSERBIRD_DB',
 ]);
-
-function isDangerousKeyName(name: string): boolean {
-  if (BLOCKED_KEY_NAMES.has(name)) return true;
-  return BLOCKED_KEY_PREFIXES.some((p) => name.startsWith(p));
-}
 
 function validateKeyName(raw: string): { name: string } | { error: string } {
   const name = raw.trim().toUpperCase();
   if (!KEY_NAME_RE.test(name)) {
     return { error: 'Name must match [A-Z][A-Z0-9_]* (e.g. GITHUB_TOKEN)' };
   }
-  if (isDangerousKeyName(name)) {
-    return { error: `"${name}" is a reserved or dangerous name` };
+  if (RESERVED_KEY_NAMES.has(name)) {
+    return { error: `"${name}" is reserved (managed via config)` };
   }
   return { name };
 }
