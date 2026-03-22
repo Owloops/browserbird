@@ -120,8 +120,10 @@ export function createHandler(
     userId: string,
     meta: { birdName?: string; onToolUse?: (toolName: string) => void },
   ): Promise<void> {
-    const streamer = client.startStream({ channelId, threadTs, teamId, userId });
+    const streamOpts = { channelId, threadTs, teamId, userId };
+    let streamer = client.startStream(streamOpts);
     let streamDead = false;
+    let streamedChars = 0;
     let fullText = '';
     let completion: StreamEventCompletion | undefined;
     let hasError = false;
@@ -133,6 +135,8 @@ export function createHandler(
     let toolErrors = 0;
     let toolSuccesses = 0;
 
+    const STREAM_CHAR_LIMIT = 30_000;
+
     function isStreamExpired(err: unknown): boolean {
       const msg = err instanceof Error ? err.message : String(err);
       return (
@@ -140,6 +144,17 @@ export function createHandler(
         msg.includes('streaming') ||
         msg.includes('msg_too_long')
       );
+    }
+
+    async function resetStream(): Promise<void> {
+      try {
+        await streamer.stop();
+      } catch {
+        /* stream may already be dead */
+      }
+      streamer = client.startStream(streamOpts);
+      streamedChars = 0;
+      logger.debug('stream reset: started new streaming message');
     }
 
     async function safeAppend(content: {
@@ -152,8 +167,15 @@ export function createHandler(
         }
         return;
       }
+
+      const textLen = content.markdown_text?.length ?? 0;
+      if (textLen > 0 && streamedChars + textLen > STREAM_CHAR_LIMIT) {
+        await resetStream();
+      }
+
       try {
         await streamer.append(content);
+        streamedChars += textLen;
       } catch (err) {
         if (isStreamExpired(err)) {
           streamDead = true;
