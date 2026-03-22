@@ -51,6 +51,7 @@ import {
   replaceBindings,
 } from '../db/index.ts';
 import type { KeyBinding } from '../db/keys.ts';
+import { validateKeyName } from '../db/keys.ts';
 import { addSecrets, VAULT_SECRET_MIN_LENGTH } from '../core/redact.ts';
 import {
   hashPassword,
@@ -141,32 +142,6 @@ function maskSecret(value: string | undefined): { set: boolean; hint: string } {
   const tail = value.length > 4 ? value.slice(-4) : '';
   return { set: true, hint: prefix ? `${prefix}...${tail}` : `...${tail}` };
 }
-const KEY_NAME_RE = /^[A-Z][A-Z0-9_]*$/;
-
-const RESERVED_KEY_NAMES = new Set([
-  'ANTHROPIC_API_KEY',
-  'CLAUDE_CODE_OAUTH_TOKEN',
-  'CLAUDE_CONFIG_DIR',
-  'CLAUDECODE',
-  'CLAUDE_CODE_ENTRYPOINT',
-  'SLACK_BOT_TOKEN',
-  'SLACK_APP_TOKEN',
-  'BROWSERBIRD_VAULT_KEY',
-  'BROWSERBIRD_CONFIG',
-  'BROWSERBIRD_DB',
-]);
-
-function validateKeyName(raw: string): { name: string } | { error: string } {
-  const name = raw.trim().toUpperCase();
-  if (!KEY_NAME_RE.test(name)) {
-    return { error: 'Name must match [A-Z][A-Z0-9_]* (e.g. GITHUB_TOKEN)' };
-  }
-  if (RESERVED_KEY_NAMES.has(name)) {
-    return { error: `"${name}" is reserved (managed via config)` };
-  }
-  return { name };
-}
-
 const HH_MM_RE = /^\d{2}:\d{2}$/;
 
 const ALLOWED_TOP_LEVEL_KEYS = new Set([

@@ -19,6 +19,7 @@ import {
   replaceBindings,
 } from '../db/index.ts';
 import type { KeyRow, KeyBinding } from '../db/keys.ts';
+import { validateKeyName } from '../db/keys.ts';
 
 export const KEYS_HELP = `
 ${c('cyan', 'usage:')} browserbird keys <subcommand> [options]
@@ -177,6 +178,12 @@ export async function handleKeys(argv: string[]): Promise<void> {
           process.exitCode = 1;
           return;
         }
+        const validated = validateKeyName(name);
+        if ('error' in validated) {
+          logger.error(validated.error);
+          process.exitCode = 1;
+          return;
+        }
         let secret = values.value as string | undefined;
         if (!secret) {
           secret = await promptSecret(`value for ${name.toUpperCase()}: `);
@@ -188,7 +195,7 @@ export async function handleKeys(argv: string[]): Promise<void> {
         }
         try {
           const key = createKey(
-            name.toUpperCase(),
+            validated.name,
             secret,
             (values.description as string | undefined)?.trim(),
           );

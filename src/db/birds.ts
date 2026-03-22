@@ -196,6 +196,7 @@ export function deleteCronJob(jobUid: string): boolean {
   try {
     d.prepare('DELETE FROM cron_runs WHERE job_uid = ?').run(jobUid);
     d.prepare('UPDATE jobs SET cron_job_uid = NULL WHERE cron_job_uid = ?').run(jobUid);
+    d.prepare("DELETE FROM key_bindings WHERE target_type = 'bird' AND target_id = ?").run(jobUid);
     const result = d.prepare('DELETE FROM cron_jobs WHERE uid = ?').run(jobUid);
     d.exec('COMMIT');
     return Number(result.changes) > 0;

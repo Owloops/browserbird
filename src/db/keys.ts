@@ -5,6 +5,32 @@ import { getDb, transaction, paginate, DEFAULT_PER_PAGE } from './core.ts';
 import { generateUid, UID_PREFIX } from '../core/uid.ts';
 import { encrypt, decrypt, isEncrypted, getVaultKey } from '../core/crypto.ts';
 
+const KEY_NAME_RE = /^[A-Z][A-Z0-9_]*$/;
+
+const RESERVED_KEY_NAMES = new Set([
+  'ANTHROPIC_API_KEY',
+  'CLAUDE_CODE_OAUTH_TOKEN',
+  'CLAUDE_CONFIG_DIR',
+  'CLAUDECODE',
+  'CLAUDE_CODE_ENTRYPOINT',
+  'SLACK_BOT_TOKEN',
+  'SLACK_APP_TOKEN',
+  'BROWSERBIRD_VAULT_KEY',
+  'BROWSERBIRD_CONFIG',
+  'BROWSERBIRD_DB',
+]);
+
+export function validateKeyName(raw: string): { name: string } | { error: string } {
+  const name = raw.trim().toUpperCase();
+  if (!KEY_NAME_RE.test(name)) {
+    return { error: 'Name must match [A-Z][A-Z0-9_]* (e.g. GITHUB_TOKEN)' };
+  }
+  if (RESERVED_KEY_NAMES.has(name)) {
+    return { error: `"${name}" is reserved (managed via config)` };
+  }
+  return { name };
+}
+
 export interface KeyRow {
   uid: string;
   name: string;
