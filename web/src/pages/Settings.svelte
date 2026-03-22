@@ -10,7 +10,7 @@
     CronJobRow,
   } from '../lib/types.ts';
   import type { ConfigEditor } from './settings/types.ts';
-  import { api } from '../lib/api.ts';
+  import { api, getHashParams } from '../lib/api.ts';
   import { showToast } from '../lib/toast.svelte.ts';
   import { onInvalidate } from '../lib/invalidate.ts';
   import ConfigTab from './settings/ConfigTab.svelte';
@@ -31,7 +31,22 @@
   let jobStats: JobStats | null = $state(null);
   let systemBirds: CronJobRow[] = $state([]);
   let loading = $state(true);
-  let activeTab: 'config' | 'database' | 'keys' = $state('config');
+  type Tab = 'config' | 'database' | 'keys';
+  const VALID_TABS: ReadonlySet<string> = new Set<Tab>(['config', 'database', 'keys']);
+  const initialTab = getHashParams().get('tab') ?? 'config';
+  let activeTab: Tab = $state(VALID_TABS.has(initialTab) ? (initialTab as Tab) : 'config');
+
+  function setTab(tab: Tab): void {
+    activeTab = tab;
+    const hash = window.location.hash;
+    const qIndex = hash.indexOf('?');
+    const basePath = qIndex === -1 ? hash : hash.slice(0, qIndex);
+    const params = new URLSearchParams(qIndex === -1 ? '' : hash.slice(qIndex + 1));
+    if (tab === 'config') params.delete('tab');
+    else params.set('tab', tab);
+    const qs = params.toString();
+    history.replaceState(null, '', qs ? `${basePath}?${qs}` : basePath);
+  }
 
   let editingField: string | null = $state(null);
   let editingSaving = $state(false);
@@ -163,26 +178,16 @@
   <div class="loading">Loading...</div>
 {:else if config}
   <div class="tabs">
-    <button
-      class="tab"
-      class:tab-active={activeTab === 'config'}
-      onclick={() => {
-        activeTab = 'config';
-      }}>Config</button
+    <button class="tab" class:tab-active={activeTab === 'config'} onclick={() => setTab('config')}
+      >Config</button
     >
     <button
       class="tab"
       class:tab-active={activeTab === 'database'}
-      onclick={() => {
-        activeTab = 'database';
-      }}>Database</button
+      onclick={() => setTab('database')}>Database</button
     >
-    <button
-      class="tab"
-      class:tab-active={activeTab === 'keys'}
-      onclick={() => {
-        activeTab = 'keys';
-      }}>Keys</button
+    <button class="tab" class:tab-active={activeTab === 'keys'} onclick={() => setTab('keys')}
+      >Keys</button
     >
   </div>
 
