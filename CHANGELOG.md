@@ -1,3 +1,10 @@
+## [1.8.7](https://github.com/Owloops/browserbird/compare/v1.8.6...v1.8.7) (2026-03-22)
+
+
+### Bug Fixes
+
+* **slack:** reinitialize plan header and tool count after stream reset ([637d56d](https://github.com/Owloops/browserbird/commit/637d56da365a934b93c6e1a80c98ef7bc60967bb))
+
 ## [1.8.6](https://github.com/Owloops/browserbird/compare/v1.8.5...v1.8.6) (2026-03-22)
 
 
