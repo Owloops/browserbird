@@ -18,6 +18,8 @@
   let clipboardOpen = $state(false);
   let clipboardText = $state('');
   let connInfoOpen = $state(false);
+  let kbOpen = $state(false);
+  let kbInputEl: HTMLTextAreaElement | undefined = $state();
 
   const browserEnabled = $derived(status?.browser.enabled ?? false);
 
@@ -75,6 +77,8 @@
         const detail = (e as CustomEvent<{ clean: boolean }>).detail;
         connState = detail.clean ? 'disconnected' : 'failed';
         rfbInstance = null;
+        kbOpen = false;
+        kbInputEl?.blur();
       });
     } catch {
       connState = 'failed';
@@ -84,6 +88,7 @@
     return () => {
       rfb?.disconnect();
       rfbInstance = null;
+      kbOpen = false;
     };
   });
 
@@ -104,6 +109,59 @@
   function onClipboardInput(): void {
     if (!rfbInstance) return;
     rfbInstance.clipboardPasteFrom(clipboardText);
+  }
+
+  function charToKeysym(ch: string): number {
+    const cp = ch.codePointAt(0)!;
+    if (cp >= 0x20 && cp <= 0xff) return cp;
+    return 0x01000000 | cp;
+  }
+
+  const SPECIAL_KEYS: Record<string, number> = {
+    Backspace: 0xff08,
+    Enter: 0xff0d,
+    Tab: 0xff09,
+    Escape: 0xff1b,
+    ArrowUp: 0xff52,
+    ArrowDown: 0xff54,
+    ArrowLeft: 0xff51,
+    ArrowRight: 0xff53,
+    Delete: 0xffff,
+    Home: 0xff50,
+    End: 0xff57,
+  };
+
+  function toggleKeyboard(): void {
+    if (!rfbInstance) return;
+    kbOpen = !kbOpen;
+
+    if (kbOpen) {
+      rfbInstance.focusOnClick = false;
+      kbInputEl?.focus();
+    } else {
+      rfbInstance.focusOnClick = true;
+      kbInputEl?.blur();
+    }
+  }
+
+  function handleKbInput(e: Event): void {
+    if (!rfbInstance || !kbInputEl) return;
+    const text = (e as InputEvent).data;
+    if (text) {
+      for (const ch of text) {
+        rfbInstance.sendKey(charToKeysym(ch), null);
+      }
+    }
+    kbInputEl.value = '';
+  }
+
+  function handleKbKey(e: KeyboardEvent, down: boolean): void {
+    if (!rfbInstance) return;
+    const keysym = SPECIAL_KEYS[e.key];
+    if (keysym) {
+      e.preventDefault();
+      rfbInstance.sendKey(keysym, e.code || null, down);
+    }
   }
 </script>
 
@@ -166,6 +224,35 @@
         <div class="toolbar-right">
           <span class="toolbar-sep"></span>
           <button
+            class="toolbar-btn toolbar-btn-kb"
+            class:toolbar-btn-active={kbOpen}
+            onclick={toggleKeyboard}
+            disabled={connState !== 'connected'}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <line x1="6" y1="8" x2="6" y2="8" />
+              <line x1="10" y1="8" x2="10" y2="8" />
+              <line x1="14" y1="8" x2="14" y2="8" />
+              <line x1="18" y1="8" x2="18" y2="8" />
+              <line x1="6" y1="12" x2="6" y2="12" />
+              <line x1="10" y1="12" x2="10" y2="12" />
+              <line x1="14" y1="12" x2="14" y2="12" />
+              <line x1="18" y1="12" x2="18" y2="12" />
+              <line x1="8" y1="16" x2="16" y2="16" />
+            </svg>
+            Keyboard
+          </button>
+          <button
             class="toolbar-btn"
             class:toolbar-btn-active={clipboardOpen}
             onclick={toggleClipboard}
@@ -209,7 +296,23 @@
       {/if}
     </div>
 
-    <div class="vnc-container">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="vnc-container"
+      ontouchstart={(e) => {
+        if (kbOpen && e.target !== kbInputEl) e.preventDefault();
+      }}
+    >
+      <textarea
+        bind:this={kbInputEl}
+        class="kb-input"
+        oninput={handleKbInput}
+        onkeydown={(e) => handleKbKey(e, true)}
+        onkeyup={(e) => handleKbKey(e, false)}
+        autocapitalize="off"
+        autocomplete="off"
+        spellcheck={false}
+      ></textarea>
       {#if clipboardOpen}
         <div class="clipboard-popover">
           <p class="clipboard-label">Type or paste, then use Ctrl+V inside the desktop</p>
@@ -473,6 +576,26 @@
   .clipboard-textarea:focus {
     border-color: var(--color-accent);
     box-shadow: 0 0 0 2px rgba(91, 140, 240, 0.15);
+  }
+
+  .toolbar-btn-kb {
+    display: none;
+  }
+
+  @media (any-pointer: coarse) {
+    .toolbar-btn-kb {
+      display: flex;
+    }
+  }
+
+  .kb-input {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .vnc-container {
