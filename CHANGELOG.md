@@ -1,3 +1,10 @@
+## [1.8.3](https://github.com/Owloops/browserbird/compare/v1.8.2...v1.8.3) (2026-03-22)
+
+
+### Bug Fixes
+
+* **vault:** share name validation between cli and api, clean up bindings on bird delete ([2f0bea9](https://github.com/Owloops/browserbird/commit/2f0bea968791cd11c9e83c7461f7e8d466376792))
+
 ## [1.8.2](https://github.com/Owloops/browserbird/compare/v1.8.1...v1.8.2) (2026-03-22)
 
 
