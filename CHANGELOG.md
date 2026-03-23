@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/Owloops/browserbird/compare/v1.8.8...v1.9.0) (2026-03-23)
+
+
+### Features
+
+* **web:** add chat interface for direct agent conversations ([8ea04e7](https://github.com/Owloops/browserbird/commit/8ea04e7cfe9101cb971139f6f7a6fd9964951bf2))
+
 ## [1.8.8](https://github.com/Owloops/browserbird/compare/v1.8.7...v1.8.8) (2026-03-22)
 
 
