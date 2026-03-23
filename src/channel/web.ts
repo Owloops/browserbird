@@ -16,8 +16,6 @@ import { broadcastSSE } from '../server/index.ts';
 import { logger } from '../core/logger.ts';
 import { randomUUID } from 'node:crypto';
 
-const WEB_CHANNEL_ID = 'web';
-
 interface ChatStreamPayload {
   sessionUid: string;
   subtype: 'append' | 'stop' | 'message' | 'status' | 'title' | 'image' | 'error';
@@ -103,19 +101,19 @@ class WebChannelClient implements ChannelClient {
 }
 
 export interface WebChannel {
-  sendMessage(sessionUid: string, text: string): void;
-  killSession(sessionUid: string): boolean;
+  sendMessage(channelId: string, threadId: string, text: string): void;
+  killSession(channelId: string, threadId: string): boolean;
   activeCount(): number;
 }
 
 export function createWebChannel(getConfig: () => Config, signal: AbortSignal): WebChannel {
   const client = new WebChannelClient();
-  const handler: Handler = createHandler(client, getConfig, signal, () => WEB_CHANNEL_ID);
+  const handler: Handler = createHandler(client, getConfig, signal, () => 'web');
 
-  function sendMessage(sessionUid: string, text: string): void {
+  function sendMessage(channelId: string, threadId: string, text: string): void {
     const dispatch: CoalesceDispatch = {
-      channelId: WEB_CHANNEL_ID,
-      threadTs: sessionUid,
+      channelId,
+      threadTs: threadId,
       messages: [
         {
           userId: 'web-user',
@@ -127,15 +125,15 @@ export function createWebChannel(getConfig: () => Config, signal: AbortSignal): 
     handler.handle(dispatch).catch((err: unknown) => {
       logger.error(`web chat dispatch error: ${err instanceof Error ? err.message : String(err)}`);
       broadcast({
-        sessionUid,
+        sessionUid: threadId,
         subtype: 'error',
         text: err instanceof Error ? err.message : String(err),
       });
     });
   }
 
-  function killSession(sessionUid: string): boolean {
-    return handler.killSession(`${WEB_CHANNEL_ID}:${sessionUid}`);
+  function killSession(channelId: string, threadId: string): boolean {
+    return handler.killSession(`${channelId}:${threadId}`);
   }
 
   function activeCount(): number {

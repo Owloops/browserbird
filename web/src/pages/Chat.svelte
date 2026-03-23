@@ -24,12 +24,12 @@
 
   interface Props {
     initialSessionUid?: string;
-    readonly?: boolean;
   }
 
-  let { initialSessionUid, readonly: readonlyMode = false }: Props = $props();
+  let { initialSessionUid }: Props = $props();
 
   let sessionUid: string | null = $state(null);
+  let threadId: string | null = $state(null);
   let messages: ChatMessage[] = $state([]);
   let historyLoaded = $state(false);
   let tasks: Map<string, TaskState> = $state(new Map());
@@ -91,11 +91,12 @@
       historyLoaded = true;
       return;
     }
-    sessionUid = uid;
     const ac = new AbortController();
     api<SessionDetail>(`/api/sessions/${uid}?perPage=1000`)
       .then((detail) => {
         if (ac.signal.aborted) return;
+        sessionUid = detail.session.uid;
+        threadId = detail.session.thread_id;
         messages = detail.messages.items
           .filter((m) => m.content)
           .map((m) => ({
@@ -113,7 +114,7 @@
 
   $effect(() => {
     const unsubscribe = onChatStream((event: ChatStreamEvent) => {
-      if (event.sessionUid !== sessionUid) return;
+      if (event.sessionUid !== threadId) return;
 
       switch (event.subtype) {
         case 'append': {
@@ -209,13 +210,15 @@
     planTitle = null;
 
     try {
-      const result = await api<{ sessionUid: string }>('/api/chat/send', {
+      const result = await api<{ threadId: string }>('/api/chat/send', {
         method: 'POST',
         body: { sessionUid, message: text },
       });
-      sessionUid = result.sessionUid;
+      if (!threadId) {
+        threadId = result.threadId;
+        history.replaceState(null, '', `#/session-detail?id=${result.threadId}`);
+      }
       streaming = true;
-      history.replaceState(null, '', `#/session-detail?id=${result.sessionUid}`);
     } catch (err) {
       showError((err as Error).message);
       streaming = false;
@@ -225,11 +228,11 @@
   }
 
   async function stopSession(): Promise<void> {
-    if (!sessionUid) return;
+    if (!sessionUid && !threadId) return;
     try {
       await api('/api/chat/stop', {
         method: 'POST',
-        body: { sessionUid },
+        body: sessionUid ? { sessionUid } : { channelId: 'web', threadId },
       });
     } catch {
       /* best-effort */
@@ -307,11 +310,7 @@
       </div>
     {:else if messages.length === 0}
       <div class="empty-state">
-        <p>
-          {readonlyMode
-            ? 'No messages in this session.'
-            : 'Send a message to start a conversation with the agent.'}
-        </p>
+        <p>Send a message to start a conversation with the agent.</p>
       </div>
     {/if}
 
@@ -393,29 +392,25 @@
     </div>
   {/if}
 
-  {#if readonlyMode}
-    <div class="chat-readonly-bar">This session was started from Slack. View only.</div>
-  {:else}
-    <div class="chat-input-area">
-      <textarea
-        class="chat-input"
-        bind:value={inputText}
-        onkeydown={handleKeydown}
-        placeholder="Send a message..."
-        rows="1"
-        disabled={streaming || sending || !historyLoaded}
-      ></textarea>
-      {#if streaming}
-        <button class="btn btn-sm btn-danger chat-send-btn" onclick={stopSession}>Stop</button>
-      {:else}
-        <button
-          class="btn btn-sm btn-primary chat-send-btn"
-          onclick={() => void sendMessage()}
-          disabled={!canSend}>Send</button
-        >
-      {/if}
-    </div>
-  {/if}
+  <div class="chat-input-area">
+    <textarea
+      class="chat-input"
+      bind:value={inputText}
+      onkeydown={handleKeydown}
+      placeholder="Send a message..."
+      rows="1"
+      disabled={streaming || sending || !historyLoaded}
+    ></textarea>
+    {#if streaming}
+      <button class="btn btn-sm btn-danger chat-send-btn" onclick={stopSession}>Stop</button>
+    {:else}
+      <button
+        class="btn btn-sm btn-primary chat-send-btn"
+        onclick={() => void sendMessage()}
+        disabled={!canSend}>Send</button
+      >
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -654,14 +649,6 @@
     font-weight: 500;
     padding: 0 var(--space-1);
     text-decoration: underline;
-  }
-
-  .chat-readonly-bar {
-    padding: var(--space-2-5) var(--space-3);
-    border-top: 1px solid var(--color-border);
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
-    text-align: center;
   }
 
   .chat-input-area {

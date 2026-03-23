@@ -19,6 +19,7 @@ import {
   SYSTEM_CRON_PREFIX,
   listSessions,
   getSession,
+  findSession,
   getSessionMessages,
   getSessionTokenStats,
   getSessionCount,
@@ -605,7 +606,10 @@ export function buildRoutes(
           jsonError(res, 'Missing session ID', 400);
           return;
         }
-        const session = getSession(uid);
+        let session = getSession(uid);
+        if (!session) {
+          session = findSession('web', uid);
+        }
         if (!session) {
           jsonError(res, `Session ${uid} not found`, 404);
           return;

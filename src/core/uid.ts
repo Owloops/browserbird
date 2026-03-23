@@ -9,6 +9,7 @@ export const UID_PREFIX = {
   flight: 'fl_',
   key: 'ky_',
   session: 'ss_',
+  webThread: 'wt_',
 } as const;
 
 export function generateUid(prefix: string): string {
