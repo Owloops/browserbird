@@ -309,6 +309,32 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    name: 'docs',
+    up(d) {
+      d.exec(`
+        CREATE TABLE IF NOT EXISTS docs (
+          uid TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL DEFAULT '',
+          pinned INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_docs_pinned_created ON docs(pinned DESC, created_at ASC);
+
+        CREATE TABLE IF NOT EXISTS doc_bindings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          doc_uid TEXT NOT NULL REFERENCES docs(uid) ON DELETE CASCADE,
+          target_type TEXT NOT NULL CHECK(target_type IN ('channel', 'bird')),
+          target_id TEXT NOT NULL,
+          UNIQUE(doc_uid, target_type, target_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_doc_bindings_target
+          ON doc_bindings(target_type, target_id);
+      `);
+    },
+  },
 ];
 
 let db: DatabaseSync | null = null;
@@ -415,6 +441,64 @@ export function resolveByUid<T>(
     return { ambiguous: true, count: countRow.count };
   }
   return { row: rows[0]! };
+}
+
+export interface Binding {
+  targetType: 'channel' | 'bird';
+  targetId: string;
+}
+
+/**
+ * Loads bindings for a set of owner UIDs from a bindings table.
+ * When uids is omitted, loads all bindings (used for paginated list enrichment).
+ */
+export function loadBindingsFor(
+  table: string,
+  fkColumn: string,
+  uids?: string[],
+): Map<string, Binding[]> {
+  const d = getDb();
+  const sql =
+    uids && uids.length > 0
+      ? `SELECT * FROM ${table} WHERE ${fkColumn} IN (${uids.map(() => '?').join(', ')})`
+      : `SELECT * FROM ${table}`;
+  const rows = (uids && uids.length > 0
+    ? d.prepare(sql).all(...uids)
+    : d.prepare(sql).all()) as unknown as Array<{
+    [key: string]: unknown;
+    target_type: 'channel' | 'bird';
+    target_id: string;
+  }>;
+  const map = new Map<string, Binding[]>();
+  for (const row of rows) {
+    const ownerUid = row[fkColumn] as string;
+    let arr = map.get(ownerUid);
+    if (!arr) {
+      arr = [];
+      map.set(ownerUid, arr);
+    }
+    arr.push({ targetType: row.target_type, targetId: row.target_id });
+  }
+  return map;
+}
+
+/** Replaces all bindings for an owner UID in a bindings table. */
+export function replaceBindingsFor(
+  table: string,
+  fkColumn: string,
+  ownerUid: string,
+  bindings: Binding[],
+): void {
+  transaction(() => {
+    const d = getDb();
+    d.prepare(`DELETE FROM ${table} WHERE ${fkColumn} = ?`).run(ownerUid);
+    const stmt = d.prepare(
+      `INSERT INTO ${table} (${fkColumn}, target_type, target_id) VALUES (?, ?, ?)`,
+    );
+    for (const b of bindings) {
+      stmt.run(ownerUid, b.targetType, b.targetId);
+    }
+  });
 }
 
 /** Wraps a function in BEGIN/COMMIT with automatic ROLLBACK on error. */

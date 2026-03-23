@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Config } from '../core/types.ts';
 import type { WebServerDeps } from './http.ts';
 import { checkAuth } from './http.ts';
-import { buildStatusPayload } from './routes.ts';
+import { buildStatusPayload } from './routes/index.ts';
 
 const sseConnections = new Set<ServerResponse>();
 

@@ -1,7 +1,7 @@
 /** @fileoverview Vault key persistence: CRUD and spawn-time resolution. */
 
-import type { PaginatedResult } from './core.ts';
-import { getDb, transaction, paginate, DEFAULT_PER_PAGE } from './core.ts';
+import type { PaginatedResult, Binding } from './core.ts';
+import { getDb, paginate, loadBindingsFor, replaceBindingsFor, DEFAULT_PER_PAGE } from './core.ts';
 import { generateUid, UID_PREFIX } from '../core/uid.ts';
 import { encrypt, decrypt, isEncrypted, getVaultKey } from '../core/crypto.ts';
 
@@ -40,10 +40,7 @@ export interface KeyRow {
   updated_at: string;
 }
 
-export interface KeyBinding {
-  targetType: 'channel' | 'bird';
-  targetId: string;
-}
+export type KeyBinding = Binding;
 
 export interface KeyInfo {
   uid: string;
@@ -52,7 +49,7 @@ export interface KeyInfo {
   description: string | null;
   created_at: string;
   updated_at: string;
-  bindings: KeyBinding[];
+  bindings: Binding[];
 }
 
 function decryptValue(raw: string): string {
@@ -68,30 +65,8 @@ function computeHint(raw: string): string {
 const KEY_SORT_COLUMNS = new Set(['uid', 'name', 'created_at', 'updated_at']);
 const KEY_SEARCH_COLUMNS = ['uid', 'name', 'description'] as const;
 
-function loadBindingsMap(): Map<string, KeyBinding[]> {
-  const d = getDb();
-  const bindings = d
-    .prepare('SELECT * FROM key_bindings ORDER BY key_uid')
-    .all() as unknown as Array<{
-    id: number;
-    key_uid: string;
-    target_type: 'channel' | 'bird';
-    target_id: string;
-  }>;
-  const map = new Map<string, KeyBinding[]>();
-  for (const b of bindings) {
-    let arr = map.get(b.key_uid);
-    if (!arr) {
-      arr = [];
-      map.set(b.key_uid, arr);
-    }
-    arr.push({ targetType: b.target_type, targetId: b.target_id });
-  }
-  return map;
-}
-
 function enrichKeys(result: PaginatedResult<KeyRow>): PaginatedResult<KeyInfo> {
-  const bindingsByKey = loadBindingsMap();
+  const bindingsByKey = loadBindingsFor('key_bindings', 'key_uid');
   return {
     ...result,
     items: result.items.map((row) => ({
@@ -177,17 +152,8 @@ export function deleteKey(uid: string): boolean {
   return result.changes > 0;
 }
 
-export function replaceBindings(keyUid: string, bindings: KeyBinding[]): void {
-  transaction(() => {
-    const d = getDb();
-    d.prepare('DELETE FROM key_bindings WHERE key_uid = ?').run(keyUid);
-    const stmt = d.prepare(
-      'INSERT INTO key_bindings (key_uid, target_type, target_id) VALUES (?, ?, ?)',
-    );
-    for (const b of bindings) {
-      stmt.run(keyUid, b.targetType, b.targetId);
-    }
-  });
+export function replaceBindings(keyUid: string, bindings: Binding[]): void {
+  replaceBindingsFor('key_bindings', 'key_uid', keyUid, bindings);
 }
 
 export function getKeysForTarget(

@@ -76,6 +76,54 @@ export function parseSearchParam(url: URL): string | undefined {
   return url.searchParams.get('search') ?? undefined;
 }
 
+import type { Binding } from '../db/core.ts';
+import { resolveByUid } from '../db/core.ts';
+
+export function resolveRouteParam<T>(
+  table: string,
+  label: string,
+  params: Record<string, string>,
+  res: ServerResponse,
+): T | null {
+  const uid = params['id'];
+  if (!uid) {
+    jsonError(res, `Missing ${label} ID`, 400);
+    return null;
+  }
+  const result = resolveByUid<T>(table, uid);
+  if (!result) {
+    jsonError(res, `${label} ${uid} not found`, 404);
+    return null;
+  }
+  if ('ambiguous' in result) {
+    jsonError(
+      res,
+      `Ambiguous ${label} ID "${uid}" matches ${result.count} ${label.toLowerCase()}s. Use a longer prefix.`,
+      400,
+    );
+    return null;
+  }
+  return result.row;
+}
+
+export function validateBindings(body: unknown, res: ServerResponse): Binding[] | null {
+  if (!Array.isArray(body)) {
+    jsonError(res, 'Body must be an array of bindings', 400);
+    return null;
+  }
+  for (const b of body as Binding[]) {
+    if (b.targetType !== 'channel' && b.targetType !== 'bird') {
+      jsonError(res, '"targetType" must be "channel" or "bird"', 400);
+      return null;
+    }
+    if (!b.targetId || typeof b.targetId !== 'string') {
+      jsonError(res, '"targetId" is required', 400);
+      return null;
+    }
+  }
+  return body as Binding[];
+}
+
 const MAX_BODY_BYTES = 1024 * 1024;
 
 export async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
