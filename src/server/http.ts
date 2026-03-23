@@ -1,6 +1,8 @@
 /** @fileoverview HTTP utilities: response helpers, auth, body parsing, and shared types. */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { WebChannel } from '../channel/web.ts';
+
 import { getUserCount } from '../db/auth.ts';
 import { verifyToken } from './auth.ts';
 
@@ -35,6 +37,7 @@ export interface WebServerDeps {
   slackConnected: () => boolean;
   activeProcessCount: () => number;
   serviceHealth: () => { agent: { available: boolean }; browser: { connected: boolean } };
+  webChannel: () => WebChannel | null;
 }
 
 export function pathToRegex(path: string): RegExp {

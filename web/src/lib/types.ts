@@ -229,6 +229,37 @@ export interface OnboardingDefaults {
   doctor: DoctorResponse;
 }
 
+export interface ChatStreamEvent {
+  sessionUid: string;
+  subtype: 'append' | 'stop' | 'message' | 'status' | 'title' | 'image' | 'error';
+  markdownText?: string;
+  text?: string;
+  status?: string;
+  title?: string;
+  imageData?: string;
+  imageFilename?: string;
+  chunks?: ChatStreamChunk[];
+}
+
+export interface ChatTaskUpdate {
+  type: 'task_update';
+  id: string;
+  title: string;
+  status: 'pending' | 'in_progress' | 'complete' | 'error';
+  details?: string;
+  output?: string;
+}
+
+export interface ChatPlanUpdate {
+  type: 'plan_update';
+  title: string;
+}
+
+export type ChatStreamChunk =
+  | ChatTaskUpdate
+  | ChatPlanUpdate
+  | { type: 'markdown_text'; text: string };
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface LogRow {

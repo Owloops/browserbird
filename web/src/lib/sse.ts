@@ -1,6 +1,6 @@
 /** @fileoverview SSE connection manager for real-time status updates and invalidation events. */
 
-import type { StatusResponse, InvalidateEvent } from './types.ts';
+import type { StatusResponse, InvalidateEvent, ChatStreamEvent } from './types.ts';
 import { apiBase, getAuthToken } from './api.ts';
 
 let eventSource: EventSource | null = null;
@@ -9,6 +9,9 @@ let invalidateCallback: ((data: InvalidateEvent) => void) | null = null;
 let connectionCallback: ((state: 'connected' | 'disconnected') => void) | null = null;
 let statusListener: ((e: MessageEvent) => void) | null = null;
 let invalidateListener: ((e: MessageEvent) => void) | null = null;
+
+const chatStreamListeners = new Set<(data: ChatStreamEvent) => void>();
+let chatStreamListener: ((e: MessageEvent) => void) | null = null;
 
 export function connectSSE(
   onStatus: (data: StatusResponse) => void,
@@ -45,8 +48,18 @@ export function connectSSE(
     }
   };
 
+  chatStreamListener = (e: MessageEvent) => {
+    try {
+      const data = JSON.parse(e.data as string) as ChatStreamEvent;
+      for (const cb of chatStreamListeners) cb(data);
+    } catch {
+      /* malformed SSE data */
+    }
+  };
+
   eventSource.addEventListener('status', statusListener);
   eventSource.addEventListener('invalidate', invalidateListener);
+  eventSource.addEventListener('chat_stream', chatStreamListener);
 
   eventSource.onerror = () => {
     connectionCallback?.('disconnected');
@@ -67,6 +80,10 @@ export function disconnectSSE(): void {
       eventSource.removeEventListener('invalidate', invalidateListener);
       invalidateListener = null;
     }
+    if (chatStreamListener) {
+      eventSource.removeEventListener('chat_stream', chatStreamListener);
+      chatStreamListener = null;
+    }
     eventSource.onerror = null;
     eventSource.onopen = null;
     eventSource.close();
@@ -75,6 +92,13 @@ export function disconnectSSE(): void {
   statusCallback = null;
   invalidateCallback = null;
   connectionCallback = null;
+}
+
+export function onChatStream(cb: (data: ChatStreamEvent) => void): () => void {
+  chatStreamListeners.add(cb);
+  return () => {
+    chatStreamListeners.delete(cb);
+  };
 }
 
 export function isSSEConnected(): boolean {

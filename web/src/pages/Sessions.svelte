@@ -45,6 +45,12 @@
     onSearchChange={table.setSearch}
   >
     {#snippet toolbar()}
+      <button
+        class="btn btn-primary btn-sm"
+        onclick={() => {
+          window.location.hash = '#/session-detail?new=true';
+        }}>New Session</button
+      >
       <div class="filter-spacer"></div>
       <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}

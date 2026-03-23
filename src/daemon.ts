@@ -22,6 +22,8 @@ import { ensureVaultKey } from './core/crypto.ts';
 import { startWorker } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
+import { createWebChannel } from './channel/web.ts';
+import type { WebChannel } from './channel/web.ts';
 import { createWebServer } from './server/index.ts';
 import type { WebServerDeps } from './server/index.ts';
 import { startHealthChecks, getServiceHealth } from './server/health.ts';
@@ -84,6 +86,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   startWorker(controller.signal);
   let currentConfig: Config;
   let slackHandle: ChannelHandle | null = null;
+  let webChannel: WebChannel | null = null;
 
   let schedulerStarted = false;
   let slackStarted = false;
@@ -100,8 +103,9 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   const getConfig = (): Config => currentConfig;
   const getDeps = (): WebServerDeps => ({
     slackConnected: () => slackHandle?.isConnected() ?? false,
-    activeProcessCount: () => slackHandle?.activeCount() ?? 0,
+    activeProcessCount: () => (slackHandle?.activeCount() ?? 0) + (webChannel?.activeCount() ?? 0),
     serviceHealth: () => getServiceHealth(currentConfig),
+    webChannel: () => webChannel,
   });
 
   let activated = false;
@@ -123,6 +127,11 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     if (!healthStarted) {
       startHealthChecks(getConfig, controller.signal);
       healthStarted = true;
+    }
+
+    if (!webChannel) {
+      webChannel = createWebChannel(getConfig, controller.signal);
+      logger.info('web chat enabled');
     }
 
     const hasSlackTokens =

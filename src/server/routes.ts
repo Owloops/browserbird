@@ -62,6 +62,7 @@ import {
 } from './auth.ts';
 import { enqueue } from '../jobs.ts';
 import { deriveBirdName } from '../core/utils.ts';
+import { buildChatRoutes } from './chat.ts';
 import { checkDoctor } from '../cli/index.ts';
 import { probeBrowser } from './health.ts';
 import { parseCron, nextCronMatch } from '../cron/parse.ts';
@@ -1375,5 +1376,6 @@ export function buildRoutes(
         json(res, { success: true });
       },
     },
+    ...buildChatRoutes(() => getDeps().webChannel()),
   ];
 }
