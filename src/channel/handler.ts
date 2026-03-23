@@ -9,6 +9,7 @@ import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import * as db from '../db/index.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
+import { getDocsSystemPrompt } from '../db/docs.ts';
 import { logger } from '../core/logger.ts';
 import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
@@ -464,7 +465,10 @@ export function createHandler(
       const lastMessage = messages[messages.length - 1]!;
       const userId = lastMessage.userId;
 
-      const extraEnv = resolveExtraEnv([{ type: 'channel', id: channelId }]);
+      const targets: Array<{ type: 'channel' | 'bird'; id: string }> = [
+        { type: 'channel', id: channelId },
+      ];
+      const extraEnv = resolveExtraEnv(targets);
 
       const existingSessionId = isNew ? undefined : session.provider_session_id || undefined;
       const { events, kill } = spawnProvider(
@@ -476,6 +480,7 @@ export function createHandler(
           timezone: config.timezone,
           globalTimeoutMs: config.sessions.processTimeoutMs,
           extraEnv,
+          docsPrompt: getDocsSystemPrompt(targets),
         },
         signal,
       );

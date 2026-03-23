@@ -26,6 +26,7 @@ import { registerHandler, enqueue } from '../jobs.ts';
 import { broadcastSSE } from '../server/index.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
+import { getDocsSystemPrompt } from '../db/docs.ts';
 import { redact } from '../core/redact.ts';
 import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
 import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
@@ -136,6 +137,7 @@ export function startScheduler(
           timezone: config.timezone,
           globalTimeoutMs: config.sessions.processTimeoutMs,
           extraEnv,
+          docsPrompt: getDocsSystemPrompt(targets),
         },
         signal,
       );

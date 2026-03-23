@@ -25,12 +25,16 @@
   import Computer from './pages/Computer.svelte';
   import Settings from './pages/Settings.svelte';
   import SessionDetail from './pages/SessionDetail.svelte';
+  import Docs from './pages/Docs.svelte';
+  import DocDetail from './pages/DocDetail.svelte';
   import Onboarding from './pages/Onboarding.svelte';
 
   const PAGE_TITLES: Record<string, string> = {
     status: 'Mission Control',
     sessions: 'Sessions',
     'session-detail': 'Session Detail',
+    docs: 'Docs',
+    'doc-detail': 'Doc Detail',
     birds: 'Birds',
     computer: 'Computer',
     settings: 'Settings',
@@ -336,6 +340,10 @@
           <Sessions />
         {:else if currentPage === 'session-detail'}
           <SessionDetail />
+        {:else if currentPage === 'docs'}
+          <Docs />
+        {:else if currentPage === 'doc-detail'}
+          <DocDetail />
         {:else if currentPage === 'birds'}
           <Birds />
         {:else if currentPage === 'computer'}

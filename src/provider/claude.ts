@@ -19,6 +19,7 @@ export interface SpawnOptions {
   timezone?: string;
   globalTimeoutMs?: number;
   extraEnv?: Record<string, string>;
+  docsPrompt?: string;
 }
 
 type CompletionSubtype =
@@ -49,6 +50,7 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
 
   const systemParts: string[] = [];
   if (agent.systemPrompt) systemParts.push(agent.systemPrompt);
+  if (options.docsPrompt) systemParts.push(options.docsPrompt);
   if (options.timezone)
     systemParts.push(
       `System timezone: ${options.timezone}. All cron expressions and scheduled times use this timezone.`,

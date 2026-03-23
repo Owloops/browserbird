@@ -3,6 +3,7 @@
 export * from './core.ts';
 export * from './sessions.ts';
 export * from './birds.ts';
+export * from './docs.ts';
 export * from './jobs.ts';
 export * from './messages.ts';
 export * from './logs.ts';
