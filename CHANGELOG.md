@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/Owloops/browserbird/compare/v1.9.1...v1.9.2) (2026-03-23)
+
+
+### Bug Fixes
+
+* **web:** use channel-agnostic sessions for cross-channel chat continuity ([446a783](https://github.com/Owloops/browserbird/commit/446a78310b8ef7f43e724adb9b25238804184c81))
+
 ## [1.9.1](https://github.com/Owloops/browserbird/compare/v1.9.0...v1.9.1) (2026-03-23)
 
 
