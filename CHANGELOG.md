@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/Owloops/browserbird/compare/v1.9.0...v1.9.1) (2026-03-23)
+
+
+### Bug Fixes
+
+* **web:** enforce read-only mode for slack sessions and use prefixed thread ids ([623c4f0](https://github.com/Owloops/browserbird/commit/623c4f066e56ec750438f1e2c51f1c2975e09950))
+
 # [1.9.0](https://github.com/Owloops/browserbird/compare/v1.8.8...v1.9.0) (2026-03-23)
 
 
