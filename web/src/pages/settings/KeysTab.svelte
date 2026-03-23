@@ -2,7 +2,6 @@
   import type {
     ColumnDef,
     KeyInfo,
-    KeyBinding,
     CronJobRow,
     PaginatedResult,
     ConfigResponse,
@@ -13,6 +12,7 @@
   import { showToast } from '../../lib/toast.svelte.ts';
   import { showConfirm } from '../../lib/confirm.svelte.ts';
   import DataTable from '../../components/DataTable.svelte';
+  import BindingEditor from '../../components/BindingEditor.svelte';
 
   type EditableField = 'value' | 'description';
 
@@ -61,11 +61,6 @@
 
   let editing: EditingCell | null = $state(null);
   let saving = $state(false);
-
-  let addingBindingUid: string | null = $state(null);
-  let bindingType: 'channel' | 'bird' = $state('channel');
-  let bindingTargetId = $state('');
-  let bindingSaving = $state(false);
 
   $effect(() => {
     const ac = new AbortController();
@@ -169,69 +164,6 @@
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
   }
-
-  function toggleAddBinding(keyUid: string): void {
-    if (addingBindingUid === keyUid) {
-      addingBindingUid = null;
-      return;
-    }
-    addingBindingUid = keyUid;
-    bindingType = 'channel';
-    bindingTargetId = '';
-  }
-
-  async function addBinding(): Promise<void> {
-    if (!addingBindingUid || !bindingTargetId) return;
-    bindingSaving = true;
-    try {
-      const key = table.items.find((k) => k.uid === addingBindingUid);
-      const existing = key?.bindings ?? [];
-      const already = existing.some(
-        (b) => b.targetType === bindingType && b.targetId === bindingTargetId,
-      );
-      if (already) {
-        showToast('Binding already exists', 'info');
-        bindingSaving = false;
-        return;
-      }
-      const updated = [...existing, { targetType: bindingType, targetId: bindingTargetId }];
-      await api(`/api/keys/${addingBindingUid}/bindings`, { method: 'PUT', body: updated });
-      showToast('Binding added', 'success');
-      bindingTargetId = '';
-    } catch (err) {
-      showToast(`Failed: ${(err as Error).message}`, 'error');
-    } finally {
-      bindingSaving = false;
-    }
-  }
-
-  async function removeBinding(keyUid: string, binding: KeyBinding): Promise<void> {
-    const key = table.items.find((k) => k.uid === keyUid);
-    if (!key) return;
-    const updated = key.bindings.filter(
-      (b) => !(b.targetType === binding.targetType && b.targetId === binding.targetId),
-    );
-    try {
-      await api(`/api/keys/${keyUid}/bindings`, { method: 'PUT', body: updated });
-    } catch (err) {
-      showToast(`Failed: ${(err as Error).message}`, 'error');
-    }
-  }
-
-  function bindingLabel(b: KeyBinding): string {
-    if (b.targetType === 'bird') {
-      const bird = birds.find((br) => br.uid === b.targetId);
-      return bird ? bird.name : b.targetId.slice(0, 10);
-    }
-    return b.targetId;
-  }
-
-  const bindingTargets = $derived.by(() => {
-    if (bindingType === 'channel') {
-      return channels.map((ch) => ({ value: ch, label: ch }));
-    }
-    return birds.map((b) => ({ value: b.uid, label: b.name }));
-  });
 </script>
 
 {#if showForm}
@@ -378,81 +310,13 @@
           {/if}
         </td>
         <td>
-          <div class="bindings-cell">
-            {#each key.bindings as binding}
-              <span class="chip">
-                <span class="chip-type">{binding.targetType}</span>
-                <span class="chip-label">{bindingLabel(binding)}</span>
-                <button
-                  class="chip-remove"
-                  onclick={() => removeBinding(key.uid, binding)}
-                  aria-label={`Remove ${bindingLabel(binding)}`}
-                >
-                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
-                    ><path
-                      d="M4 4l8 8M12 4l-8 8"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                    /></svg
-                  >
-                </button>
-              </span>
-            {/each}
-            <button
-              class="chip chip-add"
-              class:chip-add-active={addingBindingUid === key.uid}
-              onclick={(e) => {
-                e.stopPropagation();
-                toggleAddBinding(key.uid);
-              }}
-            >
-              {#if addingBindingUid === key.uid}
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
-                  ><path
-                    d="M4 4l8 8M12 4l-8 8"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  /></svg
-                >
-              {:else}
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
-                  ><path
-                    d="M8 3v10M3 8h10"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  /></svg
-                >
-              {/if}
-            </button>
-            {#if addingBindingUid === key.uid}
-              <div class="binding-picker">
-                <select
-                  class="inline-select"
-                  bind:value={bindingType}
-                  onchange={() => {
-                    bindingTargetId = '';
-                  }}
-                >
-                  <option value="channel">Channel</option>
-                  <option value="bird">Bird</option>
-                </select>
-                <select class="inline-select binding-target" bind:value={bindingTargetId}>
-                  <option value="">Select {bindingType}...</option>
-                  {#each bindingTargets as t}
-                    <option value={t.value}>{t.label}</option>
-                  {/each}
-                </select>
-                <button
-                  class="btn btn-primary btn-sm"
-                  disabled={bindingSaving || !bindingTargetId}
-                  onclick={addBinding}>Add</button
-                >
-              </div>
-            {/if}
-          </div>
+          <BindingEditor
+            bindings={key.bindings}
+            endpoint={`/api/keys/${key.uid}/bindings`}
+            {channels}
+            {birds}
+            emptyLabel=""
+          />
         </td>
         <td class="age-cell">{formatAge(key.created_at)}</td>
         <td>
@@ -500,88 +364,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--color-text-secondary);
-  }
-
-  .bindings-cell {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-1);
-  }
-
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    font-size: var(--text-xs);
-    font-family: var(--font-mono);
-    padding: 3px var(--space-2);
-    border-radius: var(--radius-full);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-elevated);
-    transition: border-color var(--transition-fast);
-  }
-
-  .chip-type {
-    color: var(--color-text-muted);
-  }
-
-  .chip-label {
-    color: var(--color-text-secondary);
-  }
-
-  .chip-remove {
-    display: flex;
-    align-items: center;
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-    transition: color var(--transition-fast);
-  }
-
-  .chip-remove svg {
-    width: 10px;
-    height: 10px;
-  }
-
-  .chip-remove:hover {
-    color: var(--color-error);
-  }
-
-  .chip-add {
-    cursor: pointer;
-    padding: 3px var(--space-1-5);
-    border-style: dashed;
-    color: var(--color-text-muted);
-    transition:
-      color var(--transition-fast),
-      border-color var(--transition-fast),
-      background var(--transition-fast);
-  }
-
-  .chip-add svg {
-    width: 12px;
-    height: 12px;
-  }
-
-  .chip-add:hover,
-  .chip-add-active {
-    color: var(--color-accent);
-    border-color: var(--color-accent-dim);
-    background: var(--color-accent-bg);
-  }
-
-  .binding-picker {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1-5);
-  }
-
-  .binding-target {
-    min-width: 140px;
   }
 
   @media (max-width: 768px) {
