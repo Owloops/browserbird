@@ -4,7 +4,9 @@ import type { Route } from './http.ts';
 import type { WebChannel } from '../channel/web.ts';
 
 import { pathToRegex, json, jsonError, readJsonBody } from './http.ts';
-import { randomUUID } from 'node:crypto';
+import { generateUid } from '../core/uid.ts';
+
+const THREAD_PREFIX = 'wt_';
 
 export function buildChatRoutes(getWebChannel: () => WebChannel | null): Route[] {
   return [
@@ -31,7 +33,11 @@ export function buildChatRoutes(getWebChannel: () => WebChannel | null): Route[]
           return;
         }
 
-        const sessionUid = body.sessionUid || randomUUID();
+        const sessionUid = body.sessionUid || generateUid(THREAD_PREFIX);
+        if (body.sessionUid && !sessionUid.startsWith(THREAD_PREFIX)) {
+          jsonError(res, 'Cannot send messages to non-web sessions', 400);
+          return;
+        }
         channel.sendMessage(sessionUid, body.message.trim());
         json(res, { sessionUid });
       },

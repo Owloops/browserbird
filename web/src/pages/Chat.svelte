@@ -24,9 +24,10 @@
 
   interface Props {
     initialSessionUid?: string;
+    readonly?: boolean;
   }
 
-  let { initialSessionUid }: Props = $props();
+  let { initialSessionUid, readonly: readonlyMode = false }: Props = $props();
 
   let sessionUid: string | null = $state(null);
   let messages: ChatMessage[] = $state([]);
@@ -306,7 +307,11 @@
       </div>
     {:else if messages.length === 0}
       <div class="empty-state">
-        <p>Send a message to start a conversation with the agent.</p>
+        <p>
+          {readonlyMode
+            ? 'No messages in this session.'
+            : 'Send a message to start a conversation with the agent.'}
+        </p>
       </div>
     {/if}
 
@@ -388,25 +393,29 @@
     </div>
   {/if}
 
-  <div class="chat-input-area">
-    <textarea
-      class="chat-input"
-      bind:value={inputText}
-      onkeydown={handleKeydown}
-      placeholder="Send a message..."
-      rows="1"
-      disabled={streaming || sending || !historyLoaded}
-    ></textarea>
-    {#if streaming}
-      <button class="btn btn-sm btn-danger chat-send-btn" onclick={stopSession}>Stop</button>
-    {:else}
-      <button
-        class="btn btn-sm btn-primary chat-send-btn"
-        onclick={() => void sendMessage()}
-        disabled={!canSend}>Send</button
-      >
-    {/if}
-  </div>
+  {#if readonlyMode}
+    <div class="chat-readonly-bar">This session was started from Slack. View only.</div>
+  {:else}
+    <div class="chat-input-area">
+      <textarea
+        class="chat-input"
+        bind:value={inputText}
+        onkeydown={handleKeydown}
+        placeholder="Send a message..."
+        rows="1"
+        disabled={streaming || sending || !historyLoaded}
+      ></textarea>
+      {#if streaming}
+        <button class="btn btn-sm btn-danger chat-send-btn" onclick={stopSession}>Stop</button>
+      {:else}
+        <button
+          class="btn btn-sm btn-primary chat-send-btn"
+          onclick={() => void sendMessage()}
+          disabled={!canSend}>Send</button
+        >
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -645,6 +654,14 @@
     font-weight: 500;
     padding: 0 var(--space-1);
     text-decoration: underline;
+  }
+
+  .chat-readonly-bar {
+    padding: var(--space-2-5) var(--space-3);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    text-align: center;
   }
 
   .chat-input-area {
