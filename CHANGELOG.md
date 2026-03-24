@@ -1,3 +1,15 @@
+## [1.11.3](https://github.com/Owloops/browserbird/compare/v1.11.2...v1.11.3) (2026-03-24)
+
+
+### Bug Fixes
+
+* **context:** document playwright behaviour to show correct tab ([815b667](https://github.com/Owloops/browserbird/commit/815b66721aeb4a811588fbe1d07d49b179f7f973))
+
+
+### Reverts
+
+* Revert "fix(web): periodic non-incremental VNC frame requests to prevent stale content" ([b8bedfc](https://github.com/Owloops/browserbird/commit/b8bedfc25b1af921b62ed4c0a41f182bc396c872))
+
 ## [1.11.2](https://github.com/Owloops/browserbird/compare/v1.11.1...v1.11.2) (2026-03-24)
 
 
