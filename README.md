@@ -307,7 +307,7 @@ usage: browserbird [command] [options]
 
 commands:
 
-  sessions    manage sessions
+  sessions    manage sessions and chat
   birds       manage scheduled birds
   docs        manage system prompt documents
   keys        manage vault keys

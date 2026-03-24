@@ -191,7 +191,10 @@ Keys are injected as environment variables into agent sessions at spawn time. Us
 ```
 browserbird sessions list                       List recent sessions
 browserbird sessions logs <uid>                 Show session messages and detail
+browserbird sessions chat <message>             Send a message and stream the response
 ```
+
+Options for chat: `--session <uid>` (resume), `--agent <id>`
 
 ### System
 

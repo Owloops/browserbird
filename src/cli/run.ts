@@ -32,7 +32,7 @@ ${c('cyan', 'usage:')} browserbird [command] [options]
 
 ${c('dim', 'commands:')}
 
-  ${c('cyan', 'sessions')}    manage sessions
+  ${c('cyan', 'sessions')}    manage sessions and chat
   ${c('cyan', 'birds')}       manage scheduled birds
   ${c('cyan', 'docs')}        manage system prompt documents
   ${c('cyan', 'keys')}        manage vault keys
@@ -94,7 +94,7 @@ export async function run(argv: string[]): Promise<void> {
         console.log(COMMAND_HELP.sessions);
         return;
       }
-      handleSessions(rest);
+      await handleSessions(rest);
       break;
     case COMMANDS.BIRDS:
       if (isHelp) {
