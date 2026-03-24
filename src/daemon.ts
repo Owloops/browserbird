@@ -16,6 +16,8 @@ import {
   resolveDbPath,
   getAllKeyValues,
   migrateUnencryptedKeys,
+  syncDocs,
+  watchDocs,
 } from './db/index.ts';
 import { addSecrets, VAULT_SECRET_MIN_LENGTH } from './core/redact.ts';
 import { ensureVaultKey } from './core/crypto.ts';
@@ -24,7 +26,7 @@ import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
 import { createWebChannel } from './channel/web.ts';
 import type { WebChannel } from './channel/web.ts';
-import { createWebServer } from './server/index.ts';
+import { createWebServer, broadcastSSE } from './server/index.ts';
 import type { WebServerDeps } from './server/index.ts';
 import { startHealthChecks, getServiceHealth } from './server/health.ts';
 import type { Config } from './core/types.ts';
@@ -80,6 +82,8 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   loadDotEnv(envPath);
   ensureVaultKey(envPath);
   migrateUnencryptedKeys();
+  syncDocs();
+  const stopDocWatcher = watchDocs(() => broadcastSSE('invalidate', { resource: 'docs' }));
   const vaultValues = getAllKeyValues();
   if (vaultValues.length > 0) addSecrets(vaultValues, VAULT_SECRET_MIN_LENGTH);
   clearBrowserLock();
@@ -213,6 +217,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   if (slackHandle as ChannelHandle | null) {
     await Promise.race([slackHandle!.stop(), new Promise<void>((r) => setTimeout(r, 3000))]);
   }
+  stopDocWatcher();
   closeDatabase();
   logger.info('browserbird stopped');
 }

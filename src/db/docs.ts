@@ -1,24 +1,54 @@
-/** @fileoverview Doc persistence: CRUD, bindings, and system prompt assembly. */
+/** @fileoverview Doc persistence: file-backed markdown docs with db metadata and bindings. */
 
+import {
+  readFileSync,
+  writeFileSync,
+  unlinkSync,
+  readdirSync,
+  mkdirSync,
+  existsSync,
+  watch,
+} from 'node:fs';
+import { resolve, basename, extname, join } from 'node:path';
 import type { PaginatedResult, Binding } from './core.ts';
 import { getDb, paginate, loadBindingsFor, replaceBindingsFor, DEFAULT_PER_PAGE } from './core.ts';
 import { generateUid, UID_PREFIX } from '../core/uid.ts';
+import { logger } from '../core/logger.ts';
+
+const DOCS_DIR = resolve('.browserbird', 'docs');
+
+export function getDocsDir(): string {
+  return DOCS_DIR;
+}
 
 export interface DocRow {
   uid: string;
   title: string;
-  content: string;
+  file_path: string;
   pinned: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface DocInfo extends DocRow {
+  content: string;
   bindings: Binding[];
 }
 
 const DOC_SORT_COLUMNS = new Set(['uid', 'title', 'pinned', 'created_at', 'updated_at']);
-const DOC_SEARCH_COLUMNS = ['title', 'content'] as const;
+const DOC_SEARCH_COLUMNS = ['title'] as const;
+
+function readDocFile(filePath: string): string {
+  try {
+    return readFileSync(filePath, 'utf-8');
+  } catch {
+    return '';
+  }
+}
+
+function toDocInfo(row: DocRow, bindings: Binding[]): DocInfo {
+  return { ...row, content: readDocFile(row.file_path), bindings };
+}
 
 export function listDocs(
   page = 1,
@@ -37,10 +67,7 @@ export function listDocs(
   const bindingsMap = loadBindingsFor('doc_bindings', 'doc_uid', uids);
   return {
     ...result,
-    items: result.items.map((row) => ({
-      ...row,
-      bindings: bindingsMap.get(row.uid) ?? [],
-    })),
+    items: result.items.map((row) => toDocInfo(row, bindingsMap.get(row.uid) ?? [])),
   };
 }
 
@@ -60,29 +87,58 @@ export function getDocBindings(uid: string): Binding[] {
 export function getDocInfo(uid: string): DocInfo | undefined {
   const row = getDoc(uid);
   if (!row) return undefined;
-  return { ...row, bindings: getDocBindings(uid) };
+  return toDocInfo(row, getDocBindings(uid));
 }
 
 export function docRowToInfo(row: DocRow): DocInfo {
-  return { ...row, bindings: getDocBindings(row.uid) };
+  return toDocInfo(row, getDocBindings(row.uid));
 }
 
-export function createDoc(title: string, content?: string): DocRow {
+function ensureDocsDir(): void {
+  mkdirSync(DOCS_DIR, { recursive: true });
+}
+
+function titleToFilename(title: string): string {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'untitled'
+  );
+}
+
+function uniqueFilePath(title: string): string {
+  ensureDocsDir();
+  const base = titleToFilename(title);
+  let candidate = join(DOCS_DIR, `${base}.md`);
+  let i = 1;
+  while (existsSync(candidate)) {
+    candidate = join(DOCS_DIR, `${base}-${i}.md`);
+    i++;
+  }
+  return candidate;
+}
+
+export function createDoc(title: string, content?: string): DocInfo {
   const d = getDb();
   const uid = generateUid(UID_PREFIX.doc);
-  d.prepare('INSERT INTO docs (uid, title, content) VALUES (?, ?, ?)').run(
-    uid,
-    title,
-    content ?? '',
-  );
-  return getDoc(uid)!;
+  const filePath = uniqueFilePath(title);
+  writeFileSync(filePath, content ?? '', 'utf-8');
+  d.prepare('INSERT INTO docs (uid, title, file_path) VALUES (?, ?, ?)').run(uid, title, filePath);
+  return getDocInfo(uid)!;
 }
 
 export function updateDoc(
   uid: string,
   fields: { title?: string; content?: string; pinned?: number },
-): DocRow | undefined {
-  const d = getDb();
+): DocInfo | undefined {
+  const row = getDoc(uid);
+  if (!row) return undefined;
+
+  if (fields.content !== undefined) {
+    writeFileSync(row.file_path, fields.content, 'utf-8');
+  }
+
   const sets: string[] = [];
   const params: (string | number)[] = [];
 
@@ -90,37 +146,116 @@ export function updateDoc(
     sets.push('title = ?');
     params.push(fields.title);
   }
-  if (fields.content !== undefined) {
-    sets.push('content = ?');
-    params.push(fields.content);
-  }
   if (fields.pinned !== undefined) {
     sets.push('pinned = ?');
     params.push(fields.pinned);
   }
 
-  if (sets.length === 0) return getDoc(uid);
+  if (sets.length > 0) {
+    sets.push("updated_at = datetime('now')");
+    params.push(uid);
+    getDb()
+      .prepare(`UPDATE docs SET ${sets.join(', ')} WHERE uid = ?`)
+      .run(...params);
+  } else if (fields.content !== undefined) {
+    getDb().prepare("UPDATE docs SET updated_at = datetime('now') WHERE uid = ?").run(uid);
+  }
 
-  sets.push("updated_at = datetime('now')");
-  params.push(uid);
-
-  const result = d.prepare(`UPDATE docs SET ${sets.join(', ')} WHERE uid = ?`).run(...params);
-  if (result.changes === 0) return undefined;
-  return getDoc(uid);
+  return getDocInfo(uid);
 }
 
 export function deleteDoc(uid: string): boolean {
+  const row = getDoc(uid);
+  if (!row) return false;
   const d = getDb();
-  const result = d.prepare('DELETE FROM docs WHERE uid = ?').run(uid);
-  return result.changes > 0;
+  d.prepare('DELETE FROM docs WHERE uid = ?').run(uid);
+  try {
+    unlinkSync(row.file_path);
+  } catch {
+    // file may already be gone
+  }
+  return true;
 }
 
-export function setDocPinned(uid: string, pinned: boolean): DocRow | undefined {
+export function setDocPinned(uid: string, pinned: boolean): DocInfo | undefined {
   return updateDoc(uid, { pinned: pinned ? 1 : 0 });
 }
 
 export function replaceDocBindings(docUid: string, bindings: Binding[]): void {
   replaceBindingsFor('doc_bindings', 'doc_uid', docUid, bindings);
+}
+
+/**
+ * Scans the docs directory for .md files and syncs with the database.
+ * New files get a db row; db rows whose files no longer exist get removed.
+ * Returns true if any changes were made.
+ */
+export function syncDocs(): boolean {
+  ensureDocsDir();
+  const d = getDb();
+  let changed = false;
+
+  const existingRows = d.prepare('SELECT uid, file_path FROM docs').all() as unknown as Array<{
+    uid: string;
+    file_path: string;
+  }>;
+  const dbByPath = new Map(existingRows.map((r) => [r.file_path, r.uid]));
+
+  let filesOnDisk: string[];
+  try {
+    filesOnDisk = readdirSync(DOCS_DIR)
+      .filter((f) => extname(f) === '.md')
+      .map((f) => join(DOCS_DIR, f));
+  } catch {
+    return false;
+  }
+
+  const diskPaths = new Set(filesOnDisk);
+
+  for (const filePath of filesOnDisk) {
+    if (!dbByPath.has(filePath)) {
+      const uid = generateUid(UID_PREFIX.doc);
+      const name = basename(filePath, '.md');
+      d.prepare('INSERT INTO docs (uid, title, file_path) VALUES (?, ?, ?)').run(
+        uid,
+        name,
+        filePath,
+      );
+      logger.info(`docs: discovered ${name}`);
+      changed = true;
+    }
+  }
+
+  for (const [filePath, uid] of dbByPath) {
+    if (!diskPaths.has(filePath)) {
+      d.prepare('DELETE FROM docs WHERE uid = ?').run(uid);
+      logger.info(`docs: removed missing file ${basename(filePath)}`);
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
+/**
+ * Watches the docs directory for any file changes (add, remove, modify).
+ * Runs syncDocs on structural changes and always broadcasts so the UI
+ * picks up content edits too.
+ */
+export function watchDocs(onchange: () => void): () => void {
+  ensureDocsDir();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const watcher = watch(DOCS_DIR, () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      syncDocs();
+      onchange();
+    }, 500);
+  });
+  return () => {
+    clearTimeout(timer);
+    watcher.close();
+  };
 }
 
 /**
@@ -133,23 +268,23 @@ export function getDocsSystemPrompt(
 ): string {
   const d = getDb();
 
-  let rows: Array<{ uid: string; title: string; content: string }>;
+  let rows: Array<{ uid: string; title: string; file_path: string }>;
 
   if (!targets || targets.length === 0) {
     rows = d
       .prepare(
-        `SELECT d.uid, d.title, d.content FROM docs d
+        `SELECT d.uid, d.title, d.file_path FROM docs d
          WHERE NOT EXISTS (SELECT 1 FROM doc_bindings db WHERE db.doc_uid = d.uid)
          ORDER BY d.pinned DESC, d.created_at ASC`,
       )
-      .all() as unknown as Array<{ uid: string; title: string; content: string }>;
+      .all() as unknown as Array<{ uid: string; title: string; file_path: string }>;
   } else {
     const placeholders = targets.map(() => '(?, ?)').join(', ');
     const targetParams = targets.flatMap((t) => [t.type, t.id]);
 
     rows = d
       .prepare(
-        `SELECT DISTINCT d.uid, d.title, d.content, d.pinned, d.created_at FROM docs d
+        `SELECT DISTINCT d.uid, d.title, d.file_path, d.pinned, d.created_at FROM docs d
          WHERE NOT EXISTS (SELECT 1 FROM doc_bindings db WHERE db.doc_uid = d.uid)
             OR EXISTS (
               SELECT 1 FROM doc_bindings db
@@ -161,11 +296,17 @@ export function getDocsSystemPrompt(
       .all(...targetParams) as unknown as Array<{
       uid: string;
       title: string;
-      content: string;
+      file_path: string;
     }>;
   }
 
   if (rows.length === 0) return '';
 
-  return rows.map((r) => `## ${r.title}\n\n${r.content}`).join('\n\n---\n\n');
+  return rows
+    .map((r) => {
+      const content = readDocFile(r.file_path);
+      return content ? `## ${r.title}\n\n${content}` : '';
+    })
+    .filter(Boolean)
+    .join('\n\n---\n\n');
 }

@@ -190,6 +190,7 @@ export type DocBinding = Binding;
 export interface DocInfo {
   uid: string;
   title: string;
+  file_path: string;
   content: string;
   pinned: number;
   created_at: string;
