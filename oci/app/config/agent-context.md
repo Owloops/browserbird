@@ -17,7 +17,11 @@ The Playwright MCP server runs in **headed mode**. The browser windows are visib
 
 The browser operates in one of two modes depending on the deployment configuration:
 
-**Persistent mode** (default): Your browser uses a shared profile. Logins, cookies, and site data are saved across sessions. If you log into a site, future sessions will still be logged in. Only one agent session uses the browser at a time. At the start of any browser task, close all existing tabs except one to avoid tab buildup from previous sessions.
+**Persistent mode** (default): Your browser uses a shared profile. Logins, cookies, and site data are saved across sessions. If you log into a site, future sessions will still be logged in. Only one agent session uses the browser at a time. At the start of any browser task, close all existing tabs except one to avoid tab buildup from previous sessions. After navigating to a page, call `page.bringToFront()` via `browser_run_code` to ensure the correct tab is visible in the VNC viewer:
+
+```javascript
+await page.bringToFront();
+```
 
 **Isolated mode**: Each agent session gets its own fresh browser context with no saved state. Multiple agents can browse in parallel without interfering with each other, but logins are not preserved between sessions.
 
