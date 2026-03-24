@@ -3,7 +3,7 @@
 import { resolve, dirname } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { c } from './style.ts';
-import { loadConfig, loadDotEnv } from '../config.ts';
+import { loadConfig, loadDotEnv, DEFAULT_CONFIG_PATH } from '../config.ts';
 import { getSession, createSession, touchSession } from '../db/index.ts';
 import { getDocsSystemPrompt } from '../db/docs.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
@@ -13,7 +13,9 @@ export async function runChat(
   message: string,
   options: { session?: string; agent?: string },
 ): Promise<void> {
-  const configPath = resolve(process.env['BROWSERBIRD_CONFIG'] ?? 'browserbird.json');
+  const configPath = process.env['BROWSERBIRD_CONFIG']
+    ? resolve(process.env['BROWSERBIRD_CONFIG'])
+    : DEFAULT_CONFIG_PATH;
   const envPath = resolve(dirname(configPath), '.env');
   loadDotEnv(envPath);
 

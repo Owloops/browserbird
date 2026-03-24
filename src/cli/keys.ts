@@ -5,7 +5,7 @@ import { resolve, dirname } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
 import { c } from './style.ts';
-import { loadDotEnv } from '../config.ts';
+import { loadDotEnv, DEFAULT_CONFIG_PATH } from '../config.ts';
 import { ensureVaultKey } from '../core/crypto.ts';
 import {
   openDatabase,
@@ -117,7 +117,9 @@ function promptSecret(prompt: string): Promise<string> {
 }
 
 function initVaultKey(): void {
-  const configPath = resolve(process.env['BROWSERBIRD_CONFIG'] ?? 'browserbird.json');
+  const configPath = process.env['BROWSERBIRD_CONFIG']
+    ? resolve(process.env['BROWSERBIRD_CONFIG'])
+    : DEFAULT_CONFIG_PATH;
   const envPath = resolve(dirname(configPath), '.env');
   loadDotEnv(envPath);
   ensureVaultKey(envPath);

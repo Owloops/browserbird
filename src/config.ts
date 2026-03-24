@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
 
+export const DEFAULT_CONFIG_PATH = resolve('.browserbird', 'browserbird.json');
+
 export const DEFAULTS: Config = {
   timezone: 'UTC',
   slack: {
@@ -32,6 +34,7 @@ export const DEFAULTS: Config = {
   },
   database: {
     retentionDays: 30,
+    backups: { maxCount: 10, auto: true },
   },
   browser: {
     enabled: false,
@@ -105,7 +108,7 @@ export function deepMerge(
  * Searches for browserbird.json in the current directory, then falls back to defaults.
  */
 export function loadConfig(configPath?: string): Config {
-  const filePath = configPath ?? resolve('browserbird.json');
+  const filePath = configPath ?? DEFAULT_CONFIG_PATH;
 
   if (!existsSync(filePath)) {
     logger.warn(`no config file found at ${filePath}, using defaults`);
@@ -170,7 +173,7 @@ function validateConfig(config: Config): void {
  * Returns raw config data suitable for reading/modifying before writing back.
  */
 export function loadRawConfig(configPath?: string): Record<string, unknown> {
-  const filePath = configPath ?? resolve('browserbird.json');
+  const filePath = configPath ?? DEFAULT_CONFIG_PATH;
   if (!existsSync(filePath)) {
     return JSON.parse(JSON.stringify(DEFAULTS)) as Record<string, unknown>;
   }
@@ -189,7 +192,7 @@ export function loadRawConfig(configPath?: string): Record<string, unknown> {
  * Literal strings must be non-empty; `"env:VAR"` references must point to a set env var.
  */
 export function hasSlackTokens(configPath?: string): boolean {
-  const filePath = configPath ?? resolve('browserbird.json');
+  const filePath = configPath ?? DEFAULT_CONFIG_PATH;
   if (!existsSync(filePath)) return false;
 
   let parsed: Record<string, unknown>;
