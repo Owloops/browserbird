@@ -1,3 +1,10 @@
+## [1.10.1](https://github.com/Owloops/browserbird/compare/v1.10.0...v1.10.1) (2026-03-24)
+
+
+### Bug Fixes
+
+* **cli:** add sessions chat subcommand for terminal agent conversations ([2307f53](https://github.com/Owloops/browserbird/commit/2307f5362c1d9f812dbe0e45ed97c1e6ed7aa146))
+
 # [1.10.0](https://github.com/Owloops/browserbird/compare/v1.9.2...v1.10.0) (2026-03-24)
 
 
