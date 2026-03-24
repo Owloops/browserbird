@@ -25,7 +25,7 @@ Self-hosted AI agent orchestrator with a real browser, a cron scheduler, and a w
    </tr>
 </table>
 
-Schedule AI agents to run on a cron, browse the web with a real Chromium browser you can watch live through VNC, and manage everything from a web dashboard or the CLI. Optionally connect Slack for conversational threads and slash commands. BrowserBird is the orchestration layer; the agent CLI ([Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)) handles reasoning, memory, tools, and sub-agents.
+Schedule AI agents to run on a cron, browse the web with a real Chromium browser you can watch live through VNC, and manage everything from a web dashboard or the CLI. Chat with the agent directly from the web UI, or connect Slack for conversational threads and slash commands. BrowserBird is the orchestration layer; the agent CLI ([Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)) handles reasoning, memory, tools, and sub-agents.
 
 Built by [Owloops](https://github.com/Owloops), building browser automation tools since 2020.
 
@@ -269,6 +269,14 @@ Authentication is handled via the web UI. On first visit, you create an account.
 > [!NOTE]
 > **Agent authentication:** `ANTHROPIC_API_KEY` (pay-per-token) is required for shared or commercial deployments per Anthropic's Consumer ToS. `CLAUDE_CODE_OAUTH_TOKEN` is fine for personal self-hosted use. When both are set, OAuth takes priority. This is also why BrowserBird uses the CLI rather than the [Agent SDK](https://docs.anthropic.com/en/docs/agent-sdk/overview); the SDK requires API key auth per Anthropic's [usage policy](https://docs.anthropic.com/en/docs/claude-code/legal-and-compliance).
 
+### Docs
+
+Store markdown documents in `.browserbird/docs/` that get injected into the agent's system prompt at spawn time. Use them for tone guides, project context, channel-specific instructions, or any reusable prompt content.
+
+- **File-backed.** Each doc is a `.md` file you can edit with any text editor. Drop a file in the directory and it gets auto-discovered.
+- **Scoped with bindings.** Bind a doc to specific channels or birds via the web UI or CLI. Unbound docs apply globally to all sessions.
+- **Managed from the web UI or CLI.** Create, edit, and manage bindings from the Docs page, or use `browserbird docs` from the terminal.
+
 ### Vault Keys
 
 Store API keys and secrets in the web UI (Settings, Keys tab) and bind them to specific channels or birds. At spawn time, bound keys are injected as environment variables into the agent subprocess.
@@ -301,6 +309,7 @@ commands:
 
   sessions    manage sessions
   birds       manage scheduled birds
+  docs        manage system prompt documents
   keys        manage vault keys
   config      view configuration
   logs        show recent log entries
@@ -337,7 +346,8 @@ Runs at `http://localhost:18800` by default.
 | Page         | Description                                                                        |
 | ------------ | ---------------------------------------------------------------------------------- |
 | **Mission Control** | System overview, failing birds, upcoming runs, active sessions                |
-| **Sessions**        | Session list with message history, token usage, and conversation detail       |
+| **Sessions**        | Chat with the agent directly, view message history, token usage, and session detail |
+| **Docs**            | Markdown documents for agent system prompts, with channel/bird bindings       |
 | **Birds**           | Scheduled birds: create, edit, enable/disable, trigger, inline flight history |
 | **Computer**        | Live noVNC viewer (Docker only)                                               |
 | **Settings** | Config editor, agent management, secrets, vault keys, system birds, job queue, and log viewer |
