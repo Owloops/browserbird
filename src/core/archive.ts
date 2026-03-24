@@ -44,11 +44,21 @@ function walkDir(
     if (exclude.has(name)) continue;
     const fullPath = join(dir, name);
     const relPath = relative(base, fullPath);
-    const st = statSync(fullPath);
+
+    let st: Stats;
+    try {
+      st = statSync(fullPath);
+    } catch {
+      continue;
+    }
 
     if (st.isDirectory()) {
       entries.push({ relPath: relPath + '/', fullPath, stat: st });
-      entries.push(...walkDir(fullPath, base, exclude));
+      try {
+        entries.push(...walkDir(fullPath, base, exclude));
+      } catch {
+        entries.pop();
+      }
     } else if (st.isFile()) {
       entries.push({ relPath, fullPath, stat: st });
     }

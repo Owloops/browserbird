@@ -87,7 +87,7 @@ export function createBackup(dataDir: string, name?: string): BackupInfo {
     validateBackupName(fileName);
     const destPath = join(backupsDir, fileName);
 
-    packTarGz(dataDir, destPath, ['backups', LOCK_FILE]);
+    packTarGz(dataDir, destPath, ['backups', LOCK_FILE, 'lost+found']);
 
     const st = statSync(destPath);
     return {
@@ -154,7 +154,13 @@ export function restoreBackup(dataDir: string, name: string): void {
     }
 
     mkdirSync(oldDataDir, { recursive: true });
-    const skipEntries = new Set(['backups', LOCK_FILE, '.restore_tmp', basename(oldDataDir)]);
+    const skipEntries = new Set([
+      'backups',
+      LOCK_FILE,
+      '.restore_tmp',
+      'lost+found',
+      basename(oldDataDir),
+    ]);
 
     for (const entry of readdirSync(dataDir)) {
       if (skipEntries.has(entry)) continue;
@@ -173,7 +179,13 @@ export function restoreBackup(dataDir: string, name: string): void {
     if (moved) {
       logger.warn('restore failed, reverting...');
       for (const entry of readdirSync(dataDir)) {
-        if (entry === 'backups' || entry === LOCK_FILE || entry.startsWith('.old_data_')) continue;
+        if (
+          entry === 'backups' ||
+          entry === LOCK_FILE ||
+          entry === 'lost+found' ||
+          entry.startsWith('.old_data_')
+        )
+          continue;
         try {
           rmSync(join(dataDir, entry), { recursive: true });
         } catch {
