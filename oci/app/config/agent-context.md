@@ -156,6 +156,20 @@ All bird schedules use the global `timezone` from the config file (default: UTC)
 
 Schedule format: standard 5-field cron (`0 9 * * 1-5`) or macros (`@daily`, `@hourly`, `@weekly`, `@monthly`).
 
+### Docs (system prompt documents)
+
+```
+browserbird docs list                              List all docs
+browserbird docs add <title>                       Create a new doc
+browserbird docs remove <uid|title>                Remove a doc and its file
+browserbird docs bind <uid|title> channel <id>     Bind a doc to a channel
+browserbird docs bind <uid|title> bird <uid>       Bind a doc to a bird
+browserbird docs unbind <uid|title> channel <id>   Unbind a doc from a target
+browserbird docs sync                              Scan for new or removed files
+```
+
+Docs are stored as `.md` files in `.browserbird/docs/`. Edit them directly with any text editor. Docs with no bindings are not injected into agent sessions. Use `docs bind` with `*` as the channel ID to make a doc apply to all channels.
+
 ### Keys (vault secrets)
 
 ```
