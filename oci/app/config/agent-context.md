@@ -44,14 +44,24 @@ In **persistent mode**, logins are remembered. You do not need to re-authenticat
 
 ### Cookie injection via vault keys
 
-If a vault key contains exported browser cookies (e.g. `X_COOKIES`, `LINKEDIN_COOKIES`), read it from the environment variable, parse the JSON array, and inject via the Playwright `browser_run_code` tool before navigating:
+If a vault key contains exported browser cookies (e.g. `X_COOKIES`, `LINKEDIN_COOKIES`), inject them before navigating. The `browser_run_code` tool runs inside a browser page context, not Node.js, so `require`, `process.env`, and `fs` are not available there.
+
+Read the env var and parse it on the agent side (Bash), then pass the resulting JSON array as a literal into `browser_run_code`:
+
+```bash
+# Agent side: read and parse the cookie file/env var
+COOKIES=$(cat /app/.browserbird/cookies.json)
+```
 
 ```javascript
-const cookies = JSON.parse(process.env.X_COOKIES);
+// browser_run_code: inject the parsed array directly as a literal
+const cookies = <paste the parsed JSON array here>;
 await page.context().addCookies(cookies);
 ```
 
-Check for these env vars at the start of any task that requires authenticated browsing. If the cookies are stale (site returns login page after injection), note this in your response so the user knows to re-export.
+Do not try to use `require('fs')`, `process.env`, or any Node.js API inside `browser_run_code`. It will throw `ReferenceError: require is not defined`.
+
+Check for cookie env vars at the start of any task that requires authenticated browsing. If the cookies are stale (site returns login page after injection), note this in your response so the user knows to re-export.
 
 ## Slack API Access
 
