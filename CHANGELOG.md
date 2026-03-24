@@ -1,3 +1,10 @@
+## [1.11.2](https://github.com/Owloops/browserbird/compare/v1.11.1...v1.11.2) (2026-03-24)
+
+
+### Bug Fixes
+
+* **web:** periodic non-incremental VNC frame requests to prevent stale content ([2748c40](https://github.com/Owloops/browserbird/commit/2748c40628b5369e051caccb1bd383d6282f4ab0))
+
 ## [1.11.1](https://github.com/Owloops/browserbird/compare/v1.11.0...v1.11.1) (2026-03-24)
 
 
