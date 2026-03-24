@@ -1,3 +1,16 @@
+# [1.10.0](https://github.com/Owloops/browserbird/compare/v1.9.2...v1.10.0) (2026-03-24)
+
+
+### Bug Fixes
+
+* **docs:** require explicit bindings for doc injection, matching keys semantics ([7504fec](https://github.com/Owloops/browserbird/commit/7504fec233a11feb118c10b3bcb5e34ebcdd2a5c))
+
+
+### Features
+
+* **docs:** switch to file-backed storage with auto-discovery and CLI ([604f095](https://github.com/Owloops/browserbird/commit/604f0950c61c869045b8756cc1d936f116c866bc))
+* **web:** add docs page for managing agent system prompt documents ([3b67215](https://github.com/Owloops/browserbird/commit/3b67215a47b5b772e2141ea2f89753e64b449a58))
+
 ## [1.9.2](https://github.com/Owloops/browserbird/compare/v1.9.1...v1.9.2) (2026-03-23)
 
 
