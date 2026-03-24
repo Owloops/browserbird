@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/Owloops/browserbird/compare/v1.10.1...v1.11.0) (2026-03-24)
+
+
+### Features
+
+* **backups:** add backup/restore with in-process daemon restart ([3782d5b](https://github.com/Owloops/browserbird/commit/3782d5bc2f3092c85a94d12c63d59bab96fb779b))
+
 ## [1.10.1](https://github.com/Owloops/browserbird/compare/v1.10.0...v1.10.1) (2026-03-24)
 
 
