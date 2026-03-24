@@ -26,10 +26,6 @@ declare module '@novnc/novnc' {
 
   type NoVncEventType = keyof NoVncEvents;
 
-  interface NoVncSock {
-    readonly readyState: 'connecting' | 'open' | 'closing' | 'closed';
-  }
-
   export default class RFB extends EventTarget {
     constructor(target: Element, url: string | WebSocket | RTCDataChannel, options?: NoVncOptions);
 
@@ -45,21 +41,6 @@ declare module '@novnc/novnc' {
     compressionLevel: number;
     readonly capabilities: { power: boolean };
     readonly clippingViewport: boolean;
-
-    /** @internal */ _sock: NoVncSock;
-    /** @internal */ _fbWidth: number;
-    /** @internal */ _fbHeight: number;
-
-    static messages: {
-      fbUpdateRequest(
-        sock: NoVncSock,
-        incremental: boolean,
-        x: number,
-        y: number,
-        w: number,
-        h: number,
-      ): void;
-    };
 
     addEventListener<T extends NoVncEventType>(
       type: T,

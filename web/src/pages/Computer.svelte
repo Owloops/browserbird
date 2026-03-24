@@ -3,8 +3,6 @@
   import { api, apiBase, getAuthToken } from '../lib/api.ts';
   import RFB from '@novnc/novnc';
 
-  const REFRESH_INTERVAL_MS = 500;
-
   interface Props {
     status: StatusResponse | null;
   }
@@ -92,19 +90,6 @@
       rfbInstance = null;
       kbOpen = false;
     };
-  });
-
-  $effect(() => {
-    const rfb = rfbInstance;
-    if (!rfb || connState !== 'connected') return;
-
-    const id = setInterval(() => {
-      if (rfb._sock?.readyState !== 'open') return;
-      if (!rfb._fbWidth || !rfb._fbHeight) return;
-      RFB.messages.fbUpdateRequest(rfb._sock, false, 0, 0, rfb._fbWidth, rfb._fbHeight);
-    }, REFRESH_INTERVAL_MS);
-
-    return () => clearInterval(id);
   });
 
   function reconnect(): void {
