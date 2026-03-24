@@ -186,6 +186,19 @@ Options for add/edit: `--value <secret>`, `--description <text>`
 
 Keys are injected as environment variables into agent sessions at spawn time. Use `keys bind` with `*` as the channel ID to make a key available in all channels.
 
+### Backups
+
+```
+browserbird backups list                        List available backups
+browserbird backups create                      Create a new backup
+browserbird backups delete <name>               Delete a backup
+browserbird backups restore <name>              Restore from a backup (requires daemon restart)
+```
+
+Options for create: `--name <name>` (custom filename)
+
+Automatic daily backups run at 2:00 AM via system bird. Configure retention and auto-backup in `database.backups` config. Backups are stored in `.browserbird/backups/`.
+
 ### Sessions
 
 ```
@@ -199,6 +212,7 @@ Options for chat: `--session <uid>` (resume), `--agent <id>`
 ### System
 
 ```
+browserbird backups list                         List backups
 browserbird config                              View merged configuration
 browserbird logs                                Show log entries (--level error|warn|info)
 browserbird jobs                                Show job queue

@@ -22,6 +22,8 @@ import { handleJobs } from './jobs.ts';
 import { JOBS_HELP } from './jobs.ts';
 import { handleConfig } from './config.ts';
 import { CONFIG_HELP } from './config.ts';
+import { handleBackups } from './backups.ts';
+import { BACKUPS_HELP } from './backups.ts';
 import { handleDoctor } from './doctor.ts';
 import { DOCTOR_HELP } from './doctor.ts';
 
@@ -39,6 +41,7 @@ ${c('dim', 'commands:')}
   ${c('cyan', 'config')}      view configuration
   ${c('cyan', 'logs')}        show recent log entries
   ${c('cyan', 'jobs')}        inspect and manage the job queue
+  ${c('cyan', 'backups')}     manage database backups
   ${c('cyan', 'doctor')}      check system dependencies
 
 ${c('dim', 'options:')}
@@ -59,6 +62,7 @@ const COMMAND_HELP: Record<string, string> = {
   config: CONFIG_HELP,
   logs: LOGS_HELP,
   jobs: JOBS_HELP,
+  backups: BACKUPS_HELP,
   doctor: DOCTOR_HELP,
 };
 
@@ -138,6 +142,13 @@ export async function run(argv: string[]): Promise<void> {
       }
       handleJobs(rest);
       break;
+    case COMMANDS.BACKUPS:
+      if (isHelp) {
+        console.log(COMMAND_HELP.backups);
+        return;
+      }
+      handleBackups(rest);
+      break;
     case COMMANDS.DOCTOR:
       handleDoctor();
       break;
@@ -150,6 +161,7 @@ export async function run(argv: string[]): Promise<void> {
         'config',
         'logs',
         'jobs',
+        'backups',
         'doctor',
       ]);
   }

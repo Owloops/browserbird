@@ -28,6 +28,10 @@ export function registerHandler(name: string, handler: JobHandler): void {
   handlers.set(name, handler);
 }
 
+export function clearHandlers(): void {
+  handlers.clear();
+}
+
 export interface QueueOptions {
   priority?: JobPriority;
   maxAttempts?: number;

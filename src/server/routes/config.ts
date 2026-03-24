@@ -177,6 +177,19 @@ function validateConfigPatch(body: Record<string, unknown>): string | null {
     ) {
       return '"database.retentionDays" must be a positive integer';
     }
+    if ('backups' in d) {
+      const bk = d['backups'] as Record<string, unknown>;
+      if (typeof bk !== 'object' || bk == null) return '"database.backups" must be an object';
+      if (
+        'maxCount' in bk &&
+        (!Number.isInteger(bk['maxCount']) || (bk['maxCount'] as number) <= 0)
+      ) {
+        return '"database.backups.maxCount" must be a positive integer';
+      }
+      if ('auto' in bk && typeof bk['auto'] !== 'boolean') {
+        return '"database.backups.auto" must be a boolean';
+      }
+    }
   }
 
   return null;

@@ -48,8 +48,14 @@ export interface BrowserConfig {
   novncHost: string;
 }
 
+export interface BackupsConfig {
+  maxCount: number;
+  auto: boolean;
+}
+
 export interface DatabaseConfig {
   retentionDays: number;
+  backups?: BackupsConfig;
 }
 
 export interface BirdsConfig {
@@ -82,6 +88,7 @@ export const COMMANDS = {
   CONFIG: 'config',
   LOGS: 'logs',
   JOBS: 'jobs',
+  BACKUPS: 'backups',
   DOCTOR: 'doctor',
 } as const;
 

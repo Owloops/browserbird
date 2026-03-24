@@ -24,6 +24,9 @@ import {
 import { deleteExpiredSessions } from '../provider/session.ts';
 import { registerHandler, enqueue } from '../jobs.ts';
 import { broadcastSSE } from '../server/index.ts';
+import { createBackup, enforceRetention } from '../core/backup.ts';
+import { dirname } from 'node:path';
+import { resolveDbPath } from '../db/path.ts';
 import { spawnProvider } from '../provider/spawn.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
 import { getDocsSystemPrompt } from '../db/docs.ts';
@@ -74,11 +77,13 @@ type SystemCronHandler = () => string | void;
 
 const systemHandlers = new Map<string, SystemCronHandler>();
 
-function registerSystemCronJobs(config: Config, retentionDays: number): void {
+function registerSystemCronJobs(getConfig: () => Config): void {
   const cleanupName = `${SYSTEM_CRON_PREFIX}db_cleanup__`;
   const optimizeName = `${SYSTEM_CRON_PREFIX}db_optimize__`;
+  const backupName = `${SYSTEM_CRON_PREFIX}auto_backup__`;
 
   systemHandlers.set(cleanupName, () => {
+    const retentionDays = getConfig().database.retentionDays;
     const sessions = deleteExpiredSessions(retentionDays);
     const msgs = deleteOldMessages(retentionDays);
     const runs = deleteOldCronRuns(retentionDays);
@@ -98,8 +103,23 @@ function registerSystemCronJobs(config: Config, retentionDays: number): void {
     return 'database optimized';
   });
 
+  const dataDir = dirname(resolveDbPath());
+  systemHandlers.set(backupName, () => {
+    const config = getConfig();
+    if (config.database.backups?.auto === false) {
+      return 'auto backup disabled';
+    }
+    const maxCount = config.database.backups?.maxCount ?? 10;
+    const info = createBackup(dataDir);
+    enforceRetention(dataDir, maxCount);
+    broadcastSSE('invalidate', { resource: 'backups' });
+    logger.info(`auto backup: ${info.name} (${info.size} bytes)`);
+    return info.name;
+  });
+
   ensureSystemCronJob(cleanupName, '0 */6 * * *', 'Database cleanup');
   ensureSystemCronJob(optimizeName, '0 3 * * *', 'Database optimization');
+  ensureSystemCronJob(backupName, '0 2 * * *', 'Automatic backup');
   logger.info('system birds registered');
 }
 
@@ -109,8 +129,7 @@ export function startScheduler(
   signal: AbortSignal,
   deps?: SchedulerDeps,
 ): void {
-  const initialConfig = getConfig();
-  registerSystemCronJobs(initialConfig, initialConfig.database.retentionDays);
+  registerSystemCronJobs(getConfig);
 
   registerHandler('cron_run', async (raw) => {
     const payload = raw as CronRunPayload;

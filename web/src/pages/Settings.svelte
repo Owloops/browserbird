@@ -16,6 +16,7 @@
   import ConfigTab from './settings/ConfigTab.svelte';
   import DatabaseTab from './settings/DatabaseTab.svelte';
   import KeysTab from './settings/KeysTab.svelte';
+  import BackupsTab from './settings/BackupsTab.svelte';
 
   interface Props {
     status: StatusResponse | null;
@@ -31,8 +32,8 @@
   let jobStats: JobStats | null = $state(null);
   let systemBirds: CronJobRow[] = $state([]);
   let loading = $state(true);
-  type Tab = 'config' | 'database' | 'keys';
-  const VALID_TABS: ReadonlySet<string> = new Set<Tab>(['config', 'database', 'keys']);
+  type Tab = 'config' | 'database' | 'keys' | 'backups';
+  const VALID_TABS: ReadonlySet<string> = new Set<Tab>(['config', 'database', 'keys', 'backups']);
   const initialTab = getHashParams().get('tab') ?? 'config';
   let activeTab: Tab = $state(VALID_TABS.has(initialTab) ? (initialTab as Tab) : 'config');
 
@@ -189,6 +190,9 @@
     <button class="tab" class:tab-active={activeTab === 'keys'} onclick={() => setTab('keys')}
       >Keys</button
     >
+    <button class="tab" class:tab-active={activeTab === 'backups'} onclick={() => setTab('backups')}
+      >Backups</button
+    >
   </div>
 
   {#if activeTab === 'config'}
@@ -209,6 +213,10 @@
 
   {#if activeTab === 'keys'}
     <KeysTab {config} />
+  {/if}
+
+  {#if activeTab === 'backups'}
+    <BackupsTab {config} onConfigSave={saveConfigPatch} />
   {/if}
 {/if}
 

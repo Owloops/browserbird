@@ -66,7 +66,7 @@ export interface ConfigResponse {
     vncPort: number;
     novncPort: number;
   };
-  database: { retentionDays: number };
+  database: { retentionDays: number; backups?: { maxCount: number; auto: boolean } };
   web: { port: number };
 }
 
@@ -198,8 +198,14 @@ export interface DocInfo {
   bindings: Binding[];
 }
 
+export interface BackupInfo {
+  name: string;
+  size: number;
+  created: string;
+}
+
 export interface InvalidateEvent {
-  resource: 'sessions' | 'birds' | 'config' | 'secrets' | 'keys' | 'docs';
+  resource: 'sessions' | 'birds' | 'config' | 'secrets' | 'keys' | 'docs' | 'backups';
   cronJobUid?: string;
 }
 

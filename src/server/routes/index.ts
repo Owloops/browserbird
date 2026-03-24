@@ -1,5 +1,6 @@
 /** @fileoverview Route orchestrator: shared helpers and buildRoutes entry point. */
 
+import { dirname } from 'node:path';
 import type { Config } from '../../core/types.ts';
 import type { Route, WebServerDeps } from '../http.ts';
 import { buildChatRoutes } from '../chat.ts';
@@ -9,6 +10,7 @@ import { buildConfigRoutes } from './config.ts';
 import { buildDataRoutes } from './data.ts';
 import { buildDocsRoutes } from './docs.ts';
 import { buildKeysRoutes } from './keys.ts';
+import { buildBackupsRoutes } from './backups.ts';
 import { buildOnboardingRoutes } from './onboarding.ts';
 
 export { buildStatusPayload } from './data.ts';
@@ -18,6 +20,7 @@ export interface RouteOptions {
   envPath: string;
   onLaunch: () => Promise<void>;
   onConfigReload: () => void;
+  onRestart?: (pendingRestore?: string) => void;
 }
 
 export function maskSecret(value: string | undefined): { set: boolean; hint: string } {
@@ -51,6 +54,7 @@ export function buildRoutes(
       onLaunch: options.onLaunch,
     }),
     ...buildKeysRoutes(),
+    ...buildBackupsRoutes(dirname(options.configPath), getConfig, options.onRestart),
     ...buildDocsRoutes(),
     ...buildChatRoutes(() => getDeps().webChannel()),
   ];

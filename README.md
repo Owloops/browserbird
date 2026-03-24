@@ -311,6 +311,7 @@ commands:
   birds       manage scheduled birds
   docs        manage system prompt documents
   keys        manage vault keys
+  backups     manage database backups
   config      view configuration
   logs        show recent log entries
   jobs        inspect and manage the job queue
