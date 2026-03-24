@@ -274,7 +274,7 @@ Authentication is handled via the web UI. On first visit, you create an account.
 Store markdown documents in `.browserbird/docs/` that get injected into the agent's system prompt at spawn time. Use them for tone guides, project context, channel-specific instructions, or any reusable prompt content.
 
 - **File-backed.** Each doc is a `.md` file you can edit with any text editor. Drop a file in the directory and it gets auto-discovered.
-- **Scoped with bindings.** Bind a doc to specific channels or birds via the web UI or CLI. Unbound docs apply globally to all sessions.
+- **Scoped with bindings.** Bind a doc to specific channels or birds via the web UI or CLI. Bind to `channel:*` to apply everywhere. Unbound docs are not injected (same semantics as vault keys).
 - **Managed from the web UI or CLI.** Create, edit, and manage bindings from the Docs page, or use `browserbird docs` from the terminal.
 
 ### Vault Keys

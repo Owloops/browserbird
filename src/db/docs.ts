@@ -259,46 +259,37 @@ export function watchDocs(onchange: () => void): () => void {
 }
 
 /**
- * Returns concatenated content of all docs that match the given targets.
- * A doc matches if it has no bindings (global) or if any of its bindings match a target.
- * When no targets are provided, only global (unbound) docs are included.
+ * Returns concatenated content of all docs whose bindings match the given targets.
+ * A doc is included only if it has a binding matching a target (exact or wildcard `*`).
+ * Docs with no bindings are not included (same semantics as vault keys).
  */
 export function getDocsSystemPrompt(
   targets?: Array<{ type: 'channel' | 'bird'; id: string }>,
 ): string {
+  if (!targets || targets.length === 0) return '';
+
   const d = getDb();
+  const wildcardTypes = [...new Set(targets.map((t) => t.type))];
+  const wildcardPlaceholders = wildcardTypes.map(() => '(?, ?)').join(', ');
+  const wildcardParams = wildcardTypes.flatMap((t) => [t, '*']);
+  const exactPlaceholders = targets.map(() => '(?, ?)').join(', ');
+  const exactParams = targets.flatMap((t) => [t.type, t.id]);
 
-  let rows: Array<{ uid: string; title: string; file_path: string }>;
-
-  if (!targets || targets.length === 0) {
-    rows = d
-      .prepare(
-        `SELECT d.uid, d.title, d.file_path FROM docs d
-         WHERE NOT EXISTS (SELECT 1 FROM doc_bindings db WHERE db.doc_uid = d.uid)
-         ORDER BY d.pinned DESC, d.created_at ASC`,
-      )
-      .all() as unknown as Array<{ uid: string; title: string; file_path: string }>;
-  } else {
-    const placeholders = targets.map(() => '(?, ?)').join(', ');
-    const targetParams = targets.flatMap((t) => [t.type, t.id]);
-
-    rows = d
-      .prepare(
-        `SELECT DISTINCT d.uid, d.title, d.file_path, d.pinned, d.created_at FROM docs d
-         WHERE NOT EXISTS (SELECT 1 FROM doc_bindings db WHERE db.doc_uid = d.uid)
-            OR EXISTS (
-              SELECT 1 FROM doc_bindings db
-              WHERE db.doc_uid = d.uid
-                AND (db.target_type, db.target_id) IN (VALUES ${placeholders})
-            )
-         ORDER BY d.pinned DESC, d.created_at ASC`,
-      )
-      .all(...targetParams) as unknown as Array<{
-      uid: string;
-      title: string;
-      file_path: string;
-    }>;
-  }
+  const rows = d
+    .prepare(
+      `SELECT DISTINCT d.uid, d.title, d.file_path, d.pinned, d.created_at FROM docs d
+       WHERE EXISTS (
+         SELECT 1 FROM doc_bindings db
+         WHERE db.doc_uid = d.uid
+           AND (db.target_type, db.target_id) IN (VALUES ${wildcardPlaceholders}, ${exactPlaceholders})
+       )
+       ORDER BY d.pinned DESC, d.created_at ASC`,
+    )
+    .all(...wildcardParams, ...exactParams) as unknown as Array<{
+    uid: string;
+    title: string;
+    file_path: string;
+  }>;
 
   if (rows.length === 0) return '';
 

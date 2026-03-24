@@ -12,7 +12,7 @@
     onupdate?: (bindings: Binding[]) => void;
   }
 
-  let { bindings, endpoint, channels, birds, emptyLabel = 'Global', onupdate }: Props = $props();
+  let { bindings, endpoint, channels, birds, emptyLabel = '', onupdate }: Props = $props();
 
   let adding = $state(false);
   let bindingType: 'channel' | 'bird' = $state('channel');

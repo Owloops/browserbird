@@ -44,7 +44,7 @@ ${c('dim', 'options:')}
 
 ${c('dim', 'docs are stored as .md files in .browserbird/docs/.')}
 ${c('dim', 'edit them directly with any text editor.')}
-${c('dim', 'docs with no bindings apply to all channels and birds.')}
+${c('dim', "docs with no bindings are not injected. bind to channel '*' for global.")}
 `.trim();
 
 function resolveDoc(nameOrUid: string): DocRow | undefined {
