@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/Owloops/browserbird/compare/v1.11.0...v1.11.1) (2026-03-24)
+
+
+### Bug Fixes
+
+* **backups:** skip lost+found directory on mounted volumes ([5ef40fb](https://github.com/Owloops/browserbird/commit/5ef40fbc57f6d6b2603155fe15de6a4095a36feb))
+
 # [1.11.0](https://github.com/Owloops/browserbird/compare/v1.10.1...v1.11.0) (2026-03-24)
 
 
