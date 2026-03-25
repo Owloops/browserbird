@@ -7,6 +7,7 @@
     emptyMessage?: string;
     isEmpty: boolean;
     children: Snippet;
+    cards?: Snippet;
     toolbar?: Snippet;
     page?: number;
     totalPages?: number;
@@ -25,6 +26,7 @@
     emptyMessage = 'No data',
     isEmpty,
     children,
+    cards,
     toolbar,
     page,
     totalPages,
@@ -39,6 +41,15 @@
   }: Props = $props();
 
   const hasPagination = $derived(page != null && totalPages != null && onPageChange != null);
+
+  const storedView = localStorage.getItem('datatable-view');
+  let viewMode: 'table' | 'cards' = $state(storedView === 'cards' ? 'cards' : 'table');
+  const showCards = $derived(viewMode === 'cards' && !!cards);
+
+  function toggleView(): void {
+    viewMode = viewMode === 'table' ? 'cards' : 'table';
+    localStorage.setItem('datatable-view', viewMode);
+  }
 
   function sortDirection(key: string): 'asc' | 'desc' | null {
     if (!sort) return null;
@@ -70,96 +81,157 @@
         oninput={handleSearchInput}
       />
     {/if}
+    {#if cards}
+      <button
+        class="btn btn-outline btn-sm view-toggle"
+        onclick={toggleView}
+        title={viewMode === 'table' ? 'Card view' : 'Table view'}
+      >
+        {#if viewMode === 'table'}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1" /><rect
+              x="14"
+              y="3"
+              width="7"
+              height="7"
+              rx="1"
+            /><rect x="3" y="14" width="7" height="7" rx="1" /><rect
+              x="14"
+              y="14"
+              width="7"
+              height="7"
+              rx="1"
+            />
+          </svg>
+        {:else}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line
+              x1="3"
+              y1="18"
+              x2="21"
+              y2="18"
+            />
+          </svg>
+        {/if}
+      </button>
+    {/if}
   </div>
 {/if}
 
-<div class="table-card" class:table-fetching={fetching}>
-  <div class="table-scroll">
-    <table class="table">
-      <thead>
-        <tr>
-          {#each columns as col (col.key)}
-            <th class={col.class ?? ''}>
-              {#if col.sortable && onSortChange}
-                {@const dir = sortDirection(col.key)}
-                <button class="sort-btn" onclick={() => onSortChange(col.key)}>
-                  {col.label}
-                  {#if dir === 'asc'}
-                    <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-                      <path
-                        d="M1 5L5 1L9 5"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  {:else if dir === 'desc'}
-                    <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-                      <path
-                        d="M1 1L5 5L9 1"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  {/if}
-                </button>
-              {:else}
-                {col.label}
-              {/if}
-            </th>
-          {/each}
-        </tr>
-      </thead>
-      <tbody>
-        {#if isEmpty}
-          <tr>
-            <td colspan={columns.length} class="empty-state">{emptyMessage}</td>
-          </tr>
-        {:else}
-          {@render children()}
-        {/if}
-      </tbody>
-    </table>
+{#if showCards && cards}
+  <div class:table-fetching={fetching}>
+    {#if isEmpty}
+      <div class="empty-state">{emptyMessage}</div>
+    {:else}
+      <div class="card-grid">
+        {@render cards()}
+      </div>
+    {/if}
   </div>
-  {#if hasPagination && totalPages! > 1}
-    <div class="pagination">
-      <button class="pg-btn" disabled={page === 1} onclick={() => onPageChange!(page! - 1)}>
-        <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
-          <path
-            d="M5 1L1 5L5 9"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        Prev
-      </button>
-      <span class="pg-info">
-        Page {page} of {totalPages}{totalItems != null ? ` | ${totalItems} total` : ''}
-      </span>
-      <button
-        class="pg-btn"
-        disabled={page === totalPages}
-        onclick={() => onPageChange!(page! + 1)}
-      >
-        Next
-        <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
-          <path
-            d="M1 1L5 5L1 9"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
+{/if}
+
+{#if !showCards}
+  <div class="table-card" class:table-fetching={fetching}>
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            {#each columns as col (col.key)}
+              <th class={col.class ?? ''}>
+                {#if col.sortable && onSortChange}
+                  {@const dir = sortDirection(col.key)}
+                  <button class="sort-btn" onclick={() => onSortChange(col.key)}>
+                    {col.label}
+                    {#if dir === 'asc'}
+                      <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                        <path
+                          d="M1 5L5 1L9 5"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    {:else if dir === 'desc'}
+                      <svg class="sort-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                        <path
+                          d="M1 1L5 5L9 1"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    {/if}
+                  </button>
+                {:else}
+                  {col.label}
+                {/if}
+              </th>
+            {/each}
+          </tr>
+        </thead>
+        <tbody>
+          {#if isEmpty}
+            <tr>
+              <td colspan={columns.length} class="empty-state">{emptyMessage}</td>
+            </tr>
+          {:else}
+            {@render children()}
+          {/if}
+        </tbody>
+      </table>
     </div>
-  {/if}
-</div>
+  </div>
+{/if}
+
+{#if hasPagination && totalPages! > 1}
+  <div class="pagination">
+    <button class="pg-btn" disabled={page === 1} onclick={() => onPageChange!(page! - 1)}>
+      <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
+        <path
+          d="M5 1L1 5L5 9"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      Prev
+    </button>
+    <span class="pg-info">
+      Page {page} of {totalPages}{totalItems != null ? ` | ${totalItems} total` : ''}
+    </span>
+    <button class="pg-btn" disabled={page === totalPages} onclick={() => onPageChange!(page! + 1)}>
+      Next
+      <svg class="pg-icon" viewBox="0 0 6 10" fill="none" aria-hidden="true">
+        <path
+          d="M1 1L5 5L1 9"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+  </div>
+{/if}
 
 <style>
   .table-toolbar {
@@ -191,6 +263,18 @@
 
   .search-input::placeholder {
     color: var(--color-text-muted);
+  }
+
+  .view-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-3);
+    padding: var(--space-3);
   }
 
   .table-card {
@@ -276,7 +360,7 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-2) var(--space-3);
-    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-2);
   }
 
   .pg-btn {

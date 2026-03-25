@@ -88,6 +88,22 @@
       <div class="filter-spacer"></div>
       <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}
+    {#snippet cards()}
+      {#each table.items as doc (doc.uid)}
+        <button class="item-card" onclick={(e) => handleRowClick(e, doc)}>
+          <div class="item-card-header">
+            <span class="item-card-id">{doc.title}</span>
+            <span class="item-card-meta">{formatAge(doc.created_at)}</span>
+          </div>
+          <div class="item-card-fields">
+            <div class="item-card-field">
+              <span class="item-card-label">Bindings</span>
+              <span>{doc.bindings.length}</span>
+            </div>
+          </div>
+        </button>
+      {/each}
+    {/snippet}
     {#each table.items as doc (doc.uid)}
       <tr class="doc-row" onclick={(e) => handleRowClick(e, doc)}>
         <td class="doc-title-cell">{doc.title}</td>

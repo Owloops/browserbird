@@ -320,6 +320,57 @@
       <div class="filter-spacer"></div>
       <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}
+    {#snippet cards()}
+      {#each table.items as j (j.uid)}
+        <div
+          class="item-card"
+          role="button"
+          tabindex="0"
+          onclick={(e) => handleRowClick(e, j)}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') {
+              selectedBirdUid = j.uid;
+            }
+          }}
+        >
+          <div class="item-card-header">
+            <span class="item-card-id">{j.name}</span>
+            <div class="toggle-wrapper" role="none" onclick={(e) => e.stopPropagation()}>
+              <Toggle active={!!j.enabled} onToggle={() => toggleCron(j.uid, !!j.enabled)} />
+            </div>
+          </div>
+          <div class="item-card-fields">
+            <div class="item-card-field">
+              <span class="item-card-label">Schedule</span>
+              <span class="mono">{j.schedule}</span>
+            </div>
+            <div class="item-card-field">
+              <span class="item-card-label">Agent</span>
+              <span>{j.agent_id}</span>
+            </div>
+            {#if j.last_run}
+              <div class="item-card-field">
+                <span class="item-card-label">Last Run</span>
+                <span class="card-last-run">
+                  {formatAge(j.last_run)}
+                  {#if j.last_status}
+                    <Badge status={j.last_status} />
+                  {/if}
+                </span>
+              </div>
+            {/if}
+          </div>
+          <div class="card-actions" role="none" onclick={(e) => e.stopPropagation()}>
+            <button class="btn btn-outline btn-sm" onclick={() => runCron(j.uid)}>Fly</button>
+            {#if !j.name.startsWith('__bb_')}
+              <button class="btn btn-danger btn-sm" onclick={() => deleteCron(j.uid, j.name)}
+                >Delete</button
+              >
+            {/if}
+          </div>
+        </div>
+      {/each}
+    {/snippet}
     {#each table.items as j (j.uid)}
       {@const isSystem = j.name.startsWith('__bb_')}
       <tr class="bird-row" onclick={(e) => handleRowClick(e, j)}>
@@ -472,6 +523,19 @@
 
   .toggle-wrapper {
     display: inline-flex;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .card-last-run {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
   }
 
   @media (max-width: 768px) {

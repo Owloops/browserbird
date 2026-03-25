@@ -54,6 +54,35 @@
       <div class="filter-spacer"></div>
       <span class="last-updated">Updated {lastUpdated}</span>
     {/snippet}
+    {#snippet cards()}
+      {#each table.items as s (s.uid)}
+        <button
+          class="item-card"
+          onclick={() => {
+            window.location.hash = `#/session-detail?id=${s.uid}`;
+          }}
+        >
+          <div class="item-card-header">
+            <span class="mono item-card-id">{shortUid(s.uid)}</span>
+            <span class="item-card-meta">{formatAge(s.last_active)}</span>
+          </div>
+          <div class="item-card-fields">
+            <div class="item-card-field">
+              <span class="item-card-label">Channel</span>
+              <span class="mono">{s.channel_id}</span>
+            </div>
+            <div class="item-card-field">
+              <span class="item-card-label">Agent</span>
+              <span>{s.agent_id}</span>
+            </div>
+            <div class="item-card-field">
+              <span class="item-card-label">Messages</span>
+              <span>{s.message_count}</span>
+            </div>
+          </div>
+        </button>
+      {/each}
+    {/snippet}
     {#each table.items as s (s.uid)}
       <tr
         class="clickable-row"
@@ -73,16 +102,6 @@
 {/if}
 
 <style>
-  .filter-spacer {
-    flex: 1;
-  }
-
-  .last-updated {
-    font-size: var(--text-xs);
-    color: var(--color-text-muted);
-    font-family: var(--font-mono);
-  }
-
   .clickable-row {
     cursor: pointer;
   }
