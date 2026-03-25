@@ -1,3 +1,16 @@
+# [1.14.0](https://github.com/Owloops/browserbird/compare/v1.13.1...v1.14.0) (2026-03-25)
+
+
+### Bug Fixes
+
+* **config:** warn instead of throw on unset env: references ([e4122b3](https://github.com/Owloops/browserbird/commit/e4122b30dc6d201e1c7675824c5148be4a364625))
+
+
+### Features
+
+* **aws:** add CloudFormation template for ECS Fargate deployment ([40c051f](https://github.com/Owloops/browserbird/commit/40c051f79e2f42d17e32cc09c30393317f71ec97))
+* **config:** make novncHost configurable via BROWSERBIRD_NOVNC_HOST env var ([c56f18a](https://github.com/Owloops/browserbird/commit/c56f18a1cbe66fe6326ae14175bcb8adda02554c))
+
 ## [1.13.1](https://github.com/Owloops/browserbird/compare/v1.13.0...v1.13.1) (2026-03-25)
 
 
