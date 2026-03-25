@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/Owloops/browserbird/compare/v1.11.4...v1.12.0) (2026-03-25)
+
+
+### Features
+
+* **birds:** auto-disable after consecutive failures with alert cooldown ([7d23a94](https://github.com/Owloops/browserbird/commit/7d23a949c0d52f1e7e0202241c5fbcc5d7a9b0a7))
+
 ## [1.11.4](https://github.com/Owloops/browserbird/compare/v1.11.3...v1.11.4) (2026-03-25)
 
 
