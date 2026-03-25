@@ -1,3 +1,11 @@
+## [1.12.1](https://github.com/Owloops/browserbird/compare/v1.12.0...v1.12.1) (2026-03-25)
+
+
+### Bug Fixes
+
+* **web:** fixed shell layout with scoped scrolling and styled scrollbars ([6c7d765](https://github.com/Owloops/browserbird/commit/6c7d765e13ca445f9ef049de0f30d44d6722cf7d))
+* **web:** move sidebar toggle into brand and pin sign out to footer ([3622700](https://github.com/Owloops/browserbird/commit/36227005ce07a72caa9f1e087d6f8da696794235))
+
 # [1.12.0](https://github.com/Owloops/browserbird/compare/v1.11.4...v1.12.0) (2026-03-25)
 
 
