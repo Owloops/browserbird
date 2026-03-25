@@ -28,6 +28,7 @@ services:
     environment:
       - HOME=/home/bbuser
       - BROWSER_MODE=${BROWSER_MODE:-persistent}
+      - BROWSERBIRD_NOVNC_HOST=${BROWSERBIRD_NOVNC_HOST:-vm}
     depends_on:
       vm:
         condition: service_healthy

@@ -5,7 +5,7 @@
   },
   "browser": {
     "enabled": true,
-    "novncHost": "vm"
+    "novncHost": "env:BROWSERBIRD_NOVNC_HOST"
   },
   "web": {
     "host": "0.0.0.0"
