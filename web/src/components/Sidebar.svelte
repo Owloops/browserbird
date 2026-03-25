@@ -55,7 +55,30 @@
 <nav class="sidebar" class:collapsed class:mobile-open={mobileOpen}>
   <div class="sidebar-brand">
     <img src="/logo.svg" alt="BrowserBird" class="brand-logo brand-logo-full" />
-    <img src="/logo-icon.svg" alt="BrowserBird" class="brand-logo brand-logo-icon" />
+    <button class="brand-toggle brand-toggle-collapse" onclick={ontoggle} title="Collapse sidebar">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg
+      >
+    </button>
+    <button class="brand-toggle brand-toggle-expand" onclick={ontoggle} title="Expand sidebar">
+      <img src="/logo-icon.svg" alt="BrowserBird" class="brand-logo-icon" />
+      <svg
+        class="expand-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg
+      >
+    </button>
   </div>
   <div class="sidebar-nav">
     {#each NAV_ITEMS as item}
@@ -79,6 +102,8 @@
         <span class="nav-label">{item.label}</span>
       </a>
     {/each}
+  </div>
+  <div class="sidebar-footer">
     <button
       class="nav-item signout-item"
       onclick={onsignout}
@@ -99,30 +124,6 @@
         <line x1="21" y1="12" x2="9" y2="12" />
       </svg>
       <span class="nav-label">Sign out</span>
-    </button>
-  </div>
-  <div class="sidebar-footer">
-    <button
-      class="toggle-btn"
-      onclick={ontoggle}
-      title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-    >
-      <svg
-        class="toggle-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        {#if collapsed}
-          <path d="m9 18 6-6-6-6" />
-        {:else}
-          <path d="m15 18-6-6 6-6" />
-        {/if}
-      </svg>
     </button>
   </div>
 </nav>
@@ -154,30 +155,88 @@
     position: relative;
   }
 
-  .brand-logo {
-    position: absolute;
-    flex-shrink: 0;
-    transition: opacity var(--transition-normal);
-  }
-
   .brand-logo-full {
     height: 28px;
     width: auto;
+    flex-shrink: 0;
     left: var(--space-3);
-  }
-
-  .brand-logo-icon {
-    height: 28px;
-    width: 28px;
-    left: calc((var(--sidebar-width-collapsed) - 28px) / 2);
-    opacity: 0;
+    position: absolute;
+    transition: opacity var(--transition-normal);
   }
 
   .collapsed .brand-logo-full {
     opacity: 0;
+    pointer-events: none;
   }
 
-  .collapsed .brand-logo-icon {
+  .brand-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: color var(--transition-fast);
+  }
+
+  .brand-toggle:hover {
+    color: var(--color-text-secondary);
+  }
+
+  .brand-toggle svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .brand-toggle-collapse {
+    position: absolute;
+    right: var(--space-2);
+    transition:
+      opacity var(--transition-normal),
+      color var(--transition-fast);
+  }
+
+  .collapsed .brand-toggle-collapse {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .brand-toggle-expand {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--sidebar-width-collapsed);
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+  }
+
+  .brand-toggle-expand .brand-logo-icon {
+    height: 28px;
+    width: 28px;
+    flex-shrink: 0;
+    transition: opacity var(--transition-normal);
+  }
+
+  .brand-toggle-expand .expand-icon {
+    position: absolute;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+
+  .collapsed .brand-toggle-expand {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .collapsed .brand-toggle-expand:hover .brand-logo-icon {
+    opacity: 0;
+  }
+
+  .collapsed .brand-toggle-expand:hover .expand-icon {
     opacity: 1;
   }
 
@@ -280,18 +339,20 @@
     opacity: 0;
   }
 
-  .signout-item {
-    margin-top: auto;
+  .sidebar-footer {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-2) 0;
     border-top: 1px solid var(--color-border);
-    border-radius: 0;
+  }
+
+  .signout-item {
+    border: none;
     font-size: var(--text-base);
     font-weight: 500;
     cursor: pointer;
     background: none;
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
-    width: 100%;
     text-align: left;
   }
 
@@ -307,34 +368,6 @@
   .signout-item:hover .nav-icon {
     opacity: 1;
     color: var(--color-error);
-  }
-
-  .sidebar-footer {
-    padding: var(--space-1-5) 0;
-    border-top: 1px solid var(--color-border);
-    flex-shrink: 0;
-  }
-
-  .toggle-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: var(--space-2) var(--space-4);
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    transition: color var(--transition-fast);
-  }
-
-  .toggle-btn:hover {
-    color: var(--color-text-secondary);
-  }
-
-  .toggle-icon {
-    width: 1.125rem;
-    height: 1.125rem;
   }
 
   .drawer-backdrop {
@@ -375,12 +408,14 @@
       opacity: 1;
     }
 
-    .collapsed .brand-logo-icon {
-      opacity: 0;
+    .collapsed .brand-toggle-collapse {
+      opacity: 1;
+      pointer-events: auto;
     }
 
-    .sidebar-footer {
-      display: none;
+    .collapsed .brand-toggle-expand {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .nav-item {
