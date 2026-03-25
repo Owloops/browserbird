@@ -49,14 +49,15 @@ export const DEFAULTS: Config = {
 
 /**
  * Resolves `"env:VAR_NAME"` strings to their environment variable values.
- * Throws if the env var is not set.
+ * Returns an empty string with a warning if the env var is not set.
  */
 function resolveEnvValue(value: unknown): unknown {
   if (typeof value === 'string' && value.startsWith('env:')) {
     const envKey = value.slice(4);
     const envValue = process.env[envKey];
     if (envValue == null) {
-      throw new Error(`Environment variable ${envKey} is not set (referenced as "${value}")`);
+      logger.warn(`environment variable ${envKey} is not set (referenced as "${value}")`);
+      return '';
     }
     return envValue;
   }
