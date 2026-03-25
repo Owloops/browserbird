@@ -1,3 +1,10 @@
+## [1.11.4](https://github.com/Owloops/browserbird/compare/v1.11.3...v1.11.4) (2026-03-25)
+
+
+### Bug Fixes
+
+* **context:** update playwright behaviour to show correct tab ([100b8b8](https://github.com/Owloops/browserbird/commit/100b8b8a338ad7ebff0486e4997d3f1c27ec06f4))
+
 ## [1.11.3](https://github.com/Owloops/browserbird/compare/v1.11.2...v1.11.3) (2026-03-24)
 
 
