@@ -1,3 +1,15 @@
+# [1.13.0](https://github.com/Owloops/browserbird/compare/v1.12.1...v1.13.0) (2026-03-25)
+
+
+### Bug Fixes
+
+* **web:** show service status pills in header on mission control, dot elsewhere ([149ff2f](https://github.com/Owloops/browserbird/commit/149ff2f13f8a21cf17bb40ae91dc4ba9971cca95))
+
+
+### Features
+
+* **web:** add card view toggle to data tables for sessions, birds, and docs ([cb1d6e1](https://github.com/Owloops/browserbird/commit/cb1d6e17349ec84d6b29f7cfb484902e6cc6818c))
+
 ## [1.12.1](https://github.com/Owloops/browserbird/compare/v1.12.0...v1.12.1) (2026-03-25)
 
 
