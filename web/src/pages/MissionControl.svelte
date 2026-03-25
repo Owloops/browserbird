@@ -109,36 +109,11 @@
       showToast(`Failed: ${(err as Error).message}`, 'error');
     }
   }
-
-  const slackOk = $derived(status?.slack.connected ?? false);
-  const agentOk = $derived(status?.agent.available ?? false);
-  const browserEnabled = $derived(status?.browser.enabled ?? false);
-  const browserOk = $derived(status?.browser.connected ?? false);
 </script>
 
 {#if !status}
   <div class="loading">Loading...</div>
 {:else}
-  <div class="svc-row">
-    <div class="svc-card" class:svc-ok={agentOk} class:svc-err={!agentOk}>
-      <span class="svc-dot" class:dot-ok={agentOk} class:dot-err={!agentOk}></span>
-      <span class="svc-label">Agent CLI</span>
-      <span class="svc-detail mono">{agentOk ? 'ready' : 'unavailable'}</span>
-    </div>
-    <div class="svc-card" class:svc-ok={slackOk} class:svc-err={!slackOk}>
-      <span class="svc-dot" class:dot-ok={slackOk} class:dot-err={!slackOk}></span>
-      <span class="svc-label">Slack</span>
-      <span class="svc-detail mono">{slackOk ? 'connected' : 'disconnected'}</span>
-    </div>
-    {#if browserEnabled}
-      <div class="svc-card" class:svc-ok={browserOk} class:svc-err={!browserOk}>
-        <span class="svc-dot" class:dot-ok={browserOk} class:dot-err={!browserOk}></span>
-        <span class="svc-label">Browser</span>
-        <span class="svc-detail mono">{browserOk ? 'connected' : 'unreachable'}</span>
-      </div>
-    {/if}
-  </div>
-
   <div class="num-grid">
     <div class="num-card num-card-accent">
       <div class="num-head">
@@ -311,62 +286,6 @@
 {/if}
 
 <style>
-  /* Service health row */
-  .svc-row {
-    display: flex;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-  }
-
-  .svc-card {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    transition: all var(--transition-normal);
-  }
-
-  .svc-ok {
-    border-color: rgba(62, 201, 122, 0.2);
-    background: rgba(62, 201, 122, 0.04);
-  }
-
-  .svc-err {
-    border-color: rgba(224, 92, 92, 0.2);
-    background: rgba(224, 92, 92, 0.04);
-  }
-
-  .svc-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .dot-ok {
-    background: var(--color-success);
-    box-shadow: 0 0 6px rgba(62, 201, 122, 0.5);
-  }
-
-  .dot-err {
-    background: var(--color-error);
-    box-shadow: 0 0 6px rgba(224, 92, 92, 0.5);
-  }
-
-  .svc-label {
-    font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--color-text-secondary);
-  }
-
-  .svc-detail {
-    font-size: var(--text-xs);
-    color: var(--color-text-muted);
-  }
-
   /* Stat cards grid */
   .num-grid {
     display: grid;
@@ -561,10 +480,6 @@
   }
 
   @media (max-width: 768px) {
-    .svc-row {
-      flex-wrap: wrap;
-    }
-
     .num-grid {
       grid-template-columns: repeat(2, 1fr);
     }

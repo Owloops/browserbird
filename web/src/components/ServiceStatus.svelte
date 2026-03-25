@@ -3,9 +3,10 @@
 
   interface Props {
     status: StatusResponse | null;
+    mode?: 'dot' | 'pills';
   }
 
-  let { status }: Props = $props();
+  let { status, mode = 'dot' }: Props = $props();
 
   let open = $state(false);
 
@@ -65,32 +66,70 @@
   });
 </script>
 
-<div class="svc-status">
-  <button class="svc-btn" onclick={toggle} title="Service status">
-    <span
-      class="svc-dot"
-      class:svc-ok={aggregateLevel === 'ok'}
-      class:svc-warn={aggregateLevel === 'warn'}
-      class:svc-err={aggregateLevel === 'err'}
-    ></span>
-  </button>
-  {#if open}
-    <div class="svc-popover">
-      {#each services as svc (svc.label)}
-        <div class="svc-row" class:svc-row-disabled={!svc.applicable}>
-          <span
-            class="svc-row-dot"
-            class:svc-ok={svc.applicable && svc.ok}
-            class:svc-err={svc.applicable && !svc.ok}
-            class:svc-off={!svc.applicable}
-          ></span>
-          <span class="svc-row-label">{svc.label}</span>
-          <span class="svc-row-detail mono">{svc.applicable ? svc.detail : 'disabled'}</span>
-        </div>
-      {/each}
-    </div>
-  {/if}
-</div>
+{#if mode === 'pills'}
+  <div class="pill-row">
+    {#each applicableServices as svc (svc.label)}
+      <div class="pill" class:pill-ok={svc.ok} class:pill-err={!svc.ok}>
+        <span class="pill-dot" class:svc-ok={svc.ok} class:svc-err={!svc.ok}></span>
+        <span class="pill-label">{svc.label}</span>
+        <span class="pill-detail mono">{svc.detail}</span>
+      </div>
+    {/each}
+  </div>
+  <div class="pill-fallback">
+    <button class="svc-btn" onclick={toggle} title="Service status">
+      <span
+        class="svc-dot"
+        class:svc-ok={aggregateLevel === 'ok'}
+        class:svc-warn={aggregateLevel === 'warn'}
+        class:svc-err={aggregateLevel === 'err'}
+      ></span>
+    </button>
+    {#if open}
+      <div class="svc-popover">
+        {#each services as svc (svc.label)}
+          <div class="svc-row" class:svc-row-disabled={!svc.applicable}>
+            <span
+              class="svc-row-dot"
+              class:svc-ok={svc.applicable && svc.ok}
+              class:svc-err={svc.applicable && !svc.ok}
+              class:svc-off={!svc.applicable}
+            ></span>
+            <span class="svc-row-label">{svc.label}</span>
+            <span class="svc-row-detail mono">{svc.applicable ? svc.detail : 'disabled'}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+{:else}
+  <div class="svc-status">
+    <button class="svc-btn" onclick={toggle} title="Service status">
+      <span
+        class="svc-dot"
+        class:svc-ok={aggregateLevel === 'ok'}
+        class:svc-warn={aggregateLevel === 'warn'}
+        class:svc-err={aggregateLevel === 'err'}
+      ></span>
+    </button>
+    {#if open}
+      <div class="svc-popover">
+        {#each services as svc (svc.label)}
+          <div class="svc-row" class:svc-row-disabled={!svc.applicable}>
+            <span
+              class="svc-row-dot"
+              class:svc-ok={svc.applicable && svc.ok}
+              class:svc-err={svc.applicable && !svc.ok}
+              class:svc-off={!svc.applicable}
+            ></span>
+            <span class="svc-row-label">{svc.label}</span>
+            <span class="svc-row-detail mono">{svc.applicable ? svc.detail : 'disabled'}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+{/if}
 
 <style>
   .svc-status {
@@ -187,11 +226,68 @@
     color: var(--color-text-muted);
   }
 
+  .pill-row {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .pill-fallback {
+    display: none;
+    position: relative;
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    transition: all var(--transition-normal);
+  }
+
+  .pill-ok {
+    border-color: rgba(62, 201, 122, 0.2);
+    background: rgba(62, 201, 122, 0.04);
+  }
+
+  .pill-err {
+    border-color: rgba(224, 92, 92, 0.2);
+    background: rgba(224, 92, 92, 0.04);
+  }
+
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .pill-label {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  .pill-detail {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+  }
+
   @media (max-width: 768px) {
     .svc-popover {
       min-width: 0;
       right: calc(-1 * var(--space-2));
       max-width: calc(100vw - 2 * var(--space-3));
+    }
+
+    .pill-row {
+      display: none;
+    }
+
+    .pill-fallback {
+      display: block;
     }
   }
 </style>

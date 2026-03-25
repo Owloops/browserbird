@@ -332,7 +332,7 @@
         </button>
         <h1 class="page-title">{pageTitle}</h1>
         <div class="header-right">
-          <ServiceStatus {status} />
+          <ServiceStatus {status} mode={currentPage === 'status' ? 'pills' : 'dot'} />
         </div>
       </div>
       <div class="content-body">
