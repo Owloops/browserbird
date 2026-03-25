@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/Owloops/browserbird/compare/v1.13.0...v1.13.1) (2026-03-25)
+
+
+### Bug Fixes
+
+* **oci:** tolerate chown failure on EFS access point mounts ([8ff3ed8](https://github.com/Owloops/browserbird/commit/8ff3ed8fd4bc6eb8e1dc7f9e82a55cdf30a1c99f))
+
 # [1.13.0](https://github.com/Owloops/browserbird/compare/v1.12.1...v1.13.0) (2026-03-25)
 
 
