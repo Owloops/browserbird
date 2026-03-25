@@ -71,6 +71,22 @@ Two services are deployed: **browserbird-app** (web dashboard, API, Slack) and *
 > [!TIP]
 > Enable automatic deployments in Railway service settings so new versions apply without manual intervention. The app service volume at `/app/.browserbird` persists your database and config across redeployments.
 
+### AWS
+
+[![Launch Stack](https://img.shields.io/badge/AWS-Launch_Stack-FF9900?style=for-the-badge&logo=amazonwebservices&logoColor=white)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=browserbird&templateURL=https://browserbird-releases.s3.amazonaws.com/cloudformation/latest.yaml)
+
+Deploys both containers as a sidecar pair on **ECS Fargate** with an ALB and EFS for persistent storage. Select your VPC and subnets from the dropdown menus, deploy the stack, then open the dashboard URL to complete onboarding (API keys, Slack, agent config).
+
+Optional integrations (fill in at stack creation time):
+
+- **HTTPS** - provide an ACM certificate ARN to enable TLS on the ALB.
+- **Database access** - provide an RDS security group ID and the template adds an ingress rule so BrowserBird can reach your database. Store database credentials in BrowserBird's [vault keys](#vault-keys) after deployment.
+
+After the stack is created, add a DNS record (CNAME or alias) pointing to the ALB DNS name from the stack outputs. This is required when using HTTPS so the domain matches your certificate.
+
+> [!NOTE]
+> The stack requires the `CAPABILITY_NAMED_IAM` capability (it creates an ECS task execution role and task role). CloudFormation will prompt you to acknowledge this before creating the stack.
+
 ## Slack (Optional)
 
 [![Create Slack App](https://img.shields.io/badge/Slack-Create_App-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://api.slack.com/apps?new_app=1&manifest_json=%7B%22display_information%22%3A%7B%22name%22%3A%22BrowserBird%22%2C%22description%22%3A%22A%20self-hosted%20AI%20assistant%20in%20Slack%2C%20with%20a%20real%20browser%20and%20a%20scheduler.%22%2C%22background_color%22%3A%22%231a1a2e%22%7D%2C%22features%22%3A%7B%22assistant_view%22%3A%7B%22assistant_description%22%3A%22A%20self-hosted%20AI%20assistant%20in%20Slack%2C%20with%20a%20real%20browser%20and%20a%20scheduler.%22%7D%2C%22app_home%22%3A%7B%22home_tab_enabled%22%3Atrue%2C%22messages_tab_enabled%22%3Atrue%2C%22messages_tab_read_only_enabled%22%3Afalse%7D%2C%22bot_user%22%3A%7B%22display_name%22%3A%22BrowserBird%22%2C%22always_online%22%3Atrue%7D%2C%22slash_commands%22%3A%5B%7B%22command%22%3A%22%2Fbird%22%2C%22description%22%3A%22Manage%20BrowserBird%20birds%22%2C%22usage_hint%22%3A%22list%20%7C%20fly%20%7C%20stop%20%7C%20logs%20%7C%20enable%20%7C%20disable%20%7C%20create%20%7C%20status%22%2C%22should_escape%22%3Afalse%7D%5D%7D%2C%22oauth_config%22%3A%7B%22scopes%22%3A%7B%22bot%22%3A%5B%22app_mentions%3Aread%22%2C%22assistant%3Awrite%22%2C%22channels%3Ahistory%22%2C%22channels%3Aread%22%2C%22chat%3Awrite%22%2C%22files%3Aread%22%2C%22files%3Awrite%22%2C%22groups%3Ahistory%22%2C%22groups%3Aread%22%2C%22im%3Ahistory%22%2C%22im%3Aread%22%2C%22im%3Awrite%22%2C%22mpim%3Ahistory%22%2C%22mpim%3Aread%22%2C%22reactions%3Aread%22%2C%22reactions%3Awrite%22%2C%22users%3Aread%22%2C%22commands%22%5D%7D%7D%2C%22settings%22%3A%7B%22event_subscriptions%22%3A%7B%22bot_events%22%3A%5B%22app_mention%22%2C%22assistant_thread_context_changed%22%2C%22assistant_thread_started%22%2C%22message.channels%22%2C%22message.groups%22%2C%22message.im%22%2C%22message.mpim%22%2C%22app_home_opened%22%5D%7D%2C%22interactivity%22%3A%7B%22is_enabled%22%3Atrue%7D%2C%22org_deploy_enabled%22%3Afalse%2C%22socket_mode_enabled%22%3Atrue%2C%22token_rotation_enabled%22%3Afalse%7D%7D)
@@ -390,6 +406,27 @@ Web UI (from `web/`):
 npm run check              # svelte-check
 npm run format:check       # prettier
 ```
+
+### Publish AWS CloudFormation template
+
+The Launch Stack button in the README points to `s3://browserbird-releases/cloudformation/latest.yaml`. After making changes to `aws/cloudformation.yaml`, upload the new version:
+
+```bash
+aws s3 cp aws/cloudformation.yaml \
+  s3://browserbird-releases/cloudformation/latest.yaml \
+  --content-type "application/x-yaml" \
+  --region us-east-1
+```
+
+Validate before uploading:
+
+```bash
+cfn-lint aws/cloudformation.yaml
+aws cloudformation validate-template \
+  --template-body file://aws/cloudformation.yaml
+```
+
+The bucket (`browserbird-releases`, account `267013046707`, us-east-1) has a public read policy scoped to the `cloudformation/` prefix so CloudFormation can fetch the template during stack creation.
 
 ## License
 

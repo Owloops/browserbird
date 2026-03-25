@@ -1,0 +1,554 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  BrowserBird - Self-hosted AI agent orchestrator on AWS ECS Fargate.
+  Deploys the app and headless browser VM as a sidecar pair with an ALB,
+  EFS for persistent storage, and optional database and HTTPS support.
+  API keys and Slack tokens are configured via the onboarding wizard
+  after deployment.
+
+# ---------------------------------------------------------------------------
+# Metadata - controls the CloudFormation Console parameter wizard layout
+# ---------------------------------------------------------------------------
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: Networking }
+        Parameters:
+          - VpcId
+          - PublicSubnetIds
+          - PrivateSubnetIds
+          - AllowedCIDR
+      - Label: { default: HTTPS (optional) }
+        Parameters:
+          - CertificateArn
+      - Label: { default: Database Integration (optional) }
+        Parameters:
+          - DatabaseSecurityGroupId
+          - DatabasePort
+      - Label: { default: Container Settings }
+        Parameters:
+          - AppImage
+          - VmImage
+          - TaskCpu
+          - TaskMemory
+    ParameterLabels:
+      VpcId: { default: VPC }
+      PublicSubnetIds: { default: Public Subnets (for ALB) }
+      PrivateSubnetIds: { default: Private Subnets (for ECS tasks and EFS) }
+      AllowedCIDR: { default: Allowed CIDR for ALB access }
+      CertificateArn: { default: ACM Certificate ARN }
+      DatabaseSecurityGroupId: { default: RDS/Database Security Group }
+      DatabasePort: { default: Database Port }
+      AppImage: { default: App Container Image }
+      VmImage: { default: VM Container Image }
+      TaskCpu: { default: Task CPU Units }
+      TaskMemory: { default: Task Memory (MB) }
+
+# ---------------------------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------------------------
+Parameters:
+  # -- Networking -------------------------------------------------------------
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy into. Must have internet access (NAT gateway) for private subnets.
+
+  PublicSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: >
+      Public subnets for the ALB (at least two, in different availability zones).
+
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: >
+      Private subnets for ECS tasks and EFS (at least two, in different availability zones).
+      Must have outbound internet access via NAT gateway.
+
+  AllowedCIDR:
+    Type: String
+    Default: '0.0.0.0/0'
+    Description: CIDR block allowed to access the ALB (e.g. your VPN or office IP).
+    AllowedPattern: '(\d{1,3}\.){3}\d{1,3}/\d{1,2}'
+    ConstraintDescription: Must be a valid CIDR block (e.g. 203.0.113.0/24).
+
+  # -- HTTPS (optional) ------------------------------------------------------
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: >
+      ARN of an ACM certificate for HTTPS. When provided the ALB listens
+      on 443; otherwise it listens on 80 (HTTP only).
+
+  # -- Database (optional) ----------------------------------------------------
+  DatabaseSecurityGroupId:
+    Type: String
+    Default: ''
+    Description: >
+      Security group ID of your RDS/database instance or proxy. When provided,
+      an ingress rule is added so BrowserBird can reach the database.
+      Database credentials are configured in BrowserBird's vault keys after deployment.
+
+  DatabasePort:
+    Type: String
+    Default: '5432'
+    Description: Database port for the security group ingress rule.
+
+  # -- Container Settings -----------------------------------------------------
+  AppImage:
+    Type: String
+    Default: 'ghcr.io/owloops/browserbird-app:latest'
+    Description: Docker image for the BrowserBird app container.
+
+  VmImage:
+    Type: String
+    Default: 'ghcr.io/owloops/browserbird-vm:latest'
+    Description: Docker image for the BrowserBird VM (headless browser) container.
+
+  TaskCpu:
+    Type: String
+    Default: '2048'
+    AllowedValues: ['1024', '2048', '4096']
+    Description: Fargate task CPU units (1024 = 1 vCPU).
+
+  TaskMemory:
+    Type: String
+    Default: '4096'
+    AllowedValues: ['2048', '3072', '4096', '5120', '6144', '7168', '8192']
+    Description: Fargate task memory in MB. Minimum 4096 recommended for browser workloads.
+
+# ---------------------------------------------------------------------------
+# Conditions
+# ---------------------------------------------------------------------------
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
+  HasDatabase: !Not [!Equals [!Ref DatabaseSecurityGroupId, '']]
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+Resources:
+
+  # ==========================================================================
+  # SECURITY GROUPS
+  # ==========================================================================
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${AWS::StackName} ALB'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref AllowedCIDR
+          Description: HTTP from allowed CIDR
+        - !If
+          - HasCertificate
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            CidrIp: !Ref AllowedCIDR
+            Description: HTTPS from allowed CIDR
+          - !Ref 'AWS::NoValue'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-alb-sg'
+
+  EcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${AWS::StackName} ECS tasks'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 18800
+          ToPort: 18800
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+          Description: App port from ALB
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ecs-sg'
+
+  EfsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${AWS::StackName} EFS'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref EcsSecurityGroup
+          Description: NFS from ECS tasks
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-efs-sg'
+
+  # -- Database ingress (conditional) -----------------------------------------
+  DatabaseIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: HasDatabase
+    Properties:
+      GroupId: !Ref DatabaseSecurityGroupId
+      IpProtocol: tcp
+      FromPort: !Ref DatabasePort
+      ToPort: !Ref DatabasePort
+      SourceSecurityGroupId: !Ref EcsSecurityGroup
+      Description: !Sub 'BrowserBird (${AWS::StackName}) ECS tasks'
+
+  # ==========================================================================
+  # EFS - persistent storage for SQLite DB + browser profiles
+  # ==========================================================================
+  FileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      Encrypted: true
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-efs'
+
+  # App data access point - /browserbird/app-data
+  AppDataAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref FileSystem
+      PosixUser:
+        Uid: '1000'
+        Gid: '1000'
+      RootDirectory:
+        Path: /browserbird/app-data
+        CreationInfo:
+          OwnerUid: '1000'
+          OwnerGid: '1000'
+          Permissions: '0755'
+
+  # Browser profile access point - /browserbird/browser-data
+  BrowserDataAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref FileSystem
+      PosixUser:
+        Uid: '1000'
+        Gid: '1000'
+      RootDirectory:
+        Path: /browserbird/browser-data
+        CreationInfo:
+          OwnerUid: '1000'
+          OwnerGid: '1000'
+          Permissions: '0755'
+
+  MountTargetA:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SubnetId: !Select [0, !Ref PrivateSubnetIds]
+      SecurityGroups:
+        - !Ref EfsSecurityGroup
+
+  MountTargetB:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SubnetId: !Select [1, !Ref PrivateSubnetIds]
+      SecurityGroups:
+        - !Ref EfsSecurityGroup
+
+  # ==========================================================================
+  # ALB
+  # ==========================================================================
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${AWS::StackName}-alb'
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      Subnets: !Ref PublicSubnetIds
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-alb'
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${AWS::StackName}-tg'
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: 18800
+      TargetType: ip
+      HealthCheckPath: /api/healthcheck
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+
+  # HTTPS listener (when certificate is provided)
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasCertificate
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # HTTP listener (fallback when no certificate, or redirect when certificate exists)
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions: !If
+        - HasCertificate
+        - - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: '443'
+              StatusCode: HTTP_301
+        - - Type: forward
+            TargetGroupArn: !Ref TargetGroup
+
+  # ==========================================================================
+  # ECS CLUSTER
+  # ==========================================================================
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub '${AWS::StackName}'
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enhanced
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}'
+
+  # ==========================================================================
+  # IAM - Task execution role + task role
+  # ==========================================================================
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-execution'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-task'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: efs-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                Resource: !GetAtt FileSystem.Arn
+        - PolicyName: ecs-exec
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                Resource: '*'
+
+  # ==========================================================================
+  # CLOUDWATCH LOGS
+  # ==========================================================================
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Metadata:
+      guard:
+        SuppressedRules:
+          - CLOUDWATCH_LOG_GROUP_ENCRYPTED
+    Properties:
+      LogGroupName: !Sub '/ecs/${AWS::StackName}'
+      RetentionInDays: 30
+
+  # ==========================================================================
+  # ECS TASK DEFINITION - sidecar pattern (app + vm in one task)
+  # ==========================================================================
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - MountTargetA
+      - MountTargetB
+    Properties:
+      Family: !Sub '${AWS::StackName}'
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      Volumes:
+        - Name: app-data
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref FileSystem
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref AppDataAccessPoint
+              IAM: ENABLED
+        - Name: browser-data
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref FileSystem
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref BrowserDataAccessPoint
+              IAM: ENABLED
+      ContainerDefinitions:
+        # -- VM container (sidecar - starts first, app depends on it) ---------
+        - Name: vm
+          Image: !Ref VmImage
+          Essential: true
+          LinuxParameters:
+            InitProcessEnabled: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+            - ContainerPort: 3001
+              Protocol: tcp
+            - ContainerPort: 6080
+              Protocol: tcp
+          MountPoints:
+            - SourceVolume: browser-data
+              ContainerPath: /home/bbuser/.browserbird
+          HealthCheck:
+            Command: ['CMD-SHELL', 'netstat -tuln | grep -q ":3000 "']
+            Interval: 10
+            Timeout: 5
+            Retries: 10
+            StartPeriod: 30
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: vm
+
+        # -- App container (primary - exposed to ALB) -------------------------
+        - Name: app
+          Image: !Ref AppImage
+          Essential: true
+          DependsOn:
+            - ContainerName: vm
+              Condition: HEALTHY
+          LinuxParameters:
+            InitProcessEnabled: true
+          PortMappings:
+            - ContainerPort: 18800
+              Protocol: tcp
+          Environment:
+            - Name: HOME
+              Value: /home/bbuser
+            - Name: BROWSERBIRD_NOVNC_HOST
+              Value: localhost
+          MountPoints:
+            - SourceVolume: app-data
+              ContainerPath: /app/.browserbird
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: app
+
+  # ==========================================================================
+  # ECS SERVICE
+  # ==========================================================================
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - HttpListener
+    Properties:
+      ServiceName: !Sub '${AWS::StackName}'
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      EnableExecuteCommand: true
+      HealthCheckGracePeriodSeconds: 120
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+        MaximumPercent: 200
+        MinimumHealthyPercent: 0
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref EcsSecurityGroup
+          Subnets: !Ref PrivateSubnetIds
+      LoadBalancers:
+        - ContainerName: app
+          ContainerPort: 18800
+          TargetGroupArn: !Ref TargetGroup
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+Outputs:
+  BrowserBirdUrl:
+    Description: BrowserBird dashboard URL - open to complete onboarding
+    Value: !If
+      - HasCertificate
+      - !Sub 'https://${LoadBalancer.DNSName}'
+      - !Sub 'http://${LoadBalancer.DNSName}'
+
+  LoadBalancerDNS:
+    Description: ALB DNS name (point your CNAME here)
+    Value: !GetAtt LoadBalancer.DNSName
+
+  ClusterName:
+    Description: ECS cluster name
+    Value: !Ref Cluster
+
+  ServiceName:
+    Description: ECS service name
+    Value: !GetAtt Service.Name
+
+  LogGroupName:
+    Description: CloudWatch log group
+    Value: !Ref LogGroup
+
+  EfsFileSystemId:
+    Description: EFS file system ID
+    Value: !Ref FileSystem
