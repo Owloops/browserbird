@@ -361,7 +361,9 @@
 <style>
   .app {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .content {
@@ -369,11 +371,12 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    overflow: hidden;
   }
 
   .content-header {
     height: var(--header-height);
-    padding: 0 var(--space-5);
+    padding: 0 var(--space-8);
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
@@ -413,7 +416,7 @@
 
   .content-body {
     flex: 1;
-    padding: var(--space-6);
+    padding: var(--space-6) var(--space-8);
     overflow-y: auto;
   }
 

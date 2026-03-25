@@ -376,7 +376,7 @@
   .browser-viewer {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - var(--header-height) - var(--space-10));
+    height: 100%;
     min-height: 0;
   }
 

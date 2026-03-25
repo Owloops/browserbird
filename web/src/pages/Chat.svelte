@@ -417,7 +417,7 @@
   .chat-container {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - var(--header-height) - var(--space-6) * 2 - 44px);
+    height: 100%;
     max-width: 800px;
     margin: 0 auto;
     position: relative;
@@ -693,7 +693,7 @@
 
   @media (max-width: 768px) {
     .chat-container {
-      height: calc(100vh - 44px - var(--space-3) * 2 - 44px);
+      height: 100%;
     }
   }
 </style>
