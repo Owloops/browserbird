@@ -43,7 +43,7 @@ export const DEFAULTS: Config = {
     novncPort: 6080,
     novncHost: 'localhost',
   },
-  birds: { maxAttempts: 3 },
+  birds: { maxAttempts: 3, maxConsecutiveFailures: 2 },
   web: { enabled: true, host: '127.0.0.1', port: 18800, corsOrigin: '' },
 };
 

@@ -15,11 +15,23 @@ import {
   completeCronRun,
 } from './db/index.ts';
 import { logger } from './core/logger.ts';
+import { shortUid } from './core/uid.ts';
 import { broadcastSSE } from './server/index.ts';
 
 type JobHandler = (payload: unknown) => Promise<string | void> | string | void;
 
+export interface BirdDisabledEvent {
+  cronJobUid: string;
+  name: string;
+  failureCount: number;
+  channelId: string | null;
+}
+
+type BirdDisabledCallback = (event: BirdDisabledEvent) => void;
+
 const handlers = new Map<string, JobHandler>();
+let onBirdDisabledCb: BirdDisabledCallback | undefined;
+let getMaxConsecutiveFailures = (): number => 0;
 
 const POLL_INTERVAL_MS = 1000;
 const STALE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -97,7 +109,29 @@ async function processJob(job: JobRow): Promise<void> {
         const cronJob = getCronJob(job.cron_job_uid);
         if (cronJob != null) {
           const newFailureCount = finalStatus === 'failed' ? cronJob.failure_count + 1 : 0;
-          updateCronJobStatus(job.cron_job_uid, finalStatus, newFailureCount);
+          const shouldDisable =
+            newFailureCount > 0 &&
+            getMaxConsecutiveFailures() > 0 &&
+            newFailureCount >= getMaxConsecutiveFailures();
+          updateCronJobStatus(
+            job.cron_job_uid,
+            finalStatus,
+            newFailureCount,
+            shouldDisable ? false : undefined,
+          );
+
+          if (shouldDisable) {
+            logger.warn(
+              `bird ${shortUid(job.cron_job_uid)} disabled after ${newFailureCount} consecutive failures`,
+            );
+
+            onBirdDisabledCb?.({
+              cronJobUid: job.cron_job_uid,
+              name: cronJob.name,
+              failureCount: newFailureCount,
+              channelId: cronJob.target_channel_id,
+            });
+          }
         }
       }
     }
@@ -108,11 +142,18 @@ async function processJob(job: JobRow): Promise<void> {
   }
 }
 
+export interface WorkerOptions {
+  maxConsecutiveFailures?: () => number;
+  onBirdDisabled?: BirdDisabledCallback;
+}
+
 /**
  * Starts the job worker loop. Polls for pending jobs, processes them one at a time.
  * Checks for stale running jobs every 5 minutes.
  */
-export function startWorker(signal: AbortSignal): void {
+export function startWorker(signal: AbortSignal, options?: WorkerOptions): void {
+  getMaxConsecutiveFailures = options?.maxConsecutiveFailures ?? (() => 0);
+  onBirdDisabledCb = options?.onBirdDisabled;
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
   const pollTick = async () => {

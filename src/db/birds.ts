@@ -129,11 +129,25 @@ export function createCronJob(
   ) as unknown as CronJobRow;
 }
 
-export function updateCronJobStatus(jobUid: string, status: string, failureCount: number): void {
-  const stmt = getDb().prepare(
-    `UPDATE cron_jobs SET last_run = datetime('now'), last_status = ?, failure_count = ? WHERE uid = ?`,
-  );
-  stmt.run(status, failureCount, jobUid);
+export function updateCronJobStatus(
+  jobUid: string,
+  status: string,
+  failureCount: number,
+  enabled?: boolean,
+): void {
+  if (enabled != null) {
+    getDb()
+      .prepare(
+        `UPDATE cron_jobs SET last_run = datetime('now'), last_status = ?, failure_count = ?, enabled = ? WHERE uid = ?`,
+      )
+      .run(status, failureCount, enabled ? 1 : 0, jobUid);
+  } else {
+    getDb()
+      .prepare(
+        `UPDATE cron_jobs SET last_run = datetime('now'), last_status = ?, failure_count = ? WHERE uid = ?`,
+      )
+      .run(status, failureCount, jobUid);
+  }
 }
 
 export function getCronJob(jobUid: string): CronJobRow | undefined {

@@ -60,6 +60,7 @@ export interface DatabaseConfig {
 
 export interface BirdsConfig {
   maxAttempts: number;
+  maxConsecutiveFailures: number;
 }
 
 export interface WebConfig {

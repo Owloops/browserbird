@@ -43,7 +43,8 @@
     "novncHost": "localhost"
   },
   "birds": {
-    "maxAttempts": 3
+    "maxAttempts": 3,
+    "maxConsecutiveFailures": 2
   },
   "web": {
     "enabled": true,

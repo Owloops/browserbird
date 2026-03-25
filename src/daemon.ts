@@ -24,6 +24,7 @@ import {
 import { addSecrets, VAULT_SECRET_MIN_LENGTH } from './core/redact.ts';
 import { ensureVaultKey } from './core/crypto.ts';
 import { startWorker, clearHandlers } from './jobs.ts';
+import type { BirdDisabledEvent } from './jobs.ts';
 import { startScheduler } from './cron/scheduler.ts';
 import { createSlackChannel } from './channel/slack.ts';
 import { createWebChannel } from './channel/web.ts';
@@ -99,7 +100,6 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     const vaultValues = getAllKeyValues();
     if (vaultValues.length > 0) addSecrets(vaultValues, VAULT_SECRET_MIN_LENGTH);
     clearBrowserLock();
-    startWorker(controller.signal);
     let currentConfig: Config;
     let slackHandle: ChannelHandle | null = null;
     let webChannel: WebChannel | null = null;
@@ -115,6 +115,18 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
       logger.warn(`config validation failed: ${err instanceof Error ? err.message : String(err)}`);
       currentConfig = loadRawConfig(configPath) as unknown as Config;
     }
+
+    const onBirdDisabled = (event: BirdDisabledEvent) => {
+      if (event.channelId && slackHandle) {
+        const text = `Bird "${event.name}" disabled after ${event.failureCount} consecutive failures.`;
+        slackHandle.postMessage(event.channelId, text).catch(() => {});
+      }
+    };
+
+    startWorker(controller.signal, {
+      maxConsecutiveFailures: () => currentConfig.birds.maxConsecutiveFailures,
+      onBirdDisabled,
+    });
 
     const getConfig = (): Config => currentConfig;
     const getDeps = (): WebServerDeps => ({

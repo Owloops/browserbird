@@ -152,6 +152,13 @@ function validateConfigPatch(body: Record<string, unknown>): string | null {
     ) {
       return '"birds.maxAttempts" must be a positive integer';
     }
+    if (
+      'maxConsecutiveFailures' in b &&
+      (!Number.isInteger(b['maxConsecutiveFailures']) ||
+        (b['maxConsecutiveFailures'] as number) < 0)
+    ) {
+      return '"birds.maxConsecutiveFailures" must be a non-negative integer';
+    }
   }
 
   if ('browser' in body) {

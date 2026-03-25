@@ -58,7 +58,7 @@ export interface ConfigResponse {
     channels: string[];
     quietHours: { enabled: boolean; start: string; end: string; timezone: string };
   };
-  birds: { maxAttempts: number };
+  birds: { maxAttempts: number; maxConsecutiveFailures: number };
   browser: {
     enabled: boolean;
     mode: string;

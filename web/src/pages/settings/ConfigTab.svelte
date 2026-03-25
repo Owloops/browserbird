@@ -570,6 +570,29 @@
           {/if}
         </span>
       </div>
+      <div class="row">
+        <span class="row-label">Max Consecutive Failures</span>
+        <span class="row-value">
+          {#if editor.editingField === 'birds.maxConsecutiveFailures'}
+            <InlineEdit
+              bind:value={editValue}
+              mono
+              saving={editor.editingSaving}
+              onsave={(v) => editor.saveField('birds.maxConsecutiveFailures', v, (s) => Number(s))}
+              oncancel={editor.cancelEdit}
+            />
+          {:else}
+            <button
+              class="val-btn mono editable"
+              onclick={() =>
+                handleStartEdit(
+                  'birds.maxConsecutiveFailures',
+                  config.birds.maxConsecutiveFailures,
+                )}>{config.birds.maxConsecutiveFailures}</button
+            >
+          {/if}
+        </span>
+      </div>
     </div>
   </div>
 

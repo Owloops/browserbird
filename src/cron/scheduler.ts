@@ -10,6 +10,7 @@ import { shortUid } from '../core/uid.ts';
 import {
   SYSTEM_CRON_PREFIX,
   getEnabledCronJobs,
+  getCronJob,
   updateCronJobStatus,
   setCronJobEnabled,
   ensureSystemCronJob,
@@ -188,7 +189,9 @@ export function startScheduler(
           );
         } else if (event.type === 'error') {
           const safeError = redact(event.error);
-          if (payload.channelId && deps?.postToSlack) {
+          const bird = getCronJob(payload.cronJobUid);
+          const isFirstFailure = bird != null && bird.failure_count === 0;
+          if (isFirstFailure && payload.channelId && deps?.postToSlack) {
             const blocks = sessionErrorBlocks(safeError, { birdName: agent.name });
             await deps.postToSlack(payload.channelId, `Bird failed: ${safeError}`, { blocks });
           }
