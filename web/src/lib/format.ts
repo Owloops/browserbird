@@ -18,6 +18,15 @@ export function formatUptime(ms: number): string {
 
 export function formatAge(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr + 'Z').getTime();
+  return relativeAge(ms);
+}
+
+export function formatIsoAge(isoDate: string): string {
+  const ms = Date.now() - new Date(isoDate).getTime();
+  return relativeAge(ms);
+}
+
+function relativeAge(ms: number): string {
   const minutes = Math.floor(ms / 60_000);
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes}m ago`;

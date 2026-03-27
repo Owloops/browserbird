@@ -4,7 +4,7 @@
   import { showToast } from '../../lib/toast.svelte.ts';
   import { showConfirm } from '../../lib/confirm.svelte.ts';
   import { onInvalidate } from '../../lib/invalidate.ts';
-  import { formatAge } from '../../lib/format.ts';
+  import { formatIsoAge } from '../../lib/format.ts';
   import Toggle from '../../components/Toggle.svelte';
 
   interface Props {
@@ -187,7 +187,7 @@
           <div class="backup-info">
             <span class="backup-name mono">{backup.name}</span>
             <span class="backup-meta">
-              {formatSize(backup.size)} &middot; {formatAge(backup.created.replace('Z', ''))}
+              {formatSize(backup.size)} &middot; {formatIsoAge(backup.created)}
             </span>
           </div>
           <div class="backup-actions">

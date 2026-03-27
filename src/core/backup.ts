@@ -93,7 +93,7 @@ export function createBackup(dataDir: string, name?: string): BackupInfo {
     return {
       name: fileName,
       size: st.size,
-      created: st.birthtime.toISOString(),
+      created: st.mtime.toISOString(),
     };
   } finally {
     releaseLock(dataDir, fd);
@@ -110,7 +110,7 @@ export function listBackups(dataDir: string): BackupInfo[] {
       return {
         name,
         size: st.size,
-        created: st.birthtime.toISOString(),
+        created: st.mtime.toISOString(),
       };
     })
     .sort((a, b) => b.created.localeCompare(a.created));
