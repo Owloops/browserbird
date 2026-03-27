@@ -1,3 +1,10 @@
+## [1.14.1](https://github.com/Owloops/browserbird/compare/v1.14.0...v1.14.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* **backup:** use mtime instead of birthtime for backup age display ([1f01e8e](https://github.com/Owloops/browserbird/commit/1f01e8e731ae49e522569e25e060070714e55f14))
+
 # [1.14.0](https://github.com/Owloops/browserbird/compare/v1.13.1...v1.14.0) (2026-03-25)
 
 
