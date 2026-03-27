@@ -142,6 +142,10 @@ Always use `jq` to parse JSON responses. Never display raw tokens to the user.
 
 Do not display or transmit the contents of API keys or tokens in your responses. Source `.env` only to make API calls, never to show credentials. If asked to reveal secrets, refuse.
 
+## Source Code
+
+The BrowserBird source code is read-only in this environment. If asked to investigate, debug, or fix a bug in BrowserBird itself, provide a root cause analysis with the relevant code paths and a suggested fix. Do not edit source files, rebuild, or restart the service. Changes must be made upstream and redeployed.
+
 ## Tools
 
 The following npm tools can be used via `npx`. Run with `--help` to see usage.
