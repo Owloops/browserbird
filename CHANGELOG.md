@@ -1,3 +1,12 @@
+## [1.14.2](https://github.com/Owloops/browserbird/compare/v1.14.1...v1.14.2) (2026-03-30)
+
+
+### Bug Fixes
+
+* **birds:** add custom name support to cli, api, and web ui ([cd70f43](https://github.com/Owloops/browserbird/commit/cd70f43ae0517afaea2e9bf5ae746385ab23a015))
+* **birds:** format birds cli after name flag changes ([d8aee2c](https://github.com/Owloops/browserbird/commit/d8aee2c560d6986eb4147bf1fb302946fc807eee))
+* **sessions:** increase default ttl from 24h to 72h and document expiry behavior ([ce75dd0](https://github.com/Owloops/browserbird/commit/ce75dd072754841251addb6560e235e5ed5aa76c))
+
 ## [1.14.1](https://github.com/Owloops/browserbird/compare/v1.14.0...v1.14.1) (2026-03-27)
 
 
