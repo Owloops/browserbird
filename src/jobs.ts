@@ -159,14 +159,21 @@ export function startWorker(signal: AbortSignal, options?: WorkerOptions): void 
   const pollTick = async () => {
     if (signal.aborted) return;
 
-    const job = claimNextJob();
-    if (job) {
-      await processJob(job);
-      if (!signal.aborted) pollTick();
-      return;
+    try {
+      const job = claimNextJob();
+      if (job) {
+        logger.debug(`worker claimed job ${job.id}: ${job.name}`);
+        await processJob(job);
+        if (!signal.aborted) pollTick();
+        return;
+      }
+    } catch (err) {
+      logger.error(`worker poll failed: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    pollTimer = setTimeout(pollTick, POLL_INTERVAL_MS);
+    if (!signal.aborted) {
+      pollTimer = setTimeout(pollTick, POLL_INTERVAL_MS);
+    }
   };
 
   const staleCheck = () => {
