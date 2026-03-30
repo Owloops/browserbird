@@ -28,7 +28,7 @@
     }
   ],
   "sessions": {
-    "ttlHours": 24,
+    "ttlHours": 72,
     "maxConcurrent": 5,
     "processTimeoutMs": 300000
   },

@@ -28,7 +28,7 @@ export const DEFAULTS: Config = {
     },
   ],
   sessions: {
-    ttlHours: 24,
+    ttlHours: 72,
     maxConcurrent: 5,
     processTimeoutMs: 300_000,
   },

@@ -184,13 +184,13 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 
 ```json
 "sessions": {
-  "ttlHours": 24,
+  "ttlHours": 72,
   "maxConcurrent": 5,
   "processTimeoutMs": 300000
 }
 ```
 
-- `ttlHours`: Session lifetime in hours (resets on each message)
+- `ttlHours`: Hours of inactivity before a session expires. The timer resets on each message. When a session expires, the agent starts fresh with no memory of the previous conversation. Messages are still stored in BrowserBird's database, but the agent itself begins a new context. Default is 72 (3 days)
 - `maxConcurrent`: Max simultaneous agent processes
 - `processTimeoutMs`: Per-request timeout in milliseconds
 
