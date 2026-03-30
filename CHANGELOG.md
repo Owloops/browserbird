@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/Owloops/browserbird/compare/v1.15.0...v1.16.0) (2026-03-30)
+
+
+### Features
+
+* **birds:** stream bird output to slack threads ([66a7123](https://github.com/Owloops/browserbird/commit/66a71236b2fc0764d2dab1fbf442e0b00187271c))
+
 # [1.15.0](https://github.com/Owloops/browserbird/compare/v1.14.3...v1.15.0) (2026-03-30)
 
 
