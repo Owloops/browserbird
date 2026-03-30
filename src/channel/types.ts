@@ -80,4 +80,7 @@ export interface ChannelHandle {
   postMessage(channel: string, text: string, opts?: MessageOptions): Promise<string>;
   setTitle(channelId: string, threadTs: string, title: string): Promise<void>;
   resolveChannelNames(): Promise<void>;
+  channelClient(): ChannelClient;
+  teamId(): string;
+  botUserId(): string;
 }

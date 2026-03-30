@@ -581,6 +581,9 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
     postMessage,
     setTitle,
     resolveChannelNames,
+    channelClient: () => channelClient,
+    teamId: () => teamId,
+    botUserId: () => botUserId,
   };
 }
 

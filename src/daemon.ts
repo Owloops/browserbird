@@ -145,10 +145,9 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
       if (!schedulerStarted && config.agents.length > 0) {
         logger.info('starting scheduler...');
         startScheduler(getConfig, controller.signal, {
-          postToSlack: (channel, text, opts) =>
-            slackHandle ? slackHandle.postMessage(channel, text, opts) : Promise.resolve(''),
-          setThreadTitle: (channelId, threadTs, title) =>
-            slackHandle ? slackHandle.setTitle(channelId, threadTs, title) : Promise.resolve(),
+          channelClient: () => slackHandle?.channelClient(),
+          teamId: () => slackHandle?.teamId() ?? '',
+          botUserId: () => slackHandle?.botUserId() ?? '',
         });
         schedulerStarted = true;
       }

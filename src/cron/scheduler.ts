@@ -1,16 +1,14 @@
 /** @fileoverview Cron scheduler: evaluates cron jobs every 60s and enqueues due jobs. */
 
 import type { Config } from '../core/types.ts';
-import type { Block } from '../channel/blocks.ts';
 import type { CronSchedule } from './parse.ts';
-import type { StreamEventCompletion } from '../provider/stream.ts';
+import type { ChannelClient } from '../channel/types.ts';
 
 import { logger } from '../core/logger.ts';
 import { shortUid } from '../core/uid.ts';
 import {
   SYSTEM_CRON_PREFIX,
   getEnabledCronJobs,
-  getCronJob,
   updateCronJobStatus,
   setCronJobEnabled,
   ensureSystemCronJob,
@@ -33,12 +31,10 @@ import { resolveExtraEnv } from '../db/keys.ts';
 import { getDocsSystemPrompt } from '../db/docs.ts';
 import { redact } from '../core/redact.ts';
 import { parseCron, matchesCron, isWithinActiveHours } from './parse.ts';
-import { sessionCompleteBlocks, sessionErrorBlocks } from '../channel/blocks.ts';
+import { streamToChannel, BROWSER_TOOL_PREFIX } from '../channel/stream.ts';
 import { acquireBrowserLockWithHeartbeat } from '../browser/lock.ts';
 import type { BrowserLockHandle } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
-
-const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
 
 const activeKills = new Map<string, () => void>();
 
@@ -59,6 +55,7 @@ const MAX_SCHEDULE_ERRORS = 3;
 
 interface CronRunPayload {
   cronJobUid: string;
+  birdName: string;
   prompt: string;
   channelId: string | null;
   agentId: string;
@@ -70,8 +67,9 @@ interface SystemCronPayload {
 }
 
 export interface SchedulerDeps {
-  postToSlack?: (channel: string, text: string, opts?: { blocks?: Block[] }) => Promise<string>;
-  setThreadTitle?: (channelId: string, threadTs: string, title: string) => Promise<void>;
+  channelClient?: () => ChannelClient | undefined;
+  teamId?: () => string;
+  botUserId?: () => string;
 }
 
 type SystemCronHandler = () => string | void;
@@ -167,8 +165,65 @@ export function startScheduler(
         logMessage(payload.channelId, null, agent.id, 'in', payload.prompt);
       }
 
+      const client = deps?.channelClient?.();
+      const canStream = payload.channelId && client && deps?.teamId && deps?.botUserId;
+
+      if (canStream) {
+        const threadTs = await client.postMessage(
+          payload.channelId!,
+          '',
+          `_Running ${payload.birdName}..._`,
+        );
+
+        const title = `${payload.birdName}: ${payload.prompt.slice(0, 60)}`;
+        client.setTitle?.(payload.channelId!, threadTs, title).catch(() => {});
+
+        const onToolUse = (toolName: string) => {
+          if (!needsBrowserLock || browserLock) return;
+          if (!toolName.startsWith(BROWSER_TOOL_PREFIX)) return;
+          browserLock = acquireBrowserLockWithHeartbeat(
+            payload.cronJobUid,
+            config.sessions.processTimeoutMs,
+          );
+          if (!browserLock) throw new Error('browser is locked by another session');
+          logger.info(`browser lock acquired lazily for bird ${shortUid(payload.cronJobUid)}`);
+        };
+
+        const { fullText, error } = await streamToChannel(
+          client,
+          signal,
+          events,
+          {
+            channelId: payload.channelId!,
+            threadTs,
+            teamId: deps!.teamId!(),
+            userId: deps!.botUserId!(),
+          },
+          { birdName: agent.name, onToolUse },
+          {
+            onCompletion: (text, comp) => {
+              logMessage(
+                payload.channelId!,
+                threadTs,
+                agent.id,
+                'out',
+                text || undefined,
+                comp.tokensIn,
+                comp.tokensOut,
+              );
+            },
+          },
+        );
+
+        if (error) {
+          throw new Error(error);
+        }
+
+        logger.info(`bird ${shortUid(payload.cronJobUid)} streamed to ${payload.channelId}`);
+        return fullText || 'completed (no output)';
+      }
+
       let result = '';
-      let completion: StreamEventCompletion | undefined;
       for await (const event of events) {
         if (event.type === 'tool_use') {
           if (needsBrowserLock && !browserLock && event.toolName.startsWith(BROWSER_TOOL_PREFIX)) {
@@ -181,58 +236,15 @@ export function startScheduler(
           }
         } else if (event.type === 'text_delta') {
           result += redact(event.delta);
-        } else if (event.type === 'completion') {
-          completion = event;
-        } else if (event.type === 'rate_limit') {
-          logger.debug(
-            `bird ${shortUid(payload.cronJobUid)} rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
-          );
         } else if (event.type === 'error') {
-          const safeError = redact(event.error);
-          const bird = getCronJob(payload.cronJobUid);
-          const isFirstFailure = bird != null && bird.failure_count === 0;
-          if (isFirstFailure && payload.channelId && deps?.postToSlack) {
-            const blocks = sessionErrorBlocks(safeError, { birdName: agent.name });
-            await deps.postToSlack(payload.channelId, `Bird failed: ${safeError}`, { blocks });
-          }
-          throw new Error(safeError);
+          throw new Error(redact(event.error));
         }
       }
 
-      if (completion && payload.channelId) {
-        logMessage(
-          payload.channelId,
-          null,
-          agent.id,
-          'out',
-          result || undefined,
-          completion.tokensIn,
-          completion.tokensOut,
-        );
-      }
-
-      if (!result) {
-        logger.info(`bird ${shortUid(payload.cronJobUid)} completed (no output)`);
-        return 'completed (no output)';
-      }
-
-      if (payload.channelId && deps?.postToSlack) {
-        const ts = await deps.postToSlack(payload.channelId, result);
-        if (ts && deps.setThreadTitle) {
-          const title = `${agent.name}: ${payload.prompt.slice(0, 60)}`;
-          deps.setThreadTitle(payload.channelId, ts, title).catch(() => {});
-        }
-        if (completion) {
-          const blocks = sessionCompleteBlocks(completion, undefined, agent.name);
-          const fallback = `Bird ${agent.name} completed: ${completion.numTurns} turns`;
-          await deps.postToSlack(payload.channelId, fallback, { blocks });
-        }
-        logger.info(`bird ${shortUid(payload.cronJobUid)} result posted to ${payload.channelId}`);
-      } else {
-        logger.info(`bird ${shortUid(payload.cronJobUid)} completed (${result.length} chars)`);
-      }
-
-      return result;
+      logger.info(
+        `bird ${shortUid(payload.cronJobUid)} completed (${result.length} chars, no channel)`,
+      );
+      return result || 'completed (no output)';
     } finally {
       activeKills.delete(payload.cronJobUid);
       browserLock?.release();
@@ -314,6 +326,7 @@ export function startScheduler(
           'cron_run',
           {
             cronJobUid: job.uid,
+            birdName: job.name,
             prompt: job.prompt,
             channelId: job.target_channel_id,
             agentId: job.agent_id,

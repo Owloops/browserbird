@@ -248,45 +248,6 @@ export function completionFooterBlocks(
   ];
 }
 
-/**
- * Standalone completion card for cron/bird results posted to a channel
- * (not in a streaming thread; these need full context).
- */
-export function sessionCompleteBlocks(
-  completion: StreamEventCompletion,
-  summary: string | undefined,
-  birdName?: string,
-  userId?: string,
-): Block[] {
-  const subtypeLabel = SUBTYPE_LABELS[completion.subtype];
-  const statusText = subtypeLabel ?? 'Success';
-  const headerText = completion.subtype === 'success' ? 'Session Complete' : 'Session Ended';
-
-  const blocks: Block[] = [
-    header(headerText),
-    fields(
-      ['Status', statusText],
-      ['Duration', formatDuration(completion.durationMs)],
-      ['Turns', String(completion.numTurns)],
-    ),
-  ];
-
-  if (summary) {
-    const trimmed = summary.length > 2800 ? summary.slice(0, 2800) + '...' : summary;
-    blocks.push(section(`*Summary:*\n${trimmed}`, { expand: true }));
-  }
-
-  const contextParts: string[] = [];
-  if (birdName) contextParts.push(`Bird: *${birdName}*`);
-  if (userId) contextParts.push(`Triggered by <@${userId}>`);
-  contextParts.push(
-    `${completion.tokensIn.toLocaleString()} in / ${completion.tokensOut.toLocaleString()} out tokens`,
-  );
-  blocks.push(context(contextParts.join(' | ')));
-
-  return blocks;
-}
-
 export function sessionErrorBlocks(
   errorMessage: string,
   opts?: {

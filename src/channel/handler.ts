@@ -2,8 +2,7 @@
 
 import type { Config } from '../core/types.ts';
 import type { CoalesceDispatch } from './coalesce.ts';
-import type { StreamEvent, StreamEventCompletion, ToolImage } from '../provider/stream.ts';
-import type { ChannelClient, StreamChunk, StreamHandle } from './types.ts';
+import type { ChannelClient } from './types.ts';
 
 import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
@@ -11,62 +10,12 @@ import * as db from '../db/index.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
 import { getDocsSystemPrompt } from '../db/docs.ts';
 import { logger } from '../core/logger.ts';
-import { redact } from '../core/redact.ts';
 import { broadcastSSE } from '../server/index.ts';
-import {
-  sessionErrorBlocks,
-  busyBlocks,
-  noAgentBlocks,
-  completionFooterBlocks,
-  sessionTimeoutBlocks,
-} from './blocks.ts';
+import { sessionErrorBlocks, busyBlocks, noAgentBlocks } from './blocks.ts';
+import { streamToChannel, BROWSER_TOOL_PREFIX } from './stream.ts';
 import { acquireBrowserLockWithHeartbeat } from '../browser/lock.ts';
 import type { BrowserLockHandle } from '../browser/lock.ts';
 import { getBrowserMode } from '../config.ts';
-
-const BROWSER_TOOL_PREFIX = 'mcp__playwright__';
-const STATUS_REFRESH_MS = 90_000;
-
-function toolStatusText(toolName: string): string {
-  if (toolName.startsWith(BROWSER_TOOL_PREFIX)) return 'is using the browser...';
-  if (toolName.startsWith('mcp__')) return 'is using a tool...';
-  if (toolName === 'Bash') return 'is running a command...';
-  if (toolName === 'Read' || toolName === 'Grep' || toolName === 'Glob')
-    return 'is reading files...';
-  if (toolName === 'Edit' || toolName === 'Write') return 'is writing code...';
-  return 'is working...';
-}
-
-function toolTaskTitle(toolName: string): string {
-  if (toolName.startsWith(BROWSER_TOOL_PREFIX)) {
-    const action = toolName.slice(BROWSER_TOOL_PREFIX.length);
-    return `Browser: ${action}`;
-  }
-  if (toolName.startsWith('mcp__')) {
-    const parts = toolName.slice('mcp__'.length).split('__');
-    const server = parts[0] ?? 'mcp';
-    const action = parts.slice(1).join('__') || 'call';
-    return `${server}: ${action}`;
-  }
-  switch (toolName) {
-    case 'Bash':
-      return 'Running command';
-    case 'Read':
-      return 'Reading file';
-    case 'Grep':
-      return 'Searching code';
-    case 'Glob':
-      return 'Finding files';
-    case 'Edit':
-      return 'Editing file';
-    case 'Write':
-      return 'Writing file';
-    case 'Agent':
-      return 'Running sub-agent';
-    default:
-      return toolName;
-  }
-}
 
 interface SessionLock {
   processing: boolean;
@@ -110,295 +59,6 @@ export function createHandler(
         return `[${time}] @${m.userId}: ${m.text}`;
       })
       .join('\n');
-  }
-
-  async function streamToChannel(
-    events: AsyncIterable<StreamEvent>,
-    channelId: string,
-    threadTs: string,
-    sessionUid: string,
-    teamId: string,
-    userId: string,
-    meta: { birdName?: string; onToolUse?: (toolName: string) => void },
-  ): Promise<void> {
-    const streamOpts = { channelId, threadTs, teamId, userId };
-    let streamer = client.startStream(streamOpts);
-    let streamDead = false;
-    let streamedChars = 0;
-    let fullText = '';
-    let completion: StreamEventCompletion | undefined;
-    let hasError = false;
-    let timedOut = false;
-    let timedOutMs = 0;
-
-    const activeTasks = new Map<string, string>();
-    let toolCount = 0;
-    let toolErrors = 0;
-    let toolSuccesses = 0;
-
-    const STREAM_CHAR_LIMIT = 30_000;
-
-    function isStreamExpired(err: unknown): boolean {
-      const msg = err instanceof Error ? err.message : String(err);
-      return (
-        msg.includes('not_in_streaming_state') ||
-        msg.includes('streaming') ||
-        msg.includes('msg_too_long')
-      );
-    }
-
-    let streamToolCount = 0;
-
-    async function resetStream(): Promise<void> {
-      try {
-        await streamer.stop();
-      } catch {
-        /* stream may already be dead */
-      }
-      streamer = client.startStream(streamOpts);
-      streamedChars = 0;
-      streamToolCount = 0;
-      needsPlanHeader = true;
-      logger.debug('stream reset: started new streaming message');
-    }
-
-    let needsPlanHeader = true;
-
-    async function safeAppend(content: {
-      markdown_text?: string;
-      chunks?: StreamChunk[];
-    }): Promise<void> {
-      if (streamDead) {
-        if (content.markdown_text) {
-          await client.postMessage(channelId, threadTs, content.markdown_text).catch(() => {});
-        }
-        return;
-      }
-
-      const textLen = content.markdown_text?.length ?? 0;
-      if (textLen > 0 && streamedChars + textLen > STREAM_CHAR_LIMIT) {
-        await resetStream();
-      }
-
-      try {
-        await streamer.append(content);
-        streamedChars += textLen;
-      } catch (err) {
-        if (isStreamExpired(err)) {
-          streamDead = true;
-          logger.warn('slack stream expired, falling back to regular messages');
-        } else {
-          throw err;
-        }
-      }
-    }
-
-    async function safeStop(opts?: Parameters<StreamHandle['stop']>[0]): Promise<void> {
-      if (streamDead) {
-        if (opts?.blocks) {
-          await client
-            .postMessage(channelId, threadTs, '', { blocks: opts.blocks })
-            .catch(() => {});
-        }
-        return;
-      }
-      try {
-        await streamer.stop(opts);
-      } catch (err) {
-        if (isStreamExpired(err)) {
-          streamDead = true;
-        } else {
-          await streamer.stop().catch(() => {});
-          throw err;
-        }
-      }
-    }
-
-    let lastStatus = 'is thinking...';
-    const refreshStatus = () => {
-      client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
-    };
-    const statusTimer = setInterval(refreshStatus, STATUS_REFRESH_MS);
-
-    try {
-      for await (const event of events) {
-        if (signal.aborted) break;
-        logger.debug(`stream event: ${event.type}`);
-
-        switch (event.type) {
-          case 'init':
-            db.updateSessionProviderId(sessionUid, event.sessionId);
-            break;
-
-          case 'text_delta': {
-            const safe = redact(event.delta);
-            fullText += safe;
-            await safeAppend({ markdown_text: safe });
-            break;
-          }
-
-          case 'tool_images':
-            await uploadImages(event.images, channelId, threadTs);
-            break;
-
-          case 'tool_use': {
-            meta.onToolUse?.(event.toolName);
-            lastStatus = toolStatusText(event.toolName);
-            client.setStatus?.(channelId, threadTs, lastStatus).catch(() => {});
-
-            if (event.toolCallId !== undefined) {
-              toolCount++;
-              streamToolCount++;
-              activeTasks.set(event.toolCallId, event.toolName);
-              const title = toolTaskTitle(event.toolName);
-              const chunks: StreamChunk[] = [];
-              if (needsPlanHeader) {
-                chunks.push({ type: 'plan_update', title: 'Working on it' });
-                needsPlanHeader = false;
-              }
-              chunks.push({
-                type: 'task_update',
-                id: event.toolCallId,
-                title,
-                status: 'in_progress',
-                ...(event.details ? { details: redact(event.details) } : {}),
-              });
-              await safeAppend({ chunks });
-            }
-            break;
-          }
-
-          case 'tool_result': {
-            const toolName = activeTasks.get(event.toolCallId);
-            if (toolName) {
-              activeTasks.delete(event.toolCallId);
-              const title = toolTaskTitle(toolName);
-              if (event.isError) {
-                toolErrors++;
-              } else {
-                toolSuccesses++;
-              }
-              const chunks: StreamChunk[] = [
-                {
-                  type: 'task_update',
-                  id: event.toolCallId,
-                  title,
-                  status: event.isError ? 'error' : 'complete',
-                  ...(event.output ? { output: redact(event.output) } : {}),
-                },
-              ];
-              if (activeTasks.size === 0) {
-                const label =
-                  toolErrors === 0
-                    ? `Completed (${streamToolCount} ${streamToolCount === 1 ? 'step' : 'steps'})`
-                    : `${toolSuccesses} passed, ${toolErrors} failed`;
-                chunks.push({ type: 'plan_update', title: label });
-              }
-              await safeAppend({ chunks });
-            }
-            break;
-          }
-
-          case 'completion':
-            completion = event;
-            logger.info(
-              `completion [${event.subtype}]: ${event.tokensIn}in/${event.tokensOut}out, $${event.costUsd.toFixed(4)}, ${event.numTurns} turns`,
-            );
-            db.logMessage(
-              channelId,
-              threadTs,
-              'bot',
-              'out',
-              fullText,
-              event.tokensIn,
-              event.tokensOut,
-            );
-            break;
-
-          case 'rate_limit':
-            logger.debug(
-              `rate limit window resets ${new Date(event.resetsAt * 1000).toISOString()}`,
-            );
-            break;
-
-          case 'error': {
-            hasError = true;
-            const safeError = redact(event.error);
-            logger.error(`agent error: ${safeError}`);
-            db.insertLog('error', 'spawn', safeError, channelId);
-            await safeAppend({ markdown_text: `\n\nError: ${safeError}` });
-            break;
-          }
-
-          case 'timeout':
-            timedOut = true;
-            timedOutMs = event.timeoutMs;
-            logger.warn(`session timed out after ${event.timeoutMs}ms`);
-            break;
-        }
-      }
-
-      if (activeTasks.size > 0) {
-        const staleChunks: StreamChunk[] = [];
-        for (const [id, toolName] of activeTasks) {
-          staleChunks.push({
-            type: 'task_update',
-            id,
-            title: toolTaskTitle(toolName),
-            status: 'error',
-          });
-        }
-        await safeAppend({ chunks: staleChunks });
-        activeTasks.clear();
-      }
-
-      if (toolCount > 0 && (hasError || activeTasks.size > 0)) {
-        const planTitle = hasError
-          ? 'Finished with errors'
-          : `Interrupted (${toolCount} ${toolCount === 1 ? 'step' : 'steps'})`;
-        await safeAppend({ chunks: [{ type: 'plan_update', title: planTitle }] });
-      }
-
-      if (timedOut) {
-        await safeStop({});
-        const blocks = sessionTimeoutBlocks(timedOutMs, { sessionUid });
-        await client.postMessage(
-          channelId,
-          threadTs,
-          `Session timed out after ${Math.round(timedOutMs / 60_000)} minutes.`,
-          { blocks },
-        );
-      } else if (completion) {
-        const footerBlocks = completionFooterBlocks(completion, hasError, meta.birdName, userId);
-        await safeStop({ blocks: footerBlocks });
-      } else {
-        if (!fullText) {
-          await safeAppend({ markdown_text: '_Stopped._' });
-        }
-        await safeStop({});
-      }
-    } finally {
-      clearInterval(statusTimer);
-      client.setStatus?.(channelId, threadTs, '').catch(() => {});
-    }
-  }
-
-  async function uploadImages(
-    images: ToolImage[],
-    channelId: string,
-    threadTs: string,
-  ): Promise<void> {
-    for (let i = 0; i < images.length; i++) {
-      const img = images[i]!;
-      const content = Buffer.from(img.data, 'base64');
-      const ext = img.mediaType === 'image/jpeg' ? 'jpg' : 'png';
-      const filename = `screenshot-${i + 1}.${ext}`;
-      try {
-        await client.uploadFile(channelId, threadTs, content, filename, `Screenshot ${i + 1}`);
-      } catch (err) {
-        logger.warn(`image upload failed: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
   }
 
   async function handle(dispatch: CoalesceDispatch): Promise<void> {
@@ -509,10 +169,32 @@ export function createHandler(
         }
       };
 
-      await streamToChannel(events, channelId, threadTs, session.uid, getTeamId(), userId, {
-        birdName: agent.name,
-        onToolUse,
-      });
+      await streamToChannel(
+        client,
+        signal,
+        events,
+        { channelId, threadTs, teamId: getTeamId(), userId },
+        {
+          sessionUid: session.uid,
+          birdName: agent.name,
+          onToolUse,
+        },
+        {
+          onInit: (sessionId) => db.updateSessionProviderId(session.uid, sessionId),
+          onCompletion: (fullText, completion) => {
+            db.logMessage(
+              channelId,
+              threadTs,
+              'bot',
+              'out',
+              fullText,
+              completion.tokensIn,
+              completion.tokensOut,
+            );
+          },
+          onError: (error) => db.insertLog('error', 'spawn', error, channelId),
+        },
+      );
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       logger.error(`handler error: ${errMsg}`);

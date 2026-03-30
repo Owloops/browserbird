@@ -314,6 +314,7 @@ export function handleBirds(argv: string[]): void {
           'cron_run',
           {
             cronJobUid: cronJob.uid,
+            birdName: cronJob.name,
             prompt: cronJob.prompt,
             channelId: cronJob.target_channel_id,
             agentId: cronJob.agent_id,

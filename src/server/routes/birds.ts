@@ -227,6 +227,7 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
               'cron_run',
               {
                 cronJobUid: bird.uid,
+                birdName: bird.name,
                 prompt: bird.prompt,
                 channelId: bird.target_channel_id,
                 agentId: bird.agent_id,
