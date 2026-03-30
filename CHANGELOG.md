@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/Owloops/browserbird/compare/v1.14.3...v1.15.0) (2026-03-30)
+
+
+### Features
+
+* **daemon:** support BROWSERBIRD_VERBOSE env var for debug logging ([11fb674](https://github.com/Owloops/browserbird/commit/11fb6743877665c00f71a208149c7efd319ac925))
+
 ## [1.14.3](https://github.com/Owloops/browserbird/compare/v1.14.2...v1.14.3) (2026-03-30)
 
 
