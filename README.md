@@ -40,7 +40,7 @@ Set up a bird (scheduled task) and it runs on a cron, browses the web, and posts
 | **Status page watchdog** | Checks a status page every few minutes and alerts your incidents channel when something is degraded. |
 | **Dashboard screenshots** | Logs into your analytics or billing dashboard, takes screenshots of key metrics, and posts them weekly. |
 | **Job and listing tracker** | Browses job boards, real estate sites, or marketplaces for new listings matching your criteria. |
-| **Review and form monitor** | Checks Google Reviews, App Store reviews, or form submissions and summarizes new entries in your support channel. |
+| **Internal database analytics** | Deployed in your private network with read-only database access, lets non-technical teams ask questions in Slack and get structured answers with tables and trends. |
 
 These are starting points. Every bird has a full AI agent behind it that can browse the web, run shell commands, write and analyze code, call APIs, use MCP servers, and work with any CLI tool installed in the environment.
 
