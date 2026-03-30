@@ -11,7 +11,7 @@
   import InlineEdit from './InlineEdit.svelte';
   import FlightCard from './FlightCard.svelte';
 
-  type EditableField = 'schedule' | 'prompt' | 'agent_id' | 'target_channel_id';
+  type EditableField = 'name' | 'schedule' | 'prompt' | 'agent_id' | 'target_channel_id';
 
   interface Props {
     bird: CronJobRow;
@@ -175,6 +175,7 @@
     }
     editingSaving = true;
     const fieldMap: Record<EditableField, string> = {
+      name: 'name',
       schedule: 'schedule',
       prompt: 'prompt',
       agent_id: 'agent',
@@ -236,7 +237,16 @@
   <div class="drawer-panel">
     <div class="drawer-header">
       <div class="header-top">
-        <h2 class="bird-name">{bird.name}</h2>
+        {#if editingField === 'name'}
+          <InlineEdit
+            bind:value={editingValue}
+            saving={editingSaving}
+            onsave={saveEdit}
+            oncancel={cancelEdit}
+          />
+        {:else}
+          <button class="bird-name" class:editable={!isSystem} onclick={() => startEdit('name')}>{bird.name}</button>
+        {/if}
         <button class="close-btn" onclick={close} aria-label="Close">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"
             ><path
@@ -513,6 +523,20 @@
     font-size: var(--text-lg);
     font-weight: 600;
     color: var(--color-text-primary);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: default;
+    text-align: left;
+  }
+
+  .bird-name.editable {
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+  }
+
+  .bird-name.editable:hover {
+    color: var(--color-accent);
   }
 
   .close-btn {

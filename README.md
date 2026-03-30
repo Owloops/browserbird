@@ -349,7 +349,7 @@ run 'browserbird <command> --help' for command-specific options.
 BrowserBird works without Slack. Create a bird, trigger it, and check results from the terminal:
 
 ```bash
-browserbird birds add --schedule "0 9 * * *" --prompt "Check Hacker News for AI news and summarize"
+browserbird birds add --name "hn-digest" --schedule "0 9 * * *" --prompt "Check Hacker News for AI news and summarize"
 browserbird birds fly <name>
 browserbird birds flights <name>
 ```

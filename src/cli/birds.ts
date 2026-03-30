@@ -94,6 +94,7 @@ export function handleBirds(argv: string[]): void {
   const { values, positionals } = parseArgs({
     args: rest,
     options: {
+      name: { type: 'string' },
       channel: { type: 'string' },
       agent: { type: 'string' },
       schedule: { type: 'string' },
@@ -144,15 +145,21 @@ export function handleBirds(argv: string[]): void {
       }
 
       case 'add': {
-        const schedule = positionals[0];
-        const prompt = positionals.slice(1).join(' ') || (values.prompt as string | undefined);
+        const schedule =
+          (values.schedule as string | undefined) || positionals[0];
+        const prompt =
+          (values.prompt as string | undefined) ||
+          positionals.slice(values.schedule ? 0 : 1).join(' ') ||
+          undefined;
         if (!schedule || !prompt) {
           logger.error(
-            'usage: browserbird birds add <schedule> <prompt> [--channel <id>] [--agent <id>]',
+            'usage: browserbird birds add --schedule <expr> --prompt <text> [--name <name>] [--channel <id>] [--agent <id>]',
           );
           process.exitCode = 1;
           return;
         }
+        const birdName =
+          (values.name as string | undefined) || deriveBirdName(prompt);
         const activeHoursRaw = values['active-hours'] as string | undefined;
         let activeStart: string | undefined;
         let activeEnd: string | undefined;
@@ -167,7 +174,7 @@ export function handleBirds(argv: string[]): void {
           activeEnd = parsed.end;
         }
         const job = createCronJob(
-          deriveBirdName(prompt),
+          birdName,
           schedule,
           prompt,
           values.channel as string | undefined,
@@ -175,7 +182,7 @@ export function handleBirds(argv: string[]): void {
           activeStart,
           activeEnd,
         );
-        logger.success(`bird ${shortUid(job.uid)} created: "${schedule}"`);
+        logger.success(`bird ${shortUid(job.uid)} created: "${birdName}"`);
         process.stderr.write(
           c('dim', `  hint: run 'browserbird birds fly ${shortUid(job.uid)}' to trigger it now`) +
             '\n',
@@ -187,7 +194,7 @@ export function handleBirds(argv: string[]): void {
         const uidPrefix = positionals[0];
         if (!uidPrefix) {
           logger.error(
-            'usage: browserbird birds edit <uid> [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--active-hours <range>]',
+            'usage: browserbird birds edit <uid> [--name <name>] [--schedule <expr>] [--prompt <text>] [--channel <id>] [--agent <id>] [--active-hours <range>]',
           );
           process.exitCode = 1;
           return;
@@ -214,9 +221,10 @@ export function handleBirds(argv: string[]): void {
           editActiveStart = parsed.start;
           editActiveEnd = parsed.end;
         }
-        if (!schedule && !prompt && !channel && !agent && editActiveStart === undefined) {
+        const editName = values.name as string | undefined;
+        if (!schedule && !prompt && !channel && !agent && !editName && editActiveStart === undefined) {
           logger.error(
-            'provide at least one of: --schedule, --prompt, --channel, --agent, --active-hours',
+            'provide at least one of: --name, --schedule, --prompt, --channel, --agent, --active-hours',
           );
           process.exitCode = 1;
           return;
@@ -224,7 +232,7 @@ export function handleBirds(argv: string[]): void {
         const updated = updateCronJob(bird.uid, {
           schedule,
           prompt,
-          name: prompt ? deriveBirdName(prompt) : undefined,
+          name: editName,
           targetChannelId: channel !== undefined ? channel || null : undefined,
           agentId: agent,
           activeHoursStart: editActiveStart,

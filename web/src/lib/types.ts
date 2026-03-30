@@ -150,6 +150,7 @@ export interface UpcomingBird {
 }
 
 export interface CreateCronRequest {
+  name?: string;
   schedule: string;
   prompt: string;
   channel?: string;

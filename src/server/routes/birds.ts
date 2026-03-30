@@ -119,6 +119,7 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
       pattern: pathToRegex('/api/birds'),
       async handler(req, res) {
         let body: {
+          name?: string;
           schedule?: string;
           prompt?: string;
           channel?: string;
@@ -140,8 +141,9 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
           jsonError(res, '"prompt" is required', 400);
           return;
         }
+        const birdName = body.name?.trim() || deriveBirdName(body.prompt);
         const job = createCronJob(
-          deriveBirdName(body.prompt),
+          birdName,
           body.schedule.trim(),
           body.prompt.trim(),
           body.channel?.trim() || undefined,
@@ -160,6 +162,7 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
         const bird = resolveBird(params, res);
         if (!bird) return;
         let body: {
+          name?: string;
           schedule?: string;
           prompt?: string;
           channel?: string | null;
@@ -176,7 +179,7 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
         const updated = updateCronJob(bird.uid, {
           schedule: body.schedule?.trim() || undefined,
           prompt: body.prompt?.trim() || undefined,
-          name: body.prompt ? deriveBirdName(body.prompt) : undefined,
+          name: body.name?.trim() || undefined,
           targetChannelId: body.channel !== undefined ? body.channel?.trim() || null : undefined,
           agentId: body.agent?.trim() || undefined,
           activeHoursStart:

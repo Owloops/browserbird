@@ -161,8 +161,8 @@ BrowserBird has a CLI at `./bin/browserbird`. Use it when the user asks you to m
 
 ```
 browserbird birds list                          List all birds
-browserbird birds add <schedule> <prompt>       Create a bird
-browserbird birds edit <uid> [options]          Edit a bird
+browserbird birds add [options]                  Create a bird (--name, --schedule, --prompt, --channel, --agent)
+browserbird birds edit <uid> [options]          Edit a bird (--name, --schedule, --prompt, --channel, --agent)
 browserbird birds remove <uid>                  Delete a bird
 browserbird birds enable <uid>                  Enable a bird
 browserbird birds disable <uid>                 Disable a bird

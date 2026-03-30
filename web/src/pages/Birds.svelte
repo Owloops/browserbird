@@ -10,7 +10,7 @@
   import Badge from '../components/Badge.svelte';
   import Toggle from '../components/Toggle.svelte';
 
-  type EditableField = 'schedule' | 'prompt' | 'agent_id' | 'target_channel_id';
+  type EditableField = 'name' | 'schedule' | 'prompt' | 'agent_id' | 'target_channel_id';
 
   interface EditingCell {
     uid: string;
@@ -44,6 +44,7 @@
   });
 
   let showForm = $state(false);
+  let formName = $state('');
   let formSchedule = $state('');
   let formPrompt = $state('');
   let formChannel = $state('');
@@ -91,6 +92,7 @@
   }
 
   function openCreate(): void {
+    formName = '';
     formSchedule = '';
     formPrompt = '';
     formChannel = '';
@@ -113,6 +115,7 @@
         schedule: formSchedule.trim(),
         prompt: formPrompt.trim(),
       };
+      if (formName.trim()) body.name = formName.trim();
       if (formChannel.trim()) body.channel = formChannel.trim();
       if (formAgent.trim()) body.agent = formAgent.trim();
       await api('/api/birds', { method: 'POST', body });
@@ -149,6 +152,7 @@
     }
     saving = true;
     const fieldMap: Record<EditableField, string> = {
+      name: 'name',
       schedule: 'schedule',
       prompt: 'prompt',
       agent_id: 'agent',
@@ -214,6 +218,10 @@
     <div class="create-form">
       <div class="form-title">New Bird</div>
       <div class="form-row">
+        <label class="form-label">
+          Name
+          <input class="form-input" type="text" placeholder="Optional" bind:value={formName} />
+        </label>
         <label class="form-label">
           Schedule
           <input
@@ -375,7 +383,22 @@
       {@const isSystem = j.name.startsWith('__bb_')}
       <tr class="bird-row" onclick={(e) => handleRowClick(e, j)}>
         <td class="mono">{shortUid(j.uid)}</td>
-        <td>{j.name}</td>
+        <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'name')}>
+          <span class="cell-text" class:cell-text-hidden={isEditingCell(j.uid, 'name')}
+            >{j.name}</span
+          >
+          {#if isEditingCell(j.uid, 'name')}
+            <div class="cell-edit-overlay">
+              <input
+                class="cell-input"
+                type="text"
+                bind:value={editing!.value}
+                onkeydown={handleCellKeydown}
+              />
+              {@render cellActions()}
+            </div>
+          {/if}
+        </td>
         <td class:cell-editable={!isSystem} onclick={() => startCellEdit(j, 'schedule')}>
           <span class="mono cell-text" class:cell-text-hidden={isEditingCell(j.uid, 'schedule')}
             >{j.schedule}</span
