@@ -46,7 +46,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
   logger.setMode('daemon');
   process.stdout.write(BANNER + '\n\n');
 
-  if (options.flags.verbose) {
+  if (options.flags.verbose || process.env['BROWSERBIRD_VERBOSE'] === '1') {
     logger.setLevel('debug');
   }
 
