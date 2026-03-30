@@ -145,8 +145,7 @@ export function handleBirds(argv: string[]): void {
       }
 
       case 'add': {
-        const schedule =
-          (values.schedule as string | undefined) || positionals[0];
+        const schedule = (values.schedule as string | undefined) || positionals[0];
         const prompt =
           (values.prompt as string | undefined) ||
           positionals.slice(values.schedule ? 0 : 1).join(' ') ||
@@ -158,8 +157,7 @@ export function handleBirds(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        const birdName =
-          (values.name as string | undefined) || deriveBirdName(prompt);
+        const birdName = (values.name as string | undefined) || deriveBirdName(prompt);
         const activeHoursRaw = values['active-hours'] as string | undefined;
         let activeStart: string | undefined;
         let activeEnd: string | undefined;
@@ -222,7 +220,14 @@ export function handleBirds(argv: string[]): void {
           editActiveEnd = parsed.end;
         }
         const editName = values.name as string | undefined;
-        if (!schedule && !prompt && !channel && !agent && !editName && editActiveStart === undefined) {
+        if (
+          !schedule &&
+          !prompt &&
+          !channel &&
+          !agent &&
+          !editName &&
+          editActiveStart === undefined
+        ) {
           logger.error(
             'provide at least one of: --name, --schedule, --prompt, --channel, --agent, --active-hours',
           );
