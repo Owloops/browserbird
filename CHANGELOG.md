@@ -1,3 +1,10 @@
+## [1.14.3](https://github.com/Owloops/browserbird/compare/v1.14.2...v1.14.3) (2026-03-30)
+
+
+### Bug Fixes
+
+* **worker:** prevent poll loop from dying on unhandled exceptions ([f779661](https://github.com/Owloops/browserbird/commit/f779661e905f54bb4e060806c31c955bc039f7bd))
+
 ## [1.14.2](https://github.com/Owloops/browserbird/compare/v1.14.1...v1.14.2) (2026-03-30)
 
 
