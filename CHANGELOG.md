@@ -1,3 +1,15 @@
+# [1.17.0](https://github.com/Owloops/browserbird/compare/v1.16.1...v1.17.0) (2026-03-31)
+
+
+### Bug Fixes
+
+* **core:** extract shared DATA_DIR constant for .browserbird path ([1161129](https://github.com/Owloops/browserbird/commit/11611294be061977ca26f53405627e2cfc398dd6))
+
+
+### Features
+
+* **birds:** add persistent data directories for stateful bird runs ([61406cd](https://github.com/Owloops/browserbird/commit/61406cd9cbf02fdde005078b1071c08f9bd47e79))
+
 ## [1.16.1](https://github.com/Owloops/browserbird/compare/v1.16.0...v1.16.1) (2026-03-31)
 
 
