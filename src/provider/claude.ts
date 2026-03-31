@@ -2,6 +2,7 @@
 
 import { resolve } from 'node:path';
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
+import { DATA_DIR } from '../core/paths.ts';
 import type { StreamEvent, ToolImage } from './stream.ts';
 
 interface ProviderCommand {
@@ -77,7 +78,7 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
       ? { ANTHROPIC_API_KEY: apiKey }
       : {};
 
-  const configDir = resolve('.browserbird', 'claude');
+  const configDir = resolve(DATA_DIR, 'claude');
   ensureClaudeSettings(configDir);
   env['CLAUDE_CONFIG_DIR'] = configDir;
 

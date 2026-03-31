@@ -12,8 +12,9 @@ import {
   MAX_PER_PAGE,
 } from './core.ts';
 import { generateUid, UID_PREFIX } from '../core/uid.ts';
+import { DATA_DIR } from '../core/paths.ts';
 
-const BIRDS_DIR = resolve('.browserbird', 'birds');
+const BIRDS_DIR = resolve(DATA_DIR, 'birds');
 
 function getBirdDataDir(birdUid: string): string {
   return resolve(BIRDS_DIR, birdUid, 'data');

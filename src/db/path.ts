@@ -1,8 +1,9 @@
 /** @fileoverview Database path resolution: CLI flag, env var, or default. */
 
 import { resolve } from 'node:path';
+import { DATA_DIR } from '../core/paths.ts';
 
-const DEFAULT_DB_PATH = resolve('.browserbird', 'browserbird.db');
+const DEFAULT_DB_PATH = resolve(DATA_DIR, 'browserbird.db');
 
 /**
  * Resolves the database file path.

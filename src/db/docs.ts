@@ -14,8 +14,9 @@ import type { PaginatedResult, Binding } from './core.ts';
 import { getDb, paginate, loadBindingsFor, replaceBindingsFor, DEFAULT_PER_PAGE } from './core.ts';
 import { generateUid, UID_PREFIX } from '../core/uid.ts';
 import { logger } from '../core/logger.ts';
+import { DATA_DIR } from '../core/paths.ts';
 
-const DOCS_DIR = resolve('.browserbird', 'docs');
+const DOCS_DIR = resolve(DATA_DIR, 'docs');
 
 export function getDocsDir(): string {
   return DOCS_DIR;

@@ -4,8 +4,9 @@ import { readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Config } from './core/types.ts';
 import { logger } from './core/logger.ts';
+import { DATA_DIR } from './core/paths.ts';
 
-export const DEFAULT_CONFIG_PATH = resolve('.browserbird', 'browserbird.json');
+export const DEFAULT_CONFIG_PATH = resolve(DATA_DIR, 'browserbird.json');
 
 export const DEFAULTS: Config = {
   timezone: 'UTC',
