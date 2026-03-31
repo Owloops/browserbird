@@ -281,6 +281,7 @@ Authentication is handled via the web UI. On first visit, you create an account.
 | `BROWSERBIRD_DB`          | Path to SQLite database file. Overridden by `--db` flag                                          |
 | `BROWSERBIRD_VAULT_KEY`   | Vault encryption key (auto-generated on first start, stored in `.env`)                           |
 | `BROWSERBIRD_VERBOSE`     | Set to `1` to enable debug logging. Same as `--verbose` flag                                     |
+| `BROWSERBIRD_BIRD_DATA`   | Persistent data directory for the current bird. Set automatically per bird run                    |
 | `NO_COLOR`                | Disable colored output                                                                           |
 
 > [!NOTE]
