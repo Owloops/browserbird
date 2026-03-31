@@ -1,6 +1,6 @@
 {
   "name": "@owloops/browserbird",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "description": "AI agent orchestrator with a real browser, a cron scheduler, and a web dashboard",
   "type": "module",
   "bin": {

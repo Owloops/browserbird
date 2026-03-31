@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/Owloops/browserbird/compare/v1.17.0...v1.17.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **agent:** require blank lines around tsv blocks for slack rendering ([b595ae1](https://github.com/Owloops/browserbird/commit/b595ae1f8caa2fbcb2ec20c4e4c85308169befab))
+
 # [1.17.0](https://github.com/Owloops/browserbird/compare/v1.16.1...v1.17.0) (2026-03-31)
 
 
