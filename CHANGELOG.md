@@ -1,3 +1,10 @@
+## [1.16.1](https://github.com/Owloops/browserbird/compare/v1.16.0...v1.16.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **web:** prevent connection pool starvation during slack outages ([3d322a4](https://github.com/Owloops/browserbird/commit/3d322a4fb666ddbe3335ed28feedd9a74209e035))
+
 # [1.16.0](https://github.com/Owloops/browserbird/compare/v1.15.0...v1.16.0) (2026-03-30)
 
 
