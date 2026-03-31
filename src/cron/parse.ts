@@ -88,6 +88,57 @@ export function isWithinActiveHours(
   return isWithinTimeRange(start ?? '00:00', end ?? '24:00', date, timezone || 'UTC');
 }
 
+const WEEKDAY_MAP: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(timezone?: string): Intl.DateTimeFormat {
+  const tz = timezone || 'UTC';
+  let fmt = formatterCache.get(tz);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: 'numeric',
+      day: 'numeric',
+      month: 'numeric',
+      weekday: 'short',
+      hour12: false,
+    });
+    formatterCache.set(tz, fmt);
+  }
+  return fmt;
+}
+
+function matchesCronWithFormatter(
+  schedule: CronSchedule,
+  date: Date,
+  formatter: Intl.DateTimeFormat,
+): boolean {
+  const parts = formatter.formatToParts(date);
+
+  const get = (type: Intl.DateTimeFormatPartTypes): number =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+
+  const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? '';
+
+  return (
+    schedule.minutes.has(get('minute')) &&
+    schedule.hours.has(get('hour')) &&
+    schedule.daysOfMonth.has(get('day')) &&
+    schedule.months.has(get('month')) &&
+    schedule.daysOfWeek.has(WEEKDAY_MAP[weekdayStr] ?? 0)
+  );
+}
+
 /**
  * Returns the next Date (after `after`) that matches the cron schedule,
  * or null if no match is found within the search window (default: 366 days).
@@ -102,8 +153,9 @@ export function nextCronMatch(
   candidate.setSeconds(0, 0);
   candidate.setTime(candidate.getTime() + 60_000);
 
+  const formatter = getFormatter(timezone);
   for (let i = 0; i < maxMinutes; i++) {
-    if (matchesCron(schedule, candidate, timezone)) return candidate;
+    if (matchesCronWithFormatter(schedule, candidate, formatter)) return candidate;
     candidate.setTime(candidate.getTime() + 60_000);
   }
   return null;
@@ -111,36 +163,5 @@ export function nextCronMatch(
 
 /** Returns true if the given Date matches the cron schedule in the specified timezone. */
 export function matchesCron(schedule: CronSchedule, date: Date, timezone?: string): boolean {
-  const tz = timezone || 'UTC';
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    hour: 'numeric',
-    minute: 'numeric',
-    day: 'numeric',
-    month: 'numeric',
-    weekday: 'short',
-    hour12: false,
-  }).formatToParts(date);
-
-  const get = (type: Intl.DateTimeFormatPartTypes): number =>
-    Number(parts.find((p) => p.type === type)?.value ?? 0);
-
-  const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? '';
-  const weekdayMap: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-  };
-
-  return (
-    schedule.minutes.has(get('minute')) &&
-    schedule.hours.has(get('hour')) &&
-    schedule.daysOfMonth.has(get('day')) &&
-    schedule.months.has(get('month')) &&
-    schedule.daysOfWeek.has(weekdayMap[weekdayStr] ?? 0)
-  );
+  return matchesCronWithFormatter(schedule, date, getFormatter(timezone));
 }
