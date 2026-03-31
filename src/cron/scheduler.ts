@@ -12,6 +12,7 @@ import {
   updateCronJobStatus,
   setCronJobEnabled,
   ensureSystemCronJob,
+  ensureBirdDataDir,
   hasPendingCronJob,
   deleteOldMessages,
   deleteOldCronRuns,
@@ -145,7 +146,8 @@ export function startScheduler(
       const targets: Array<{ type: 'channel' | 'bird'; id: string }> = [];
       if (payload.channelId) targets.push({ type: 'channel', id: payload.channelId });
       targets.push({ type: 'bird', id: payload.cronJobUid });
-      const extraEnv = resolveExtraEnv(targets);
+      const extraEnv = resolveExtraEnv(targets) ?? {};
+      extraEnv['BROWSERBIRD_BIRD_DATA'] = ensureBirdDataDir(payload.cronJobUid);
 
       const { events, kill } = spawnProvider(
         {

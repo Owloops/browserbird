@@ -1,5 +1,7 @@
 /** @fileoverview Bird (cron job) and flight (cron run) persistence. */
 
+import { mkdirSync, rmSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { PaginatedResult } from './core.ts';
 import {
   getDb,
@@ -10,6 +12,18 @@ import {
   MAX_PER_PAGE,
 } from './core.ts';
 import { generateUid, UID_PREFIX } from '../core/uid.ts';
+
+const BIRDS_DIR = resolve('.browserbird', 'birds');
+
+function getBirdDataDir(birdUid: string): string {
+  return resolve(BIRDS_DIR, birdUid, 'data');
+}
+
+export function ensureBirdDataDir(birdUid: string): string {
+  const dir = getBirdDataDir(birdUid);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 export const SYSTEM_CRON_PREFIX = '__bb_';
 
@@ -117,7 +131,7 @@ export function createCronJob(
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
   );
-  return stmt.get(
+  const row = stmt.get(
     uid,
     name,
     schedule,
@@ -127,6 +141,7 @@ export function createCronJob(
     activeHoursStart ?? null,
     activeHoursEnd ?? null,
   ) as unknown as CronJobRow;
+  return row;
 }
 
 export function updateCronJobStatus(
@@ -207,17 +222,20 @@ export function updateCronJob(jobUid: string, fields: UpdateCronJobFields): Cron
 export function deleteCronJob(jobUid: string): boolean {
   const d = getDb();
   d.exec('BEGIN');
+  let deleted: boolean;
   try {
     d.prepare('DELETE FROM cron_runs WHERE job_uid = ?').run(jobUid);
     d.prepare('UPDATE jobs SET cron_job_uid = NULL WHERE cron_job_uid = ?').run(jobUid);
     d.prepare("DELETE FROM key_bindings WHERE target_type = 'bird' AND target_id = ?").run(jobUid);
     const result = d.prepare('DELETE FROM cron_jobs WHERE uid = ?').run(jobUid);
     d.exec('COMMIT');
-    return Number(result.changes) > 0;
+    deleted = Number(result.changes) > 0;
   } catch (err) {
     d.exec('ROLLBACK');
     throw err;
   }
+  rmSync(resolve(BIRDS_DIR, jobUid), { recursive: true, force: true });
+  return deleted;
 }
 
 const FLIGHT_SORT_COLUMNS = new Set(['uid', 'started_at', 'finished_at', 'status', 'bird_name']);

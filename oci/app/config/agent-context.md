@@ -86,6 +86,10 @@ Check for cookie env vars at the start of any task that requires authenticated b
 
 When the user asks to schedule a task, create a recurring job, or set up automation, use BrowserBird's birds system via the CLI (`browserbird birds add`). Do not suggest or reference external scheduling tools.
 
+## Bird Data
+
+If this session is a scheduled bird run, the environment variable `BROWSERBIRD_BIRD_DATA` points to a persistent directory for this bird. Files written here survive between runs. Use it to store previous results, state, or any data the next run should reference.
+
 ## Tools
 
 The following npm tools can be used via `npx`. Run with `--help` to see usage.
