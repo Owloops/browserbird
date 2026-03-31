@@ -3,7 +3,7 @@
 import { connect } from 'node:net';
 import type { Config } from '../core/types.ts';
 import { logger } from '../core/logger.ts';
-import { checkDoctor } from '../cli/doctor.ts';
+import { checkCliAsync } from '../cli/doctor.ts';
 
 export interface ServiceHealth {
   agent: { available: boolean };
@@ -15,18 +15,24 @@ const BROWSER_CHECK_INTERVAL_MS = 5_000;
 const BROWSER_PROBE_TIMEOUT_MS = 2_000;
 
 let agentAvailable = false;
-let agentCheckedAt = 0;
+let agentCheckPending = false;
 
 let browserConnected = false;
 let browserCheckPending = false;
 
 function refreshAgent(): void {
-  const now = Date.now();
-  if (now - agentCheckedAt < AGENT_CHECK_INTERVAL_MS) return;
-
-  const result = checkDoctor();
-  agentAvailable = result.claude.available;
-  agentCheckedAt = now;
+  if (agentCheckPending) return;
+  agentCheckPending = true;
+  checkCliAsync('claude', ['--version'])
+    .then((result) => {
+      agentAvailable = result.available;
+    })
+    .catch(() => {
+      agentAvailable = false;
+    })
+    .finally(() => {
+      agentCheckPending = false;
+    });
 }
 
 export function probeBrowser(host: string, port: number): Promise<boolean> {
@@ -63,7 +69,6 @@ function refreshBrowser(config: Config): void {
 }
 
 export function getServiceHealth(config: Config): ServiceHealth {
-  refreshAgent();
   return {
     agent: { available: agentAvailable },
     browser: { connected: config.browser.enabled ? browserConnected : false },
@@ -74,12 +79,17 @@ export function startHealthChecks(getConfig: () => Config, signal: AbortSignal):
   refreshAgent();
   refreshBrowser(getConfig());
 
-  const timer = setInterval(() => {
+  const agentTimer = setInterval(() => {
+    refreshAgent();
+  }, AGENT_CHECK_INTERVAL_MS);
+
+  const browserTimer = setInterval(() => {
     refreshBrowser(getConfig());
   }, BROWSER_CHECK_INTERVAL_MS);
 
   signal.addEventListener('abort', () => {
-    clearInterval(timer);
+    clearInterval(agentTimer);
+    clearInterval(browserTimer);
   });
 
   logger.debug('health checks started');

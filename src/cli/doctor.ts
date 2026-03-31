@@ -1,6 +1,6 @@
 /** @fileoverview Doctor command: checks system dependencies. */
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execFile } from 'node:child_process';
 import { logger } from '../core/logger.ts';
 import { c } from './style.ts';
 
@@ -20,6 +20,10 @@ export interface DoctorResult {
   node: string;
 }
 
+function parseVersionOutput(raw: string): string | null {
+  return (raw.trim().split('\n')[0] ?? '').replace(/\s*\(.*\)$/, '') || null;
+}
+
 function checkCli(binary: string, versionArgs: string[]): CliStatus {
   try {
     const output = execFileSync(binary, versionArgs, {
@@ -27,8 +31,7 @@ function checkCli(binary: string, versionArgs: string[]): CliStatus {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
-    const version = (output.trim().split('\n')[0] ?? '').replace(/\s*\(.*\)$/, '') || null;
-    return { available: true, version };
+    return { available: true, version: parseVersionOutput(output) };
   } catch {
     return { available: false, version: null };
   }
@@ -39,6 +42,18 @@ export function checkDoctor(): DoctorResult {
     claude: checkCli('claude', ['--version']),
     node: process.version,
   };
+}
+
+export function checkCliAsync(binary: string, versionArgs: string[]): Promise<CliStatus> {
+  return new Promise((resolve) => {
+    execFile(binary, versionArgs, { timeout: 5000, encoding: 'utf-8' }, (err, stdout) => {
+      if (err) {
+        resolve({ available: false, version: null });
+        return;
+      }
+      resolve({ available: true, version: parseVersionOutput(stdout) });
+    });
+  });
 }
 
 export function handleDoctor(): void {

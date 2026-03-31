@@ -177,11 +177,14 @@ export function createSlackChannel(getConfig: () => Config, signal: AbortSignal)
   const socketClient = new SocketModeClient({
     appToken: initConfig.slack.appToken,
     logLevel: LogLevel.WARN,
-    clientPingTimeout: 15_000,
+    clientPingTimeout: 30_000,
     serverPingTimeout: 60_000,
   });
 
-  const webClient = new WebClient(initConfig.slack.botToken);
+  const webClient = new WebClient(initConfig.slack.botToken, {
+    retryConfig: { retries: 5, factor: 3.86 },
+    timeout: 30_000,
+  });
   const channelClient = new SlackChannelClient(webClient);
   const handler = createHandler(
     channelClient,
