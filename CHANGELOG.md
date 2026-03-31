@@ -1,3 +1,15 @@
+## [1.17.3](https://github.com/Owloops/browserbird/compare/v1.17.2...v1.17.3) (2026-03-31)
+
+
+### Bug Fixes
+
+* **web:** prevent event loop blocking during slack outages ([da6a36c](https://github.com/Owloops/browserbird/commit/da6a36c9474a9bef4ee147f5250254d4b5e41485))
+
+
+### Performance Improvements
+
+* **cron:** cache intl formatter in nextCronMatch loop ([74e553a](https://github.com/Owloops/browserbird/commit/74e553a228bd4e9fa8a74cdadf331f0c0839fbc0))
+
 ## [1.17.2](https://github.com/Owloops/browserbird/compare/v1.17.1...v1.17.2) (2026-03-31)
 
 
