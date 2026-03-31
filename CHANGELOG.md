@@ -1,3 +1,10 @@
+## [1.17.2](https://github.com/Owloops/browserbird/compare/v1.17.1...v1.17.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* **agent:** switch from tsv to markdown tables for slack output ([e0c7bcb](https://github.com/Owloops/browserbird/commit/e0c7bcb72b0088ab864efb60e03d3cda5778f3e1))
+
 ## [1.17.1](https://github.com/Owloops/browserbird/compare/v1.17.0...v1.17.1) (2026-03-31)
 
 
