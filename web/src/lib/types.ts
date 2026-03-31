@@ -149,6 +149,14 @@ export interface UpcomingBird {
   next_run: string;
 }
 
+export interface DashboardResponse {
+  failingBirds: CronJobRow[];
+  upcoming: UpcomingBird[];
+  runningFlights: FlightRow[];
+  recentFlights: FlightRow[];
+  recentSessions: SessionRow[];
+}
+
 export interface CreateCronRequest {
   name?: string;
   schedule: string;

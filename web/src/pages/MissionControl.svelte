@@ -1,7 +1,7 @@
 <script lang="ts">
   import type {
     StatusResponse,
-    PaginatedResult,
+    DashboardResponse,
     CronJobRow,
     FlightRow,
     SessionRow,
@@ -68,20 +68,13 @@
 
   async function fetchAll(signal: AbortSignal): Promise<void> {
     try {
-      const [birdsRes, upcomingRes, runningRes, flightsRes, sessionsRes] = await Promise.all([
-        api<PaginatedResult<CronJobRow>>('/api/birds?perPage=100'),
-        api<UpcomingBird[]>('/api/birds/upcoming?limit=5'),
-        api<PaginatedResult<FlightRow>>('/api/flights?status=running&perPage=5'),
-        api<PaginatedResult<FlightRow>>('/api/flights?perPage=5'),
-        api<PaginatedResult<SessionRow>>('/api/sessions?perPage=5'),
-      ]);
+      const data = await api<DashboardResponse>('/api/dashboard');
       if (signal.aborted) return;
-      failingBirds = birdsRes.items.filter((b) => b.failure_count > 0);
-      failingBirds.sort((a, b) => b.failure_count - a.failure_count);
-      upcomingBirds = upcomingRes;
-      runningFlights = runningRes.items;
-      recentFlights = flightsRes.items;
-      recentSessions = sessionsRes.items;
+      failingBirds = data.failingBirds;
+      upcomingBirds = data.upcoming;
+      runningFlights = data.runningFlights;
+      recentFlights = data.recentFlights;
+      recentSessions = data.recentSessions;
       lastUpdated = timeStamp();
     } catch {
     } finally {

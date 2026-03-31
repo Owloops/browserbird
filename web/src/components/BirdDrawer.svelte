@@ -245,7 +245,9 @@
             oncancel={cancelEdit}
           />
         {:else}
-          <button class="bird-name" class:editable={!isSystem} onclick={() => startEdit('name')}>{bird.name}</button>
+          <button class="bird-name" class:editable={!isSystem} onclick={() => startEdit('name')}
+            >{bird.name}</button
+          >
         {/if}
         <button class="close-btn" onclick={close} aria-label="Close">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"

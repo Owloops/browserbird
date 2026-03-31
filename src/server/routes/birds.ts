@@ -36,6 +36,39 @@ function resolveBird(
   return resolveRouteParam<CronJobRow>('cron_jobs', 'Bird', params, res);
 }
 
+export interface UpcomingBird {
+  uid: string;
+  name: string;
+  schedule: string;
+  agent_id: string;
+  next_run: string;
+}
+
+export function computeUpcomingBirds(timezone: string, limit: number): UpcomingBird[] {
+  const now = new Date();
+  const upcoming: UpcomingBird[] = [];
+  for (const bird of getEnabledCronJobs()) {
+    if (bird.name.startsWith(SYSTEM_CRON_PREFIX)) continue;
+    try {
+      const schedule = parseCron(bird.schedule);
+      const next = nextCronMatch(schedule, now, timezone);
+      if (next) {
+        upcoming.push({
+          uid: bird.uid,
+          name: bird.name,
+          schedule: bird.schedule,
+          agent_id: bird.agent_id,
+          next_run: next.toISOString(),
+        });
+      }
+    } catch {
+      /* skip invalid cron */
+    }
+  }
+  upcoming.sort((a, b) => a.next_run.localeCompare(b.next_run));
+  return upcoming.slice(0, limit);
+}
+
 export function buildBirdsRoutes(getConfig: () => Config): Route[] {
   return [
     {
@@ -44,34 +77,7 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
       handler(req, res) {
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 5, 1), 20);
-        const now = new Date();
-        const upcoming: {
-          uid: string;
-          name: string;
-          schedule: string;
-          agent_id: string;
-          next_run: string;
-        }[] = [];
-        for (const bird of getEnabledCronJobs()) {
-          if (bird.name.startsWith(SYSTEM_CRON_PREFIX)) continue;
-          try {
-            const schedule = parseCron(bird.schedule);
-            const next = nextCronMatch(schedule, now, getConfig().timezone);
-            if (next) {
-              upcoming.push({
-                uid: bird.uid,
-                name: bird.name,
-                schedule: bird.schedule,
-                agent_id: bird.agent_id,
-                next_run: next.toISOString(),
-              });
-            }
-          } catch {
-            // skip birds with invalid cron expressions
-          }
-        }
-        upcoming.sort((a, b) => a.next_run.localeCompare(b.next_run));
-        json(res, upcoming.slice(0, limit));
+        json(res, computeUpcomingBirds(getConfig().timezone, limit));
       },
     },
     {

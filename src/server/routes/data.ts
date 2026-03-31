@@ -26,7 +26,10 @@ import {
   retryAllFailedJobs,
   deleteJob,
   clearJobs,
+  getEnabledCronJobs,
+  listFlights,
 } from '../../db/index.ts';
+import { computeUpcomingBirds } from './birds.ts';
 
 export function buildStatusPayload(
   getConfig: () => Config,
@@ -79,6 +82,29 @@ export function buildDataRoutes(deps: DataRouteDeps): Route[] {
       pattern: pathToRegex('/api/status'),
       handler(_req, res) {
         json(res, buildStatusPayload(getConfig, startedAt, getDeps));
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/dashboard'),
+      handler(_req, res) {
+        const allBirds = getEnabledCronJobs();
+        const failingBirds = allBirds
+          .filter((b) => b.failure_count > 0)
+          .sort((a, b) => b.failure_count - a.failure_count);
+
+        const upcoming = computeUpcomingBirds(getConfig().timezone, 5);
+        const runningFlights = listFlights(1, 5, { status: 'running' });
+        const recentFlights = listFlights(1, 5, {});
+        const recentSessions = listSessions(1, 5);
+
+        json(res, {
+          failingBirds,
+          upcoming,
+          runningFlights: runningFlights.items,
+          recentFlights: recentFlights.items,
+          recentSessions: recentSessions.items,
+        });
       },
     },
     {
