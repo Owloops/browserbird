@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/Owloops/browserbird/compare/v1.18.0...v1.19.0) (2026-04-06)
+
+
+### Features
+
+* **agent:** add maxBudgetUsd config to cap per-invocation API spend ([cc2ea9b](https://github.com/Owloops/browserbird/commit/cc2ea9bf4e252ea3572736b6cb189e3433f9dd40))
+
 # [1.18.0](https://github.com/Owloops/browserbird/compare/v1.17.3...v1.18.0) (2026-04-06)
 
 
