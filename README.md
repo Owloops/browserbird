@@ -160,6 +160,7 @@ The top-level `timezone` field (IANA format, default `"UTC"`) is used for cron s
     "name": "BrowserBird",
     "model": "sonnet",
     "fallbackModel": "haiku",
+    "maxBudgetUsd": 5,
     "maxTurns": 50,
     "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
     "channels": ["*"]
@@ -172,6 +173,7 @@ Each agent is scoped to specific channels. Multiple agents are matched in order,
 - `id`, `name`: Required. Unique identifier and display name
 - `model`: Short names (`sonnet`, `haiku`) or full model IDs
 - `fallbackModel`: Fallback when primary model is unavailable
+- `maxBudgetUsd`: Cap API spend per invocation in USD (agent exits when reached)
 - `maxTurns`: Max conversation turns per session
 - `systemPrompt`: Instructions prepended to every session
 - `channels`: Channel names or IDs this agent handles, or `"*"` for all

@@ -34,6 +34,7 @@
       name: newAgent.name,
       model: newAgent.model,
       fallbackModel: null,
+      maxBudgetUsd: null,
       maxTurns: Number(newAgent.maxTurns) || 50,
       systemPrompt:
         newAgent.systemPrompt ||

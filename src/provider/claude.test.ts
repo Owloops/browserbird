@@ -2,7 +2,41 @@
 
 import { describe, it } from 'node:test';
 import { deepStrictEqual, strictEqual } from 'node:assert';
-import { parseStreamLine } from './claude.ts';
+import { parseStreamLine, buildCommand } from './claude.ts';
+import type { AgentConfig } from '../core/types.ts';
+
+function makeAgent(overrides?: Partial<AgentConfig>): AgentConfig {
+  return {
+    id: 'test',
+    name: 'Test',
+    model: 'sonnet',
+    maxTurns: 10,
+    systemPrompt: '',
+    channels: ['*'],
+    ...overrides,
+  };
+}
+
+describe('claude buildCommand', () => {
+  it('includes --max-budget-usd when agent has maxBudgetUsd', () => {
+    const cmd = buildCommand({ message: 'test', agent: makeAgent({ maxBudgetUsd: 1.5 }) });
+    const idx = cmd.args.indexOf('--max-budget-usd');
+    strictEqual(idx !== -1, true);
+    strictEqual(cmd.args[idx + 1], '1.5');
+  });
+
+  it('omits --max-budget-usd when not set', () => {
+    const cmd = buildCommand({ message: 'test', agent: makeAgent() });
+    strictEqual(cmd.args.includes('--max-budget-usd'), false);
+  });
+
+  it('includes --fallback-model when set', () => {
+    const cmd = buildCommand({ message: 'test', agent: makeAgent({ fallbackModel: 'haiku' }) });
+    const idx = cmd.args.indexOf('--fallback-model');
+    strictEqual(idx !== -1, true);
+    strictEqual(cmd.args[idx + 1], 'haiku');
+  });
+});
 
 describe('claude parseStreamLine', () => {
   it('parses system event into init', () => {

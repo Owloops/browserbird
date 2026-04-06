@@ -42,6 +42,7 @@ export interface ConfigResponse {
     name: string;
     model: string;
     fallbackModel: string | null;
+    maxBudgetUsd: number | null;
     maxTurns: number;
     processTimeoutMs: number | null;
     systemPrompt: string;

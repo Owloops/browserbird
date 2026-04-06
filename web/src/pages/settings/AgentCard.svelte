@@ -92,6 +92,34 @@
       {/if}
     </div>
     <div class="agent-field">
+      <span class="row-label">Budget</span>
+      {#if isEditing('maxBudgetUsd')}
+        <InlineEdit
+          bind:value={editValue}
+          mono
+          saving={editor.editingSaving}
+          placeholder="none"
+          onsave={(v) =>
+            onsavefield('maxBudgetUsd', v, (s) => {
+              const trimmed = s.trim();
+              if (!trimmed) return null;
+              const n = Number(trimmed);
+              return n > 0 ? n : null;
+            })}
+          oncancel={editor.cancelEdit}
+        />
+      {:else}
+        <button
+          class="val-btn mono editable"
+          onclick={() =>
+            handleStartEdit(
+              'maxBudgetUsd',
+              agent.maxBudgetUsd != null ? String(agent.maxBudgetUsd) : '',
+            )}>{agent.maxBudgetUsd != null ? `$${agent.maxBudgetUsd}` : 'none'}</button
+        >
+      {/if}
+    </div>
+    <div class="agent-field">
       <span class="row-label">Turns</span>
       {#if isEditing('maxTurns')}
         <InlineEdit
@@ -238,7 +266,7 @@
 
   .agent-fields {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     border-top: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
   }
@@ -285,14 +313,14 @@
 
   @media (max-width: 960px) {
     .agent-fields {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
     }
 
-    .agent-field:nth-child(2) {
+    .agent-field:nth-child(3n) {
       border-right: none;
     }
 
-    .agent-field:nth-child(-n + 2) {
+    .agent-field:nth-child(-n + 3) {
       border-bottom: 1px solid rgba(35, 42, 53, 0.5);
     }
   }

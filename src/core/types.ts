@@ -27,6 +27,7 @@ export interface AgentConfig {
   name: string;
   model: string;
   fallbackModel?: string;
+  maxBudgetUsd?: number;
   maxTurns: number;
   systemPrompt: string;
   channels: string[];

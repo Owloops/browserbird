@@ -35,6 +35,7 @@ function sanitizeConfig(config: Config): object {
       name: a.name,
       model: a.model,
       fallbackModel: a.fallbackModel ?? null,
+      maxBudgetUsd: a.maxBudgetUsd ?? null,
       maxTurns: a.maxTurns,
       processTimeoutMs: a.processTimeoutMs ?? null,
       systemPrompt: a.systemPrompt,
@@ -89,6 +90,13 @@ function validateConfigPatch(body: Record<string, unknown>): string | null {
       }
       if (!Array.isArray(a['channels']) || (a['channels'] as unknown[]).length === 0) {
         return `Agent "${a['id']}": "channels" must be a non-empty array`;
+      }
+      if (
+        'maxBudgetUsd' in a &&
+        a['maxBudgetUsd'] != null &&
+        (typeof a['maxBudgetUsd'] !== 'number' || (a['maxBudgetUsd'] as number) <= 0)
+      ) {
+        return `Agent "${a['id']}": "maxBudgetUsd" must be a positive number`;
       }
     }
   }

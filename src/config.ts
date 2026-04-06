@@ -157,6 +157,12 @@ function validateConfig(config: Config): void {
         `agent "${agent.id}": fallbackModel cannot be the same as model ("${agent.model}")`,
       );
     }
+    if (
+      agent.maxBudgetUsd != null &&
+      (typeof agent.maxBudgetUsd !== 'number' || agent.maxBudgetUsd <= 0)
+    ) {
+      throw new Error(`agent "${agent.id}": maxBudgetUsd must be a positive number`);
+    }
   }
 
   if (

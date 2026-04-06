@@ -68,6 +68,10 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
     args.push('--fallback-model', agent.fallbackModel);
   }
 
+  if (agent.maxBudgetUsd) {
+    args.push('--max-budget-usd', String(agent.maxBudgetUsd));
+  }
+
   args.push('--dangerously-skip-permissions');
   args.push('--disable-slash-commands');
 

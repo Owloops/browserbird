@@ -5,6 +5,7 @@ export interface NewAgentPayload {
   name: string;
   model: string;
   fallbackModel: null;
+  maxBudgetUsd: null;
   maxTurns: number;
   systemPrompt: string;
   channels: string[];
