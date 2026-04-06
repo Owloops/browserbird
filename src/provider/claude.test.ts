@@ -7,13 +7,14 @@ import { parseStreamLine } from './claude.ts';
 describe('claude parseStreamLine', () => {
   it('parses system event into init', () => {
     const events = parseStreamLine(
-      '{"type":"system","session_id":"abc-123","model":"claude-sonnet-4-20250514"}',
+      '{"type":"system","session_id":"abc-123","model":"claude-sonnet-4-20250514","apiKeySource":"oauth"}',
     );
     strictEqual(events.length, 1);
     deepStrictEqual(events[0], {
       type: 'init',
       sessionId: 'abc-123',
       model: 'claude-sonnet-4-20250514',
+      apiKeySource: 'oauth',
     });
   });
 
