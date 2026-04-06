@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/Owloops/browserbird/compare/v1.19.0...v1.20.0) (2026-04-06)
+
+
+### Features
+
+* **agent:** enforce strict mcp config to isolate subprocess from host ([b5d4cd4](https://github.com/Owloops/browserbird/commit/b5d4cd4826af2a10ee7f7ea488d10218ced89672))
+
 # [1.19.0](https://github.com/Owloops/browserbird/compare/v1.18.0...v1.19.0) (2026-04-06)
 
 
