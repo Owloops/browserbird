@@ -99,7 +99,7 @@ Once the app is installed, `/bird` is available in any channel:
 
 ```
 /bird list              Show all configured birds
-/bird fly <name>        Trigger a bird immediately
+/bird fly <name> [args] Trigger a bird (replaces $ARGUMENTS in the prompt)
 /bird stop <name>       Stop a running bird
 /bird logs <name>       Show recent flights
 /bird enable <name>     Enable a bird

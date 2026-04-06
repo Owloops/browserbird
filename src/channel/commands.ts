@@ -85,24 +85,31 @@ export async function handleSlashCommand(
     }
 
     case 'fly': {
-      const birdName = parts.slice(1).join(' ');
-      if (!birdName) {
-        await say({ text: 'Usage: `/bird fly <name or id>`' });
+      const rest = parts.slice(1);
+      if (rest.length === 0) {
+        await say({ text: 'Usage: `/bird fly <name or id> [arguments]`' });
         return;
       }
 
-      const bird = findBird(birdName);
+      let bird = findBird(rest[0]!);
+      let flyArgs = rest.slice(1).join(' ');
       if (!bird) {
-        await say({ text: `Bird not found: \`${birdName}\`` });
+        bird = findBird(rest.join(' '));
+        flyArgs = '';
+      }
+      if (!bird) {
+        await say({ text: `Bird not found: \`${rest[0]}\`` });
         return;
       }
+
+      const prompt = flyArgs ? bird.prompt.replace(/\$ARGUMENTS/g, flyArgs) : bird.prompt;
 
       enqueue(
         'cron_run',
         {
           cronJobUid: bird.uid,
           birdName: bird.name,
-          prompt: bird.prompt,
+          prompt,
           channelId: bird.target_channel_id,
           agentId: bird.agent_id,
         },
@@ -111,7 +118,9 @@ export async function handleSlashCommand(
 
       const blocks = birdFlyBlocks(bird.name, body.user_id);
       await say({ text: `${bird.name} is taking flight...`, blocks });
-      logger.info(`/bird fly: ${bird.name} triggered by ${body.user_id}`);
+      logger.info(
+        `/bird fly: ${bird.name} triggered by ${body.user_id}${flyArgs ? ` (args: ${flyArgs})` : ''}`,
+      );
       break;
     }
 

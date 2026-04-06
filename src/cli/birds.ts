@@ -33,7 +33,7 @@ ${c('dim', 'subcommands:')}
   ${c('cyan', 'remove')} <uid>                 remove a bird
   ${c('cyan', 'enable')} <uid>                 enable a bird
   ${c('cyan', 'disable')} <uid>                disable a bird
-  ${c('cyan', 'fly')} <uid>                    trigger a bird manually
+  ${c('cyan', 'fly')} <uid> [args]              trigger a bird ($ARGUMENTS substituted)
   ${c('cyan', 'flights')} <uid>                show flight history for a bird
 
 ${c('dim', 'options:')}
@@ -304,18 +304,20 @@ export function handleBirds(argv: string[]): void {
       case 'fly': {
         const uidPrefix = positionals[0];
         if (!uidPrefix) {
-          logger.error('usage: browserbird birds fly <uid>');
+          logger.error('usage: browserbird birds fly <uid> [arguments]');
           process.exitCode = 1;
           return;
         }
         const cronJob = resolveBird(uidPrefix);
         if (!cronJob) return;
+        const flyArgs = positionals.slice(1).join(' ');
+        const prompt = flyArgs ? cronJob.prompt.replace(/\$ARGUMENTS/g, flyArgs) : cronJob.prompt;
         const enqueuedJob = enqueue(
           'cron_run',
           {
             cronJobUid: cronJob.uid,
             birdName: cronJob.name,
-            prompt: cronJob.prompt,
+            prompt,
             channelId: cronJob.target_channel_id,
             agentId: cronJob.agent_id,
           },
