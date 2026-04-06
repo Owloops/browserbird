@@ -1,3 +1,15 @@
+# [1.21.0](https://github.com/Owloops/browserbird/compare/v1.20.0...v1.21.0) (2026-04-06)
+
+
+### Bug Fixes
+
+* **agent:** increase sigkill grace period to 10s for session persistence ([2cd5e6d](https://github.com/Owloops/browserbird/commit/2cd5e6df9d321ae6c4a34a7190fbf73c7580e055))
+
+
+### Features
+
+* **agent:** parse tool_progress events to show elapsed time in task cards ([57ea9bd](https://github.com/Owloops/browserbird/commit/57ea9bdef21cf690fcd3f6c76962598c14920cef))
+
 # [1.20.0](https://github.com/Owloops/browserbird/compare/v1.19.0...v1.20.0) (2026-04-06)
 
 
