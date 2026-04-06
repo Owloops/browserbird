@@ -1,3 +1,17 @@
+# [1.18.0](https://github.com/Owloops/browserbird/compare/v1.17.3...v1.18.0) (2026-04-06)
+
+
+### Bug Fixes
+
+* **agent:** disable slash command interception in cli subprocess ([6859cf1](https://github.com/Owloops/browserbird/commit/6859cf1915bf515dae4fc398f0528f221c962df0))
+* **agent:** surface error completions and auth failures in slack ([d29ae97](https://github.com/Owloops/browserbird/commit/d29ae97a2a02a7ba8a63192d3be2addf872dcb34))
+* **test:** update init event assertion for apiKeySource field ([92d8c20](https://github.com/Owloops/browserbird/commit/92d8c20a2d596d3a1434d74be9de79bc58229ca1))
+
+
+### Features
+
+* **birds:** support $ARGUMENTS substitution in bird fly command ([3327ab4](https://github.com/Owloops/browserbird/commit/3327ab486bd1cce766c7d2d1beaca5c4068bdc01))
+
 ## [1.17.3](https://github.com/Owloops/browserbird/compare/v1.17.2...v1.17.3) (2026-03-31)
 
 
