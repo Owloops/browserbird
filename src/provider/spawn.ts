@@ -9,7 +9,7 @@ import { logger } from '../core/logger.ts';
 
 export type { SpawnOptions } from './claude.ts';
 
-const SIGKILL_GRACE_MS = 5_000;
+const SIGKILL_GRACE_MS = 10_000;
 
 /** Sends SIGTERM, then SIGKILL after a grace period if the process is still alive. */
 function gracefulKill(proc: ChildProcess): void {
