@@ -108,7 +108,7 @@ export function spawnProvider(options: SpawnOptions, signal: AbortSignal): Spawn
       clearTimeout(timeout);
       signal.removeEventListener('abort', onAbort);
       if (stderrBuf.trim()) {
-        logger.debug(`${cmd.binary} stderr: ${stderrBuf.trim()}`);
+        logger.warn(`${cmd.binary} stderr: ${stderrBuf.trim()}`);
       }
     }
   }

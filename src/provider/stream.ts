@@ -4,6 +4,7 @@ interface StreamEventInit {
   type: 'init';
   sessionId: string;
   model: string;
+  apiKeySource: string;
 }
 
 interface StreamEventTextDelta {

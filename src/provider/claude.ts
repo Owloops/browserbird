@@ -132,6 +132,7 @@ export function parseStreamLine(line: string): StreamEvent[] {
             type: 'init',
             sessionId: parsed['session_id'],
             model: (parsed['model'] as string) ?? '',
+            apiKeySource: (parsed['apiKeySource'] as string) ?? '',
           },
         ];
       }

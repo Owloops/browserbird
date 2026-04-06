@@ -181,6 +181,9 @@ export async function streamToChannel(
       switch (event.type) {
         case 'init':
           callbacks?.onInit?.(event.sessionId);
+          if (event.apiKeySource === 'none') {
+            logger.error('cli reports apiKeySource=none; auth will fail');
+          }
           break;
 
         case 'text_delta': {
@@ -315,12 +318,20 @@ export async function streamToChannel(
         { blocks },
       );
     } else if (completion) {
-      const footerBlocks = completionFooterBlocks(
-        completion,
-        lastError != null,
-        meta.birdName,
-        userId,
-      );
+      if (!fullText && completion.result) {
+        const text = completion.isError
+          ? `Error: ${redact(completion.result)}`
+          : redact(completion.result);
+        await safeAppend({ markdown_text: text });
+        fullText = text;
+      } else if (!fullText && completion.isError) {
+        await safeAppend({ markdown_text: '_The agent returned an error with no details._' });
+      }
+      if (completion.isError) {
+        logger.warn(`completion is_error: ${completion.result || completion.subtype}`);
+      }
+      const hasError = lastError != null || completion.isError;
+      const footerBlocks = completionFooterBlocks(completion, hasError, meta.birdName, userId);
       await safeStop({ blocks: footerBlocks });
     } else {
       if (!fullText) {
