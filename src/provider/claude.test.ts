@@ -30,6 +30,11 @@ describe('claude buildCommand', () => {
     strictEqual(cmd.args.includes('--max-budget-usd'), false);
   });
 
+  it('always includes --strict-mcp-config', () => {
+    const cmd = buildCommand({ message: 'test', agent: makeAgent() });
+    strictEqual(cmd.args.includes('--strict-mcp-config'), true);
+  });
+
   it('includes --fallback-model when set', () => {
     const cmd = buildCommand({ message: 'test', agent: makeAgent({ fallbackModel: 'haiku' }) });
     const idx = cmd.args.indexOf('--fallback-model');

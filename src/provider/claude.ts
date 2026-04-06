@@ -60,6 +60,7 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
     args.push('--append-system-prompt', systemParts.join(' '));
   }
 
+  args.push('--strict-mcp-config');
   if (mcpConfigPath) {
     args.push('--mcp-config', mcpConfigPath);
   }
