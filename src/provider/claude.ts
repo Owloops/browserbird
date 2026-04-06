@@ -69,6 +69,7 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
   }
 
   args.push('--dangerously-skip-permissions');
+  args.push('--disable-slash-commands');
 
   const oauthToken = process.env['CLAUDE_CODE_OAUTH_TOKEN'];
   const apiKey = process.env['ANTHROPIC_API_KEY'];
