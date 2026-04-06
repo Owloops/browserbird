@@ -191,6 +191,22 @@ export function parseStreamLine(line: string): StreamEvent[] {
         },
       ];
 
+    case 'tool_progress': {
+      const toolUseId = parsed['tool_use_id'];
+      const toolName = parsed['tool_name'];
+      const elapsed = parsed['elapsed_time_seconds'];
+      if (
+        typeof toolUseId === 'string' &&
+        typeof toolName === 'string' &&
+        typeof elapsed === 'number'
+      ) {
+        return [
+          { type: 'tool_progress', toolCallId: toolUseId, toolName, elapsedSeconds: elapsed },
+        ];
+      }
+      return [];
+    }
+
     default:
       return [];
   }

@@ -255,6 +255,24 @@ export async function streamToChannel(
           break;
         }
 
+        case 'tool_progress': {
+          if (activeTasks.has(event.toolCallId)) {
+            const title = toolTaskTitle(event.toolName);
+            const secs = Math.round(event.elapsedSeconds);
+            await safeAppend({
+              chunks: [
+                {
+                  type: 'task_update',
+                  id: event.toolCallId,
+                  title: `${title} (${secs}s)`,
+                  status: 'in_progress',
+                },
+              ],
+            });
+          }
+          break;
+        }
+
         case 'completion':
           completion = event;
           logger.info(

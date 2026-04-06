@@ -62,6 +62,13 @@ export interface StreamEventToolResult {
   output?: string;
 }
 
+export interface StreamEventToolProgress {
+  type: 'tool_progress';
+  toolCallId: string;
+  toolName: string;
+  elapsedSeconds: number;
+}
+
 export interface StreamEventTimeout {
   type: 'timeout';
   timeoutMs: number;
@@ -76,6 +83,7 @@ export type StreamEvent =
   | StreamEventError
   | StreamEventToolUse
   | StreamEventToolResult
+  | StreamEventToolProgress
   | StreamEventTimeout;
 
 /**

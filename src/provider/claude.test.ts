@@ -179,6 +179,24 @@ describe('claude parseStreamLine', () => {
     });
   });
 
+  it('parses tool_progress event', () => {
+    const events = parseStreamLine(
+      JSON.stringify({
+        type: 'tool_progress',
+        tool_use_id: 'toolu_1',
+        tool_name: 'Bash',
+        elapsed_time_seconds: 12.5,
+      }),
+    );
+    strictEqual(events.length, 1);
+    deepStrictEqual(events[0], {
+      type: 'tool_progress',
+      toolCallId: 'toolu_1',
+      toolName: 'Bash',
+      elapsedSeconds: 12.5,
+    });
+  });
+
   it('parses rate_limit_event', () => {
     const events = parseStreamLine(
       '{"type":"rate_limit_event","rate_limit_info":{"status":"rate_limited","resetsAt":1700000000}}',
