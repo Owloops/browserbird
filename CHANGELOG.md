@@ -1,3 +1,10 @@
+## [1.21.2](https://github.com/Owloops/browserbird/compare/v1.21.1...v1.21.2) (2026-04-08)
+
+
+### Bug Fixes
+
+* **db:** use passive wal checkpoint to avoid nfs stale reads ([6c21864](https://github.com/Owloops/browserbird/commit/6c2186485d75b8da7136d7bfc237f6b285faa483))
+
 ## [1.21.1](https://github.com/Owloops/browserbird/compare/v1.21.0...v1.21.1) (2026-04-08)
 
 
