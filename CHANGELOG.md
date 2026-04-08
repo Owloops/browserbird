@@ -1,3 +1,10 @@
+## [1.21.1](https://github.com/Owloops/browserbird/compare/v1.21.0...v1.21.1) (2026-04-08)
+
+
+### Bug Fixes
+
+* **jobs:** prevent zombie job runaway with claim guards ([211f6b5](https://github.com/Owloops/browserbird/commit/211f6b52870c894ec658dfab72b50a010461799b))
+
 # [1.21.0](https://github.com/Owloops/browserbird/compare/v1.20.0...v1.21.0) (2026-04-06)
 
 
