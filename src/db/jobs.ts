@@ -82,22 +82,38 @@ export function createJob(options: CreateJobOptions): JobRow {
     .get(options.name, payload, priority, maxAttempts, timeout, cronJobUid) as unknown as JobRow;
 }
 
+const MAX_JOB_AGE_DAYS = 7;
+
 /**
  * Atomically claims the next pending job for processing.
  * Uses IMMEDIATE transaction to prevent race conditions.
  * Priority order: high > normal > low, then by creation time.
  */
-export function claimNextJob(): JobRow | undefined {
+export function claimNextJob(allowedNames?: string[]): JobRow | undefined {
+  if (allowedNames != null && allowedNames.length === 0) return undefined;
+
   return transaction(() => {
     const priorityOrder = `CASE priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 WHEN 'low' THEN 2 END`;
+
+    let nameClause = '';
+    const params: string[] = [];
+    if (allowedNames != null) {
+      nameClause = ` AND name IN (${allowedNames.map(() => '?').join(', ')})`;
+      params.push(...allowedNames);
+    }
+
     const row = getDb()
       .prepare(
         `SELECT * FROM jobs
-         WHERE status = 'pending' AND (run_at IS NULL OR run_at <= datetime('now'))
+         WHERE status = 'pending'
+           AND (run_at IS NULL OR run_at <= datetime('now'))
+           AND attempts < max_attempts
+           AND created_at > datetime('now', '-${MAX_JOB_AGE_DAYS} days')
+           ${nameClause}
          ORDER BY ${priorityOrder}, created_at ASC
          LIMIT 1`,
       )
-      .get() as unknown as JobRow | undefined;
+      .get(...params) as unknown as JobRow | undefined;
 
     if (!row) return undefined;
 

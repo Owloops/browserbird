@@ -160,7 +160,7 @@ export function startWorker(signal: AbortSignal, options?: WorkerOptions): void 
     if (signal.aborted) return;
 
     try {
-      const job = claimNextJob();
+      const job = claimNextJob([...handlers.keys()]);
       if (job) {
         logger.debug(`worker claimed job ${job.id}: ${job.name}`);
         await processJob(job);
