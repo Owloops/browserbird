@@ -408,10 +408,17 @@ export function getDb(): DatabaseSync {
   return db;
 }
 
-/** Runs WAL checkpoint and query planner optimization. Safe to call periodically. */
+/**
+ * Runs WAL checkpoint and query planner optimization. Safe to call periodically.
+ *
+ * Uses PASSIVE mode: checkpoints frames without truncating the WAL file.
+ * TRUNCATE mode is unsafe on NFS/EFS because it empties the WAL, forcing
+ * reads to the main DB file where NFS may serve stale cached pages.
+ * PASSIVE leaves WAL frames intact so readers always find correct data.
+ */
 export function optimizeDatabase(): void {
   const d = getDb();
-  d.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  d.exec('PRAGMA wal_checkpoint(PASSIVE)');
   d.exec('PRAGMA optimize');
 }
 
