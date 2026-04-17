@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Config } from './core/types.ts';
+import { PERMISSION_MODES } from './core/types.ts';
 import { logger } from './core/logger.ts';
 import { DATA_DIR } from './core/paths.ts';
 
@@ -162,6 +163,11 @@ function validateConfig(config: Config): void {
       (typeof agent.maxBudgetUsd !== 'number' || agent.maxBudgetUsd <= 0)
     ) {
       throw new Error(`agent "${agent.id}": maxBudgetUsd must be a positive number`);
+    }
+    if (agent.permissionMode != null && !PERMISSION_MODES.includes(agent.permissionMode)) {
+      throw new Error(
+        `agent "${agent.id}": permissionMode must be one of ${PERMISSION_MODES.join(', ')}`,
+      );
     }
   }
 

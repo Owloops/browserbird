@@ -22,6 +22,10 @@ export interface SuggestedPrompt {
   message: string;
 }
 
+export const PERMISSION_MODES = ['auto', 'default', 'acceptEdits', 'bypassPermissions'] as const;
+export type PermissionMode = (typeof PERMISSION_MODES)[number];
+export const DEFAULT_PERMISSION_MODE: PermissionMode = 'auto';
+
 export interface AgentConfig {
   id: string;
   name: string;
@@ -32,6 +36,7 @@ export interface AgentConfig {
   systemPrompt: string;
   channels: string[];
   processTimeoutMs?: number;
+  permissionMode?: PermissionMode;
   suggestedPrompts?: SuggestedPrompt[];
 }
 

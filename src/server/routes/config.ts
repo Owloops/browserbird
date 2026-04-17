@@ -1,6 +1,7 @@
 /** @fileoverview Config, secrets, and doctor API route handlers. */
 
-import type { Config, AgentConfig } from '../../core/types.ts';
+import type { Config, AgentConfig, PermissionMode } from '../../core/types.ts';
+import { PERMISSION_MODES } from '../../core/types.ts';
 import type { Route } from '../http.ts';
 import { pathToRegex, json, jsonError, readJsonBody } from '../http.ts';
 import { broadcastSSE } from '../sse.ts';
@@ -38,6 +39,7 @@ function sanitizeConfig(config: Config): object {
       maxBudgetUsd: a.maxBudgetUsd ?? null,
       maxTurns: a.maxTurns,
       processTimeoutMs: a.processTimeoutMs ?? null,
+      permissionMode: a.permissionMode ?? null,
       systemPrompt: a.systemPrompt,
       channels: a.channels,
     })),
@@ -97,6 +99,13 @@ function validateConfigPatch(body: Record<string, unknown>): string | null {
         (typeof a['maxBudgetUsd'] !== 'number' || (a['maxBudgetUsd'] as number) <= 0)
       ) {
         return `Agent "${a['id']}": "maxBudgetUsd" must be a positive number`;
+      }
+      if (
+        'permissionMode' in a &&
+        a['permissionMode'] != null &&
+        !PERMISSION_MODES.includes(a['permissionMode'] as PermissionMode)
+      ) {
+        return `Agent "${a['id']}": "permissionMode" must be one of ${PERMISSION_MODES.join(', ')}`;
       }
     }
   }

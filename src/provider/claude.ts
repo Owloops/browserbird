@@ -3,6 +3,7 @@
 import { resolve } from 'node:path';
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { DATA_DIR } from '../core/paths.ts';
+import { DEFAULT_PERMISSION_MODE } from '../core/types.ts';
 import type { StreamEvent, ToolImage } from './stream.ts';
 
 interface ProviderCommand {
@@ -73,7 +74,7 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
     args.push('--max-budget-usd', String(agent.maxBudgetUsd));
   }
 
-  args.push('--dangerously-skip-permissions');
+  args.push('--permission-mode', agent.permissionMode ?? DEFAULT_PERMISSION_MODE);
   args.push('--disable-slash-commands');
 
   const oauthToken = process.env['CLAUDE_CODE_OAUTH_TOKEN'];
@@ -100,6 +101,9 @@ const CLAUDE_SETTINGS = {
   alwaysThinkingEnabled: false,
   effortLevel: 'high',
   fastMode: false,
+  permissions: {
+    deny: ['Bash(sudo rm *)', 'Bash(sudo reboot*)', 'Bash(sudo shutdown*)'],
+  },
 };
 
 let settingsEnsured = false;

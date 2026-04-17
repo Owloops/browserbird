@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "deny": [
-      "Bash(sudo rm *)",
-      "Bash(sudo reboot*)",
-      "Bash(sudo shutdown*)"
-    ]
-  }
-}

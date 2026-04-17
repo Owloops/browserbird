@@ -24,6 +24,7 @@
       "fallbackModel": "haiku",
       "maxBudgetUsd": 5,
       "maxTurns": 50,
+      "permissionMode": "auto",
       "systemPrompt": "You are responding in a Slack workspace. Be concise, helpful, and natural.",
       "channels": ["*"]
     }

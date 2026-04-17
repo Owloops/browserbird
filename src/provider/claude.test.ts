@@ -41,6 +41,24 @@ describe('claude buildCommand', () => {
     strictEqual(idx !== -1, true);
     strictEqual(cmd.args[idx + 1], 'haiku');
   });
+
+  it('defaults to --permission-mode auto and never emits --dangerously-skip-permissions', () => {
+    const cmd = buildCommand({ message: 'test', agent: makeAgent() });
+    const idx = cmd.args.indexOf('--permission-mode');
+    strictEqual(idx !== -1, true);
+    strictEqual(cmd.args[idx + 1], 'auto');
+    strictEqual(cmd.args.includes('--dangerously-skip-permissions'), false);
+  });
+
+  it('honors per-agent permissionMode override', () => {
+    const cmd = buildCommand({
+      message: 'test',
+      agent: makeAgent({ permissionMode: 'bypassPermissions' }),
+    });
+    const idx = cmd.args.indexOf('--permission-mode');
+    strictEqual(idx !== -1, true);
+    strictEqual(cmd.args[idx + 1], 'bypassPermissions');
+  });
 });
 
 describe('claude parseStreamLine', () => {
