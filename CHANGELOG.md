@@ -1,3 +1,10 @@
+## [1.22.1](https://github.com/Owloops/browserbird/compare/v1.22.0...v1.22.1) (2026-04-17)
+
+
+### Bug Fixes
+
+* **oci:** mitigate archive.ubuntu.com hash mismatches in docker builds ([229c3b1](https://github.com/Owloops/browserbird/commit/229c3b1218fc6cabf4fd28f10b0b2363614fe690)), closes [#2107223](https://github.com/Owloops/browserbird/issues/2107223)
+
 # [1.22.0](https://github.com/Owloops/browserbird/compare/v1.21.2...v1.22.0) (2026-04-17)
 
 
