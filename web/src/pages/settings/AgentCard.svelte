@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { ConfigResponse } from '../../lib/types.ts';
+  import type { ConfigResponse, PermissionMode } from '../../lib/types.ts';
+  import { PERMISSION_MODES, DEFAULT_PERMISSION_MODE } from '../../lib/types.ts';
   import type { ConfigEditor } from './types.ts';
   import InlineEdit from '../../components/InlineEdit.svelte';
 
@@ -27,6 +28,16 @@
 
   function isEditing(field: string): boolean {
     return editor.editingField === `agent.${index}.${field}`;
+  }
+
+  const effectivePermissionMode = $derived<PermissionMode>(
+    agent.permissionMode ?? DEFAULT_PERMISSION_MODE,
+  );
+
+  function handlePermissionChange(e: Event): void {
+    const next = (e.currentTarget as HTMLSelectElement).value as PermissionMode;
+    if (next === effectivePermissionMode) return;
+    void onsavefield('permissionMode', next);
   }
 </script>
 
@@ -187,6 +198,19 @@
         >
       {/if}
     </div>
+    <div class="agent-field">
+      <span class="row-label">Permissions</span>
+      <select
+        class="inline-select mono"
+        value={effectivePermissionMode}
+        onchange={handlePermissionChange}
+        disabled={editor.editingSaving}
+      >
+        {#each PERMISSION_MODES as mode (mode)}
+          <option value={mode}>{mode}</option>
+        {/each}
+      </select>
+    </div>
   </div>
   <div class="agent-prompt-area">
     <span class="row-label">System Prompt</span>
@@ -266,7 +290,7 @@
 
   .agent-fields {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     border-top: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
   }

@@ -1,5 +1,7 @@
 /** @fileoverview Shared types for the Settings page components. */
 
+import type { PermissionMode } from '../../lib/types.ts';
+
 export interface NewAgentPayload {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface NewAgentPayload {
   fallbackModel: null;
   maxBudgetUsd: null;
   maxTurns: number;
+  permissionMode: PermissionMode;
   systemPrompt: string;
   channels: string[];
 }

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { PermissionMode } from '../../lib/types.ts';
+  import { PERMISSION_MODES, DEFAULT_PERMISSION_MODE } from '../../lib/types.ts';
   import type { NewAgentPayload } from './types.ts';
 
   interface Props {
@@ -8,10 +10,18 @@
 
   let { onsave, oncancel }: Props = $props();
 
-  let newAgent = $state({
+  let newAgent: {
+    name: string;
+    model: string;
+    maxTurns: string;
+    permissionMode: PermissionMode;
+    systemPrompt: string;
+    channels: string;
+  } = $state({
     name: '',
     model: '',
     maxTurns: '50',
+    permissionMode: DEFAULT_PERMISSION_MODE,
     systemPrompt: '',
     channels: '*',
   });
@@ -36,6 +46,7 @@
       fallbackModel: null,
       maxBudgetUsd: null,
       maxTurns: Number(newAgent.maxTurns) || 50,
+      permissionMode: newAgent.permissionMode,
       systemPrompt:
         newAgent.systemPrompt ||
         'You are responding in a Slack workspace. Be concise, helpful, and natural.',
@@ -47,6 +58,7 @@
         name: '',
         model: '',
         maxTurns: '50',
+        permissionMode: DEFAULT_PERMISSION_MODE,
         systemPrompt: '',
         channels: '*',
       };
@@ -100,6 +112,18 @@
         bind:value={newAgent.channels}
         placeholder="* (comma-separated)"
       />
+    </div>
+    <div class="form-row">
+      <label class="form-lbl" for="new-agent-permission">Permissions</label>
+      <select
+        id="new-agent-permission"
+        class="form-field mono"
+        bind:value={newAgent.permissionMode}
+      >
+        {#each PERMISSION_MODES as mode (mode)}
+          <option value={mode}>{mode}</option>
+        {/each}
+      </select>
     </div>
     <div class="form-row form-row-full">
       <label class="form-lbl" for="new-agent-prompt">System Prompt</label>

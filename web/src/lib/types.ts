@@ -35,6 +35,10 @@ export interface StatusResponse {
   slack: { connected: boolean };
 }
 
+export const PERMISSION_MODES = ['auto', 'default', 'acceptEdits', 'bypassPermissions'] as const;
+export type PermissionMode = (typeof PERMISSION_MODES)[number];
+export const DEFAULT_PERMISSION_MODE: PermissionMode = 'auto';
+
 export interface ConfigResponse {
   timezone: string;
   agents: {
@@ -45,6 +49,7 @@ export interface ConfigResponse {
     maxBudgetUsd: number | null;
     maxTurns: number;
     processTimeoutMs: number | null;
+    permissionMode: PermissionMode | null;
     systemPrompt: string;
     channels: string[];
   }[];
