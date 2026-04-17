@@ -1,3 +1,11 @@
+# [1.22.0](https://github.com/Owloops/browserbird/compare/v1.21.2...v1.22.0) (2026-04-17)
+
+
+### Features
+
+* **agent:** configurable permission mode per agent with auto as default ([a1ae397](https://github.com/Owloops/browserbird/commit/a1ae397b362bf3e6c6c0c36238b6cc43dfe065e2))
+* **web:** permission mode dropdown in agent editor ([25182ba](https://github.com/Owloops/browserbird/commit/25182bab2e39723d963d5eb6ae337a20419fc248))
+
 ## [1.21.2](https://github.com/Owloops/browserbird/compare/v1.21.1...v1.21.2) (2026-04-08)
 
 
