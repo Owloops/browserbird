@@ -1,3 +1,11 @@
+## [1.22.2](https://github.com/Owloops/browserbird/compare/v1.22.1...v1.22.2) (2026-04-30)
+
+
+### Bug Fixes
+
+* **channel:** suppress false auth warning on oauth path ([79fe228](https://github.com/Owloops/browserbird/commit/79fe2284f1cf8181580305e51b5992fc9fb761a5))
+* **provider:** pipe user message via stdin to avoid argv parsing ([32d4c44](https://github.com/Owloops/browserbird/commit/32d4c44cc2fba65cddadc819b8a223a0e7c59e41))
+
 ## [1.22.1](https://github.com/Owloops/browserbird/compare/v1.22.0...v1.22.1) (2026-04-17)
 
 
