@@ -181,8 +181,8 @@ export async function streamToChannel(
       switch (event.type) {
         case 'init':
           callbacks?.onInit?.(event.sessionId);
-          if (event.apiKeySource === 'none') {
-            logger.error('cli reports apiKeySource=none; auth will fail');
+          if (event.apiKeySource === 'none' && !process.env['CLAUDE_CODE_OAUTH_TOKEN']) {
+            logger.error('no auth credentials available');
           }
           break;
 
