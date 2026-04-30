@@ -32,11 +32,10 @@ type CompletionSubtype =
   | 'error_max_structured_output_retries';
 
 export function buildCommand(options: SpawnOptions): ProviderCommand {
-  const { message, sessionId, agent, mcpConfigPath } = options;
+  const { sessionId, agent, mcpConfigPath } = options;
 
   const args: string[] = [
     '-p',
-    message,
     '--output-format',
     'stream-json',
     '--model',

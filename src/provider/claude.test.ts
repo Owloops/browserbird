@@ -59,6 +59,18 @@ describe('claude buildCommand', () => {
     strictEqual(idx !== -1, true);
     strictEqual(cmd.args[idx + 1], 'bypassPermissions');
   });
+
+  it('never places the user message in argv (leading dash safe)', () => {
+    const tricky = ['- nothing', '--help me', '-p something', '-x'];
+    for (const message of tricky) {
+      const cmd = buildCommand({ message, agent: makeAgent() });
+      strictEqual(
+        cmd.args.includes(message),
+        false,
+        `argv must not contain ${JSON.stringify(message)}`,
+      );
+    }
+  });
 });
 
 describe('claude parseStreamLine', () => {

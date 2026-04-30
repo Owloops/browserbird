@@ -71,9 +71,16 @@ export function spawnProvider(options: SpawnOptions, signal: AbortSignal): Spawn
   }
   const proc = spawn(cmd.binary, cmd.args, {
     cwd: cmd.cwd ?? process.cwd(),
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['pipe', 'pipe', 'pipe'],
     env: baseEnv,
   });
+
+  proc.stdin!.on('error', (err: Error & { code?: string }) => {
+    if (err.code !== 'EPIPE') {
+      logger.warn(`${cmd.binary} stdin error: ${err.message}`);
+    }
+  });
+  proc.stdin!.end(options.message, 'utf-8');
 
   let stderrBuf = '';
   proc.stderr!.on('data', (chunk: Buffer) => {
