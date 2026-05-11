@@ -1,95 +1,200 @@
-/** @fileoverview Chat subcommand: send a message to the agent and stream the response. */
+/** @fileoverview Chat subcommand: send a message to the agent and stream the response via the daemon. */
 
-import { resolve, dirname } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { c } from './style.ts';
-import { loadConfig, loadDotEnv, DEFAULT_CONFIG_PATH } from '../config.ts';
-import { getSession, createSession, touchSession } from '../db/index.ts';
-import { getDocsSystemPrompt } from '../db/docs.ts';
-import { resolveExtraEnv } from '../db/keys.ts';
-import { spawnProvider } from '../provider/spawn.ts';
-import { ensureServiceUser, signServiceToken } from '../server/service-user.ts';
+import { loadCliToken } from './auth.ts';
+import {
+  daemonRequest,
+  resolveDaemonBaseUrl,
+  DaemonAuthError,
+  DaemonError,
+  DaemonUnreachableError,
+} from './daemon-rpc.ts';
+
+interface ChatStreamPayload {
+  sessionUid: string;
+  subtype: 'append' | 'stop' | 'message' | 'status' | 'title' | 'image' | 'error';
+  markdownText?: string;
+  text?: string;
+  status?: string;
+  title?: string;
+}
+
+async function* parseSSE(
+  response: Response,
+  signal: AbortSignal,
+): AsyncIterableIterator<{ event: string; data: string }> {
+  const body = response.body;
+  if (!body) return;
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  signal.addEventListener('abort', () => {
+    reader.cancel().catch(() => {});
+  });
+  while (true) {
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch {
+      return;
+    }
+    if (chunk.done) return;
+    buffer += decoder.decode(chunk.value, { stream: true });
+    let sepIdx: number;
+    while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+      const block = buffer.slice(0, sepIdx);
+      buffer = buffer.slice(sepIdx + 2);
+      let event = 'message';
+      let data = '';
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event: ')) event = line.slice(7);
+        else if (line.startsWith('data: ')) data += (data ? '\n' : '') + line.slice(6);
+      }
+      yield { event, data };
+    }
+  }
+}
 
 export async function runChat(
   message: string,
   options: { session?: string; agent?: string },
 ): Promise<void> {
-  const configPath = process.env['BROWSERBIRD_CONFIG']
-    ? resolve(process.env['BROWSERBIRD_CONFIG'])
-    : DEFAULT_CONFIG_PATH;
-  const envPath = resolve(dirname(configPath), '.env');
-  loadDotEnv(envPath);
-
-  const config = loadConfig(configPath);
-  const agentId = options.agent ?? 'default';
-  const agent = config.agents.find((a) => a.id === agentId);
-  if (!agent) {
-    logger.error(`agent "${agentId}" not found in config`);
+  const credential = loadCliToken();
+  if (!credential) {
+    logger.error(new DaemonAuthError().message);
     process.exitCode = 1;
     return;
   }
 
-  let sessionId: string | undefined;
-  if (options.session) {
-    const session = getSession(options.session);
-    if (!session) {
-      logger.error(`session ${options.session} not found`);
-      process.exitCode = 1;
-      return;
-    }
-    sessionId = session.provider_session_id || undefined;
-    touchSession(session.uid, session.message_count + 1);
+  if (options.agent !== undefined) {
+    logger.warn('--agent is currently ignored; daemon resolves the agent from channel config');
   }
 
-  const targets: Array<{ type: 'channel' | 'bird'; id: string }> = [{ type: 'channel', id: 'cli' }];
-  const extraEnv = resolveExtraEnv(targets);
-  const docsPrompt = getDocsSystemPrompt(targets);
-
+  const baseUrl = resolveDaemonBaseUrl();
   const ac = new AbortController();
   process.on('SIGINT', () => ac.abort());
 
-  await ensureServiceUser();
-  const { events } = spawnProvider(
-    {
-      message,
-      sessionId,
-      agent,
-      mcpConfigPath: config.browser.mcpConfigPath,
-      timezone: config.timezone,
-      globalTimeoutMs: config.sessions.processTimeoutMs,
-      extraEnv,
-      docsPrompt,
-      serviceToken: signServiceToken(),
-    },
-    ac.signal,
-  );
+  let sseResponse: Response;
+  try {
+    sseResponse = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/events`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${credential.token}`,
+        Accept: 'text/event-stream',
+      },
+      signal: ac.signal,
+    });
+  } catch (err) {
+    logger.error(new DaemonUnreachableError(baseUrl, err).message);
+    process.exitCode = 1;
+    return;
+  }
+  if (sseResponse.status === 401 || sseResponse.status === 403) {
+    logger.error(new DaemonAuthError().message);
+    process.exitCode = 1;
+    return;
+  }
+  if (!sseResponse.ok) {
+    logger.error(`SSE connection failed: ${sseResponse.status} ${sseResponse.statusText}`);
+    process.exitCode = 1;
+    return;
+  }
 
-  let newSessionId: string | undefined;
+  let threadId: string;
+  try {
+    const sendResult = await daemonRequest<{ threadId: string }>({
+      method: 'POST',
+      path: '/api/chat/send',
+      body: {
+        message,
+        sessionUid: options.session,
+      },
+    });
+    threadId = sendResult.threadId;
+  } catch (err) {
+    if (err instanceof DaemonAuthError) {
+      logger.error(err.message);
+    } else if (err instanceof DaemonUnreachableError) {
+      logger.error(err.message);
+    } else if (err instanceof DaemonError) {
+      logger.error(err.message);
+    } else {
+      throw err;
+    }
+    process.exitCode = 1;
+    ac.abort();
+    return;
+  }
 
-  for await (const event of events) {
-    switch (event.type) {
-      case 'text_delta':
-        process.stdout.write(event.delta);
-        break;
-      case 'init':
-        newSessionId = event.sessionId;
-        break;
-      case 'completion':
-        if (!options.session && newSessionId) {
-          const session = createSession('cli', `cli_${Date.now()}`, agentId, newSessionId);
-          process.stderr.write('\n' + c('dim', `session: ${session.uid}`) + '\n');
+  const stopOnSignal = async (): Promise<void> => {
+    try {
+      await daemonRequest({
+        method: 'POST',
+        path: '/api/chat/stop',
+        body: { channelId: 'web', threadId },
+      });
+    } catch {
+      /* best effort */
+    }
+  };
+
+  process.on('SIGINT', () => {
+    void stopOnSignal();
+  });
+
+  let firstAppend = true;
+  let exitCode = 0;
+  try {
+    for await (const evt of parseSSE(sseResponse, ac.signal)) {
+      if (evt.event !== 'chat_stream') continue;
+      let payload: ChatStreamPayload;
+      try {
+        payload = JSON.parse(evt.data) as ChatStreamPayload;
+      } catch {
+        continue;
+      }
+      if (payload.sessionUid !== threadId) continue;
+
+      switch (payload.subtype) {
+        case 'append': {
+          if (firstAppend) firstAppend = false;
+          if (payload.markdownText) process.stdout.write(payload.markdownText);
+          break;
         }
-        break;
-      case 'error':
-        process.stderr.write(c('red', `\nerror: ${event.error}`) + '\n');
-        process.exitCode = 1;
-        break;
-      case 'timeout':
-        process.stderr.write(c('red', '\nerror: agent timed out') + '\n');
-        process.exitCode = 1;
-        break;
+        case 'message': {
+          if (payload.text) process.stdout.write(payload.text);
+          break;
+        }
+        case 'status': {
+          if (payload.status) process.stderr.write(c('dim', `[${payload.status}]\n`));
+          break;
+        }
+        case 'title': {
+          if (payload.title) process.stderr.write(c('dim', `title: ${payload.title}\n`));
+          break;
+        }
+        case 'error': {
+          process.stderr.write(c('red', `\nerror: ${payload.text ?? 'unknown'}`) + '\n');
+          exitCode = 1;
+          ac.abort();
+          break;
+        }
+        case 'stop': {
+          ac.abort();
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  } catch (err) {
+    if (!ac.signal.aborted) {
+      logger.error(`stream error: ${err instanceof Error ? err.message : String(err)}`);
+      exitCode = 1;
     }
   }
 
   process.stdout.write('\n');
+  if (exitCode !== 0) process.exitCode = exitCode;
 }
