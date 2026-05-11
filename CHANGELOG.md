@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/Owloops/browserbird/compare/v1.22.2...v1.23.0) (2026-05-11)
+
+
+### Features
+
+* **rpc:** route cli writes through daemon http api with service-user auth ([9125ea7](https://github.com/Owloops/browserbird/commit/9125ea79ecbd1d23b37b204e21d7d3659191bf1c))
+
 ## [1.22.2](https://github.com/Owloops/browserbird/compare/v1.22.1...v1.22.2) (2026-04-30)
 
 
