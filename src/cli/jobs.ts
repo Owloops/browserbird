@@ -4,13 +4,7 @@ import { parseArgs } from 'node:util';
 import { logger } from '../core/logger.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
 import { c } from './style.ts';
-import {
-  openDatabase,
-  closeDatabase,
-  listJobs,
-  getJobStats,
-  resolveDbPathFromArgv,
-} from '../db/index.ts';
+import type { JobRow, JobStats, PaginatedResult } from '../db/index.ts';
 import {
   daemonRequest,
   DaemonAuthError,
@@ -39,8 +33,6 @@ ${c('dim', 'options:')}
   ${c('yellow', '--completed')}      clear completed jobs (with clear)
   ${c('yellow', '--failed')}         clear failed jobs (with clear)
   ${c('yellow', '--json')}           output as JSON (with list, stats)
-  ${c('yellow', '--db')} <path>      database file path (env: BROWSERBIRD_DB)
-  ${c('yellow', '--config')} <path>  config file path
   ${c('yellow', '-h, --help')}       show this help
 `.trim();
 
@@ -77,120 +69,125 @@ export async function handleJobs(argv: string[]): Promise<void> {
   });
 
   const subcommand = positionals[0] ?? 'list';
-  openDatabase(resolveDbPathFromArgv(argv));
-  try {
-    switch (subcommand) {
-      case 'list': {
-        const result = listJobs(1, 100, {
-          status: values.status as string | undefined,
-          name: values.name as string | undefined,
-        });
-        if (values.json) {
-          console.log(JSON.stringify(result.items, null, 2));
-          break;
-        }
-        console.log(`jobs (${result.totalItems} total):`);
-        if (result.items.length === 0) {
-          console.log('\n  no jobs found');
-          return;
-        }
-        console.log('');
-        const rows = result.items.map((job) => [
-          String(job.id),
-          job.status,
-          job.name,
-          `${job.attempts}/${job.max_attempts}`,
-          job.created_at.slice(0, 19),
-          job.error ?? '',
-        ]);
-        printTable(['id', 'status', 'name', 'attempts', 'created', 'error'], rows, [
-          undefined,
-          undefined,
-          30,
-          undefined,
-          undefined,
-          40,
-        ]);
-        break;
+
+  switch (subcommand) {
+    case 'list': {
+      const params = new URLSearchParams({ perPage: '100' });
+      if (values.status) params.set('status', values.status as string);
+      if (values.name) params.set('name', values.name as string);
+      const result = await runDaemonCall<PaginatedResult<JobRow>>(() =>
+        daemonRequest<PaginatedResult<JobRow>>({
+          method: 'GET',
+          path: `/api/jobs?${params.toString()}`,
+        }),
+      );
+      if (!result) return;
+      if (values.json) {
+        console.log(JSON.stringify(result.items, null, 2));
+        return;
       }
-      case 'stats': {
-        const stats = getJobStats();
-        if (values.json) {
-          console.log(JSON.stringify(stats, null, 2));
-          break;
-        }
-        console.log('job queue statistics');
-        console.log('');
-        console.log(`  pending:    ${stats.pending}`);
-        console.log(`  running:    ${stats.running}`);
-        console.log(`  completed:  ${stats.completed}`);
-        console.log(`  failed:     ${stats.failed}`);
-        console.log('              --');
-        console.log(`  total:      ${stats.total}`);
-        break;
+      console.log(`jobs (${result.totalItems} total):`);
+      if (result.items.length === 0) {
+        console.log('\n  no jobs found');
+        return;
       }
-      case 'retry': {
-        if (values['all-failed']) {
-          const result = await runDaemonCall<{ count: number }>(() =>
-            daemonRequest({ method: 'POST', path: '/api/jobs/retry-failed' }),
-          );
-          if (!result) return;
-          logger.success(`reset ${result.count} failed job(s) to pending`);
-          return;
-        }
-        const id = Number(positionals[1]);
-        if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird jobs retry <id> | --all-failed');
-          process.exitCode = 1;
-          return;
-        }
-        const retried = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'POST',
-            path: `/api/jobs/${id}/retry`,
-          }),
-        );
-        if (retried === undefined) break;
-        logger.success(`job #${id} reset to pending`);
-        break;
-      }
-      case 'delete': {
-        const id = Number(positionals[1]);
-        if (!Number.isFinite(id)) {
-          logger.error('usage: browserbird jobs delete <id>');
-          process.exitCode = 1;
-          return;
-        }
-        const deleted = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'DELETE',
-            path: `/api/jobs/${id}`,
-          }),
-        );
-        if (deleted === undefined) break;
-        logger.success(`job #${id} deleted`);
-        break;
-      }
-      case 'clear': {
-        if (!values.completed && !values.failed) {
-          logger.error('usage: browserbird jobs clear --completed | --failed');
-          process.exitCode = 1;
-          return;
-        }
-        const statuses: string[] = [];
-        if (values.completed) statuses.push('completed');
-        if (values.failed) statuses.push('failed');
-        const result = await runDaemonCall<{ count: number }>(() =>
-          daemonRequest({ method: 'POST', path: '/api/jobs/clear', body: { statuses } }),
-        );
-        if (!result) break;
-        logger.success(`cleared ${result.count} job(s)`);
-        break;
-      }
-      default:
-        unknownSubcommand(subcommand, 'jobs', ['stats', 'retry', 'delete', 'clear']);
+      console.log('');
+      const rows = result.items.map((job) => [
+        String(job.id),
+        job.status,
+        job.name,
+        `${job.attempts}/${job.max_attempts}`,
+        job.created_at.slice(0, 19),
+        job.error ?? '',
+      ]);
+      printTable(['id', 'status', 'name', 'attempts', 'created', 'error'], rows, [
+        undefined,
+        undefined,
+        30,
+        undefined,
+        undefined,
+        40,
+      ]);
+      return;
     }
-  } finally {
-    closeDatabase();
+    case 'stats': {
+      const stats = await runDaemonCall<JobStats>(() =>
+        daemonRequest<JobStats>({ method: 'GET', path: '/api/jobs/stats' }),
+      );
+      if (!stats) return;
+      if (values.json) {
+        console.log(JSON.stringify(stats, null, 2));
+        return;
+      }
+      console.log('job queue statistics');
+      console.log('');
+      console.log(`  pending:    ${stats.pending}`);
+      console.log(`  running:    ${stats.running}`);
+      console.log(`  completed:  ${stats.completed}`);
+      console.log(`  failed:     ${stats.failed}`);
+      console.log('              --');
+      console.log(`  total:      ${stats.total}`);
+      return;
+    }
+    case 'retry': {
+      if (values['all-failed']) {
+        const result = await runDaemonCall<{ count: number }>(() =>
+          daemonRequest({ method: 'POST', path: '/api/jobs/retry-failed' }),
+        );
+        if (!result) return;
+        logger.success(`reset ${result.count} failed job(s) to pending`);
+        return;
+      }
+      const id = Number(positionals[1]);
+      if (!Number.isFinite(id)) {
+        logger.error('usage: browserbird jobs retry <id> | --all-failed');
+        process.exitCode = 1;
+        return;
+      }
+      const retried = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'POST',
+          path: `/api/jobs/${id}/retry`,
+        }),
+      );
+      if (retried === undefined) return;
+      logger.success(`job #${id} reset to pending`);
+      return;
+    }
+    case 'delete': {
+      const id = Number(positionals[1]);
+      if (!Number.isFinite(id)) {
+        logger.error('usage: browserbird jobs delete <id>');
+        process.exitCode = 1;
+        return;
+      }
+      const deleted = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'DELETE',
+          path: `/api/jobs/${id}`,
+        }),
+      );
+      if (deleted === undefined) return;
+      logger.success(`job #${id} deleted`);
+      return;
+    }
+    case 'clear': {
+      if (!values.completed && !values.failed) {
+        logger.error('usage: browserbird jobs clear --completed | --failed');
+        process.exitCode = 1;
+        return;
+      }
+      const statuses: string[] = [];
+      if (values.completed) statuses.push('completed');
+      if (values.failed) statuses.push('failed');
+      const result = await runDaemonCall<{ count: number }>(() =>
+        daemonRequest({ method: 'POST', path: '/api/jobs/clear', body: { statuses } }),
+      );
+      if (!result) return;
+      logger.success(`cleared ${result.count} job(s)`);
+      return;
+    }
+    default:
+      unknownSubcommand(subcommand, 'jobs', ['list', 'stats', 'retry', 'delete', 'clear']);
   }
 }

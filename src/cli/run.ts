@@ -140,7 +140,7 @@ export async function run(argv: string[]): Promise<void> {
         console.log(COMMAND_HELP.logs);
         return;
       }
-      handleLogs(rest);
+      await handleLogs(rest);
       break;
     case COMMANDS.JOBS:
       if (isHelp) {

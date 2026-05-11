@@ -9,11 +9,10 @@ import {
   parsePagination,
   parseSortParam,
   parseSearchParam,
+  resolveRouteParam,
 } from '../http.ts';
 import {
   listSessions,
-  getSession,
-  findSession,
   getSessionMessages,
   getSessionTokenStats,
   getSessionCount,
@@ -29,6 +28,7 @@ import {
   getEnabledCronJobs,
   listFlights,
 } from '../../db/index.ts';
+import type { SessionRow } from '../../db/index.ts';
 import { computeUpcomingBirds } from './birds.ts';
 
 export function buildStatusPayload(
@@ -120,19 +120,8 @@ export function buildDataRoutes(deps: DataRouteDeps): Route[] {
       method: 'GET',
       pattern: pathToRegex('/api/sessions/:id'),
       handler(req, res, params) {
-        const uid = params['id'];
-        if (!uid) {
-          jsonError(res, 'Missing session ID', 400);
-          return;
-        }
-        let session = getSession(uid);
-        if (!session) {
-          session = findSession('web', uid);
-        }
-        if (!session) {
-          jsonError(res, `Session ${uid} not found`, 404);
-          return;
-        }
+        const session = resolveRouteParam<SessionRow>('sessions', 'Session', params, res);
+        if (!session) return;
         const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
         const { page, perPage } = parsePagination(url);
         const messages = getSessionMessages(

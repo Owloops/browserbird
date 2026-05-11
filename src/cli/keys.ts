@@ -1,21 +1,12 @@
 /** @fileoverview Keys command: manage vault keys for agent sessions. */
 
 import { parseArgs } from 'node:util';
-import { resolve, dirname } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
 import { c } from './style.ts';
-import { loadDotEnv, DEFAULT_CONFIG_PATH } from '../config.ts';
-import { ensureVaultKey } from '../core/crypto.ts';
-import {
-  openDatabase,
-  closeDatabase,
-  getDb,
-  resolveDbPathFromArgv,
-  listKeys,
-} from '../db/index.ts';
-import type { KeyRow, KeyBinding } from '../db/keys.ts';
-import { validateKeyName } from '../db/keys.ts';
+import { promptSecret } from './prompt.ts';
+import type { KeyInfo, KeyBinding } from '../db/keys.ts';
+import type { PaginatedResult } from '../db/index.ts';
 import {
   daemonRequest,
   DaemonAuthError,
@@ -42,7 +33,6 @@ ${c('dim', 'options:')}
   ${c('yellow', '--value')} <secret>     secret value (if omitted, prompts interactively)
   ${c('yellow', '--description')} <text> description for the key
   ${c('yellow', '--json')}              output as JSON (with list)
-  ${c('yellow', '--db')} <path>          database file path (env: BROWSERBIRD_DB)
   ${c('yellow', '-h, --help')}           show this help
 
 ${c('dim', 'examples:')}
@@ -72,76 +62,22 @@ async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
   }
 }
 
-function resolveKey(nameOrUid: string): KeyRow | undefined {
-  const d = getDb();
-  const byName = d
-    .prepare('SELECT * FROM keys WHERE name = ?')
-    .get(nameOrUid.toUpperCase()) as unknown as KeyRow | undefined;
+async function resolveKey(nameOrUid: string): Promise<KeyInfo | undefined> {
+  const result = await runDaemonCall<PaginatedResult<KeyInfo>>(() =>
+    daemonRequest<PaginatedResult<KeyInfo>>({
+      method: 'GET',
+      path: '/api/keys?perPage=1000',
+    }),
+  );
+  if (!result) return undefined;
+  const upper = nameOrUid.trim().toUpperCase();
+  const byName = result.items.find((k) => k.name === upper);
   if (byName) return byName;
-  const byUid = d
-    .prepare('SELECT * FROM keys WHERE uid = ? OR uid LIKE ?')
-    .get(nameOrUid, `${nameOrUid}%`) as unknown as KeyRow | undefined;
+  const byUid = result.items.find((k) => k.uid === nameOrUid || k.uid.startsWith(nameOrUid));
   if (byUid) return byUid;
   logger.error(`key "${nameOrUid}" not found`);
   process.exitCode = 1;
   return undefined;
-}
-
-function loadBindings(keyUid: string): KeyBinding[] {
-  const d = getDb();
-  const rows = d
-    .prepare('SELECT target_type, target_id FROM key_bindings WHERE key_uid = ?')
-    .all(keyUid) as unknown as Array<{ target_type: 'channel' | 'bird'; target_id: string }>;
-  return rows.map((r) => ({ targetType: r.target_type, targetId: r.target_id }));
-}
-
-function promptSecret(prompt: string): Promise<string> {
-  return new Promise((resolve) => {
-    process.stderr.write(prompt);
-    const stdin = process.stdin;
-    if (!stdin.isTTY) {
-      let data = '';
-      stdin.setEncoding('utf-8');
-      stdin.on('data', (chunk) => {
-        data += chunk;
-      });
-      stdin.on('end', () => resolve(data.trim()));
-      return;
-    }
-    const wasRaw = stdin.isRaw;
-    stdin.setRawMode(true);
-    stdin.resume();
-    stdin.setEncoding('utf-8');
-    let value = '';
-    const onData = (ch: string) => {
-      if (ch === '\r' || ch === '\n') {
-        stdin.removeListener('data', onData);
-        stdin.setRawMode(wasRaw ?? false);
-        stdin.pause();
-        process.stderr.write('\n');
-        resolve(value);
-      } else if (ch === '\u0003') {
-        stdin.removeListener('data', onData);
-        stdin.setRawMode(wasRaw ?? false);
-        process.stderr.write('\n');
-        process.exit(130);
-      } else if (ch === '\u007F' || ch === '\b') {
-        value = value.slice(0, -1);
-      } else {
-        value += ch;
-      }
-    };
-    stdin.on('data', onData);
-  });
-}
-
-function initVaultKey(): void {
-  const configPath = process.env['BROWSERBIRD_CONFIG']
-    ? resolve(process.env['BROWSERBIRD_CONFIG'])
-    : DEFAULT_CONFIG_PATH;
-  const envPath = resolve(dirname(configPath), '.env');
-  loadDotEnv(envPath);
-  ensureVaultKey(envPath);
 }
 
 export async function handleKeys(argv: string[]): Promise<void> {
@@ -159,215 +95,206 @@ export async function handleKeys(argv: string[]): Promise<void> {
     strict: false,
   });
 
-  openDatabase(resolveDbPathFromArgv(argv));
-  initVaultKey();
-
-  try {
-    switch (subcommand) {
-      case 'list': {
-        const result = listKeys(1, 100);
-        if (values.json) {
-          console.log(JSON.stringify(result.items, null, 2));
-          break;
-        }
-        console.log(`keys (${result.totalItems} total):`);
-        if (result.items.length === 0) {
-          console.log('\n  no keys stored');
-          return;
-        }
-        console.log('');
-        const rows = result.items.map((key) => {
-          const bindings =
-            key.bindings.map((b) => `${b.targetType}:${b.targetId}`).join(', ') || '-';
-          return [key.name, key.hint, key.description ?? '-', bindings];
-        });
-        printTable(['name', 'value', 'description', 'bindings'], rows, [
-          undefined,
-          undefined,
-          30,
-          40,
-        ]);
-        break;
+  switch (subcommand) {
+    case 'list': {
+      const result = await runDaemonCall<PaginatedResult<KeyInfo>>(() =>
+        daemonRequest<PaginatedResult<KeyInfo>>({
+          method: 'GET',
+          path: '/api/keys?perPage=100',
+        }),
+      );
+      if (!result) return;
+      if (values.json) {
+        console.log(JSON.stringify(result.items, null, 2));
+        return;
       }
-
-      case 'add': {
-        const name = positionals[0];
-        if (!name) {
-          logger.error(
-            'usage: browserbird keys add <name> [--value <secret>] [--description <text>]',
-          );
-          process.exitCode = 1;
-          return;
-        }
-        const validated = validateKeyName(name);
-        if ('error' in validated) {
-          logger.error(validated.error);
-          process.exitCode = 1;
-          return;
-        }
-        let secret = values.value as string | undefined;
-        if (!secret) {
-          secret = await promptSecret(`value for ${name.toUpperCase()}: `);
-          if (!secret) {
-            logger.error('value cannot be empty');
-            process.exitCode = 1;
-            return;
-          }
-        }
-        const created = await runDaemonCall<{ uid: string }>(() =>
-          daemonRequest<{ uid: string }>({
-            method: 'POST',
-            path: '/api/keys',
-            body: {
-              name: validated.name,
-              value: secret,
-              description: (values.description as string | undefined)?.trim(),
-            },
-          }),
-        );
-        if (!created) break;
-        logger.success(`key ${validated.name} created`);
-        process.stderr.write(
-          c('dim', `  hint: run 'browserbird keys bind ${validated.name} channel *' to bind it`) +
-            '\n',
-        );
-        break;
+      console.log(`keys (${result.totalItems} total):`);
+      if (result.items.length === 0) {
+        console.log('\n  no keys stored');
+        return;
       }
-
-      case 'edit': {
-        const nameOrUid = positionals[0];
-        if (!nameOrUid) {
-          logger.error(
-            'usage: browserbird keys edit <name> [--value <secret>] [--description <text>]',
-          );
-          process.exitCode = 1;
-          return;
-        }
-        const key = resolveKey(nameOrUid);
-        if (!key) return;
-        const fields: { value?: string; description?: string } = {};
-        if (values.value !== undefined) {
-          fields.value = values.value as string;
-        }
-        if (values.description !== undefined) {
-          fields.description = (values.description as string).trim();
-        }
-        if (!fields.value && !('description' in fields)) {
-          const secret = await promptSecret(`new value for ${key.name}: `);
-          if (secret) fields.value = secret;
-        }
-        if (!fields.value && !('description' in fields)) {
-          logger.error('provide --value, --description, or enter a value when prompted');
-          process.exitCode = 1;
-          return;
-        }
-        const updated = await runDaemonCall<{ uid: string }>(() =>
-          daemonRequest<{ uid: string }>({
-            method: 'PATCH',
-            path: `/api/keys/${key.uid}`,
-            body: fields,
-          }),
-        );
-        if (!updated) break;
-        logger.success(`key ${key.name} updated`);
-        break;
-      }
-
-      case 'remove': {
-        const nameOrUid = positionals[0];
-        if (!nameOrUid) {
-          logger.error('usage: browserbird keys remove <name>');
-          process.exitCode = 1;
-          return;
-        }
-        const key = resolveKey(nameOrUid);
-        if (!key) return;
-        const removed = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'DELETE',
-            path: `/api/keys/${key.uid}`,
-          }),
-        );
-        if (removed === undefined) break;
-        logger.success(`key ${key.name} removed`);
-        break;
-      }
-
-      case 'bind': {
-        const nameOrUid = positionals[0];
-        const targetType = positionals[1] as 'channel' | 'bird' | undefined;
-        const targetId = positionals[2];
-        if (!nameOrUid || !targetType || !targetId) {
-          logger.error(
-            "usage: browserbird keys bind <name> <channel|bird> <target>\n  example: browserbird keys bind GITHUB_TOKEN channel '*'",
-          );
-          process.exitCode = 1;
-          return;
-        }
-        if (targetType !== 'channel' && targetType !== 'bird') {
-          logger.error('target type must be "channel" or "bird"');
-          process.exitCode = 1;
-          return;
-        }
-        const key = resolveKey(nameOrUid);
-        if (!key) return;
-        const existingForBind = loadBindings(key.uid);
-        if (existingForBind.some((b) => b.targetType === targetType && b.targetId === targetId)) {
-          logger.warn(`key ${key.name} is already bound to ${targetType} ${targetId}`);
-          return;
-        }
-        const bindResult = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'PUT',
-            path: `/api/keys/${key.uid}/bindings`,
-            body: [...existingForBind, { targetType, targetId }],
-          }),
-        );
-        if (bindResult === undefined) break;
-        logger.success(`key ${key.name} bound to ${targetType} ${targetId}`);
-        break;
-      }
-
-      case 'unbind': {
-        const nameOrUid = positionals[0];
-        const targetType = positionals[1] as 'channel' | 'bird' | undefined;
-        const targetId = positionals[2];
-        if (!nameOrUid || !targetType || !targetId) {
-          logger.error('usage: browserbird keys unbind <name> <channel|bird> <target>');
-          process.exitCode = 1;
-          return;
-        }
-        if (targetType !== 'channel' && targetType !== 'bird') {
-          logger.error('target type must be "channel" or "bird"');
-          process.exitCode = 1;
-          return;
-        }
-        const key = resolveKey(nameOrUid);
-        if (!key) return;
-        const existingForUnbind = loadBindings(key.uid);
-        const filtered = existingForUnbind.filter(
-          (b) => !(b.targetType === targetType && b.targetId === targetId),
-        );
-        if (filtered.length === existingForUnbind.length) {
-          logger.warn(`key ${key.name} is not bound to ${targetType} ${targetId}`);
-          return;
-        }
-        const unbindResult = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'PUT',
-            path: `/api/keys/${key.uid}/bindings`,
-            body: filtered,
-          }),
-        );
-        if (unbindResult === undefined) break;
-        logger.success(`key ${key.name} unbound from ${targetType} ${targetId}`);
-        break;
-      }
-
-      default:
-        unknownSubcommand(subcommand, 'keys', ['list', 'add', 'edit', 'remove', 'bind', 'unbind']);
+      console.log('');
+      const rows = result.items.map((key) => {
+        const bindings = key.bindings.map((b) => `${b.targetType}:${b.targetId}`).join(', ') || '-';
+        return [key.name, key.hint, key.description ?? '-', bindings];
+      });
+      printTable(['name', 'value', 'description', 'bindings'], rows, [
+        undefined,
+        undefined,
+        30,
+        40,
+      ]);
+      return;
     }
-  } finally {
-    closeDatabase();
+
+    case 'add': {
+      const rawName = positionals[0];
+      if (!rawName) {
+        logger.error(
+          'usage: browserbird keys add <name> [--value <secret>] [--description <text>]',
+        );
+        process.exitCode = 1;
+        return;
+      }
+      const name = rawName.trim().toUpperCase();
+      let secret = values.value as string | undefined;
+      if (!secret) {
+        secret = await promptSecret(`value for ${name}: `);
+        if (!secret) {
+          logger.error('value cannot be empty');
+          process.exitCode = 1;
+          return;
+        }
+      }
+      const created = await runDaemonCall<{ uid: string }>(() =>
+        daemonRequest<{ uid: string }>({
+          method: 'POST',
+          path: '/api/keys',
+          body: {
+            name,
+            value: secret,
+            description: (values.description as string | undefined)?.trim(),
+          },
+        }),
+      );
+      if (!created) return;
+      logger.success(`key ${name} created`);
+      process.stderr.write(
+        c('dim', `  hint: run 'browserbird keys bind ${name} channel *' to bind it`) + '\n',
+      );
+      return;
+    }
+
+    case 'edit': {
+      const nameOrUid = positionals[0];
+      if (!nameOrUid) {
+        logger.error(
+          'usage: browserbird keys edit <name> [--value <secret>] [--description <text>]',
+        );
+        process.exitCode = 1;
+        return;
+      }
+      const key = await resolveKey(nameOrUid);
+      if (!key) return;
+      const fields: { value?: string; description?: string } = {};
+      if (values.value !== undefined) {
+        fields.value = values.value as string;
+      }
+      if (values.description !== undefined) {
+        fields.description = (values.description as string).trim();
+      }
+      if (!fields.value && !('description' in fields)) {
+        const secret = await promptSecret(`new value for ${key.name}: `);
+        if (secret) fields.value = secret;
+      }
+      if (!fields.value && !('description' in fields)) {
+        logger.error('provide --value, --description, or enter a value when prompted');
+        process.exitCode = 1;
+        return;
+      }
+      const updated = await runDaemonCall<{ uid: string }>(() =>
+        daemonRequest<{ uid: string }>({
+          method: 'PATCH',
+          path: `/api/keys/${key.uid}`,
+          body: fields,
+        }),
+      );
+      if (!updated) return;
+      logger.success(`key ${key.name} updated`);
+      return;
+    }
+
+    case 'remove': {
+      const nameOrUid = positionals[0];
+      if (!nameOrUid) {
+        logger.error('usage: browserbird keys remove <name>');
+        process.exitCode = 1;
+        return;
+      }
+      const key = await resolveKey(nameOrUid);
+      if (!key) return;
+      const removed = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'DELETE',
+          path: `/api/keys/${key.uid}`,
+        }),
+      );
+      if (removed === undefined) return;
+      logger.success(`key ${key.name} removed`);
+      return;
+    }
+
+    case 'bind': {
+      const nameOrUid = positionals[0];
+      const targetType = positionals[1] as 'channel' | 'bird' | undefined;
+      const targetId = positionals[2];
+      if (!nameOrUid || !targetType || !targetId) {
+        logger.error(
+          "usage: browserbird keys bind <name> <channel|bird> <target>\n  example: browserbird keys bind GITHUB_TOKEN channel '*'",
+        );
+        process.exitCode = 1;
+        return;
+      }
+      if (targetType !== 'channel' && targetType !== 'bird') {
+        logger.error('target type must be "channel" or "bird"');
+        process.exitCode = 1;
+        return;
+      }
+      const key = await resolveKey(nameOrUid);
+      if (!key) return;
+      if (key.bindings.some((b) => b.targetType === targetType && b.targetId === targetId)) {
+        logger.warn(`key ${key.name} is already bound to ${targetType} ${targetId}`);
+        return;
+      }
+      const next: KeyBinding[] = [...key.bindings, { targetType, targetId }];
+      const bindResult = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'PUT',
+          path: `/api/keys/${key.uid}/bindings`,
+          body: next,
+        }),
+      );
+      if (bindResult === undefined) return;
+      logger.success(`key ${key.name} bound to ${targetType} ${targetId}`);
+      return;
+    }
+
+    case 'unbind': {
+      const nameOrUid = positionals[0];
+      const targetType = positionals[1] as 'channel' | 'bird' | undefined;
+      const targetId = positionals[2];
+      if (!nameOrUid || !targetType || !targetId) {
+        logger.error('usage: browserbird keys unbind <name> <channel|bird> <target>');
+        process.exitCode = 1;
+        return;
+      }
+      if (targetType !== 'channel' && targetType !== 'bird') {
+        logger.error('target type must be "channel" or "bird"');
+        process.exitCode = 1;
+        return;
+      }
+      const key = await resolveKey(nameOrUid);
+      if (!key) return;
+      const filtered = key.bindings.filter(
+        (b) => !(b.targetType === targetType && b.targetId === targetId),
+      );
+      if (filtered.length === key.bindings.length) {
+        logger.warn(`key ${key.name} is not bound to ${targetType} ${targetId}`);
+        return;
+      }
+      const unbindResult = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'PUT',
+          path: `/api/keys/${key.uid}/bindings`,
+          body: filtered,
+        }),
+      );
+      if (unbindResult === undefined) return;
+      logger.success(`key ${key.name} unbound from ${targetType} ${targetId}`);
+      return;
+    }
+
+    default:
+      unknownSubcommand(subcommand, 'keys', ['list', 'add', 'edit', 'remove', 'bind', 'unbind']);
   }
 }

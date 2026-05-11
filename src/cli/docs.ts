@@ -6,16 +6,8 @@ import { logger } from '../core/logger.ts';
 import { shortUid } from '../core/uid.ts';
 import { printTable, unknownSubcommand } from '../core/utils.ts';
 import { c } from './style.ts';
-import {
-  openDatabase,
-  closeDatabase,
-  getDb,
-  resolveByUid,
-  resolveDbPathFromArgv,
-  listDocs,
-  getDocBindings,
-} from '../db/index.ts';
-import type { DocRow } from '../db/docs.ts';
+import type { DocInfo } from '../db/docs.ts';
+import type { PaginatedResult } from '../db/index.ts';
 import {
   daemonRequest,
   DaemonAuthError,
@@ -41,35 +33,12 @@ ${c('dim', 'options:')}
 
   ${c('yellow', '--content')} <text>    initial content (with add)
   ${c('yellow', '--json')}             output as JSON (with list)
-  ${c('yellow', '--db')} <path>         database file path (env: BROWSERBIRD_DB)
   ${c('yellow', '-h, --help')}          show this help
 
 ${c('dim', 'docs are stored as .md files in .browserbird/docs/.')}
 ${c('dim', 'edit them directly with any text editor.')}
 ${c('dim', "docs with no bindings are not injected. bind to channel '*' for global.")}
 `.trim();
-
-function resolveDoc(nameOrUid: string): DocRow | undefined {
-  const d = getDb();
-  const byTitle = d.prepare('SELECT * FROM docs WHERE title = ?').get(nameOrUid) as unknown as
-    | DocRow
-    | undefined;
-  if (byTitle) return byTitle;
-  const result = resolveByUid<DocRow>('docs', nameOrUid);
-  if (!result) {
-    logger.error(`doc "${nameOrUid}" not found`);
-    process.exitCode = 1;
-    return undefined;
-  }
-  if ('ambiguous' in result) {
-    logger.error(
-      `ambiguous doc ID "${nameOrUid}" matches ${result.count} docs, use a longer prefix`,
-    );
-    process.exitCode = 1;
-    return undefined;
-  }
-  return result.row;
-}
 
 async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
   try {
@@ -88,6 +57,23 @@ async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
   }
 }
 
+async function resolveDoc(nameOrUid: string): Promise<DocInfo | undefined> {
+  const result = await runDaemonCall<PaginatedResult<DocInfo>>(() =>
+    daemonRequest<PaginatedResult<DocInfo>>({
+      method: 'GET',
+      path: '/api/docs?perPage=1000',
+    }),
+  );
+  if (!result) return undefined;
+  const byTitle = result.items.find((d) => d.title === nameOrUid);
+  if (byTitle) return byTitle;
+  const byUid = result.items.find((d) => d.uid === nameOrUid || d.uid.startsWith(nameOrUid));
+  if (byUid) return byUid;
+  logger.error(`doc "${nameOrUid}" not found`);
+  process.exitCode = 1;
+  return undefined;
+}
+
 export async function handleDocs(argv: string[]): Promise<void> {
   const subcommand = argv[0] ?? 'list';
   const rest = argv.slice(1);
@@ -102,162 +88,160 @@ export async function handleDocs(argv: string[]): Promise<void> {
     strict: false,
   });
 
-  openDatabase(resolveDbPathFromArgv(argv));
-
-  try {
-    switch (subcommand) {
-      case 'list': {
-        const result = listDocs(1, 100);
-        if (values.json) {
-          console.log(JSON.stringify(result.items, null, 2));
-          break;
-        }
-        console.log(`docs (${result.totalItems} total):`);
-        if (result.items.length === 0) {
-          console.log('\n  no docs found');
-          return;
-        }
-        console.log('');
-        const rows = result.items.map((doc) => {
-          const bindings =
-            doc.bindings.map((b) => `${b.targetType}:${b.targetId}`).join(', ') || 'global';
-          return [c('dim', shortUid(doc.uid)), doc.title, basename(doc.file_path), bindings];
-        });
-        printTable(['uid', 'title', 'file', 'scope'], rows, [undefined, 30, 30, 40]);
-        break;
+  switch (subcommand) {
+    case 'list': {
+      const result = await runDaemonCall<PaginatedResult<DocInfo>>(() =>
+        daemonRequest<PaginatedResult<DocInfo>>({
+          method: 'GET',
+          path: '/api/docs?perPage=100',
+        }),
+      );
+      if (!result) return;
+      if (values.json) {
+        console.log(JSON.stringify(result.items, null, 2));
+        return;
       }
-
-      case 'add': {
-        const title = positionals.join(' ').trim();
-        if (!title) {
-          logger.error('usage: browserbird docs add <title> [--content <text>]');
-          process.exitCode = 1;
-          return;
-        }
-        const doc = await runDaemonCall<DocRow>(() =>
-          daemonRequest<DocRow>({
-            method: 'POST',
-            path: '/api/docs',
-            body: { title, content: (values.content as string | undefined) ?? '' },
-          }),
-        );
-        if (!doc) break;
-        logger.success(`doc "${doc.title}" created at ${basename(doc.file_path)}`);
-        process.stderr.write(c('dim', `  path: ${doc.file_path}`) + '\n');
-        break;
+      console.log(`docs (${result.totalItems} total):`);
+      if (result.items.length === 0) {
+        console.log('\n  no docs found');
+        return;
       }
-
-      case 'remove': {
-        const nameOrUid = positionals[0];
-        if (!nameOrUid) {
-          logger.error('usage: browserbird docs remove <uid|title>');
-          process.exitCode = 1;
-          return;
-        }
-        const doc = resolveDoc(nameOrUid);
-        if (!doc) return;
-        const removed = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'DELETE',
-            path: `/api/docs/${doc.uid}`,
-          }),
-        );
-        if (removed === undefined) break;
-        logger.success(`doc "${doc.title}" removed`);
-        break;
-      }
-
-      case 'bind': {
-        const nameOrUid = positionals[0];
-        const targetType = positionals[1] as 'channel' | 'bird' | undefined;
-        const targetId = positionals[2];
-        if (!nameOrUid || !targetType || !targetId) {
-          logger.error(
-            "usage: browserbird docs bind <uid|title> <channel|bird> <target>\n  example: browserbird docs bind tone-guide channel '*'",
-          );
-          process.exitCode = 1;
-          return;
-        }
-        if (targetType !== 'channel' && targetType !== 'bird') {
-          logger.error('target type must be "channel" or "bird"');
-          process.exitCode = 1;
-          return;
-        }
-        const doc = resolveDoc(nameOrUid);
-        if (!doc) return;
-        const existingForBind = getDocBindings(doc.uid);
-        if (existingForBind.some((b) => b.targetType === targetType && b.targetId === targetId)) {
-          logger.warn(`doc "${doc.title}" is already bound to ${targetType} ${targetId}`);
-          return;
-        }
-        const bindResult = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'PUT',
-            path: `/api/docs/${doc.uid}/bindings`,
-            body: [...existingForBind, { targetType, targetId }],
-          }),
-        );
-        if (bindResult === undefined) break;
-        logger.success(`doc "${doc.title}" bound to ${targetType} ${targetId}`);
-        break;
-      }
-
-      case 'unbind': {
-        const nameOrUid = positionals[0];
-        const targetType = positionals[1] as 'channel' | 'bird' | undefined;
-        const targetId = positionals[2];
-        if (!nameOrUid || !targetType || !targetId) {
-          logger.error('usage: browserbird docs unbind <uid|title> <channel|bird> <target>');
-          process.exitCode = 1;
-          return;
-        }
-        if (targetType !== 'channel' && targetType !== 'bird') {
-          logger.error('target type must be "channel" or "bird"');
-          process.exitCode = 1;
-          return;
-        }
-        const doc = resolveDoc(nameOrUid);
-        if (!doc) return;
-        const existingForUnbind = getDocBindings(doc.uid);
-        const filtered = existingForUnbind.filter(
-          (b) => !(b.targetType === targetType && b.targetId === targetId),
-        );
-        if (filtered.length === existingForUnbind.length) {
-          logger.warn(`doc "${doc.title}" is not bound to ${targetType} ${targetId}`);
-          return;
-        }
-        const unbindResult = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'PUT',
-            path: `/api/docs/${doc.uid}/bindings`,
-            body: filtered,
-          }),
-        );
-        if (unbindResult === undefined) break;
-        logger.success(`doc "${doc.title}" unbound from ${targetType} ${targetId}`);
-        break;
-      }
-
-      case 'sync': {
-        const result = await runDaemonCall<{ changed: boolean }>(() =>
-          daemonRequest<{ changed: boolean }>({
-            method: 'POST',
-            path: '/api/docs/sync',
-          }),
-        );
-        if (!result) break;
-        if (result.changed) {
-          logger.success('docs synced');
-        } else {
-          logger.info('docs already in sync');
-        }
-        break;
-      }
-
-      default:
-        unknownSubcommand(subcommand, 'docs', ['list', 'add', 'remove', 'bind', 'unbind', 'sync']);
+      console.log('');
+      const rows = result.items.map((doc) => {
+        const bindings =
+          doc.bindings.map((b) => `${b.targetType}:${b.targetId}`).join(', ') || 'global';
+        return [c('dim', shortUid(doc.uid)), doc.title, basename(doc.file_path), bindings];
+      });
+      printTable(['uid', 'title', 'file', 'scope'], rows, [undefined, 30, 30, 40]);
+      return;
     }
-  } finally {
-    closeDatabase();
+
+    case 'add': {
+      const title = positionals.join(' ').trim();
+      if (!title) {
+        logger.error('usage: browserbird docs add <title> [--content <text>]');
+        process.exitCode = 1;
+        return;
+      }
+      const doc = await runDaemonCall<DocInfo>(() =>
+        daemonRequest<DocInfo>({
+          method: 'POST',
+          path: '/api/docs',
+          body: { title, content: (values.content as string | undefined) ?? '' },
+        }),
+      );
+      if (!doc) return;
+      logger.success(`doc "${doc.title}" created at ${basename(doc.file_path)}`);
+      process.stderr.write(c('dim', `  path: ${doc.file_path}`) + '\n');
+      return;
+    }
+
+    case 'remove': {
+      const nameOrUid = positionals[0];
+      if (!nameOrUid) {
+        logger.error('usage: browserbird docs remove <uid|title>');
+        process.exitCode = 1;
+        return;
+      }
+      const doc = await resolveDoc(nameOrUid);
+      if (!doc) return;
+      const removed = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'DELETE',
+          path: `/api/docs/${doc.uid}`,
+        }),
+      );
+      if (removed === undefined) return;
+      logger.success(`doc "${doc.title}" removed`);
+      return;
+    }
+
+    case 'bind': {
+      const nameOrUid = positionals[0];
+      const targetType = positionals[1] as 'channel' | 'bird' | undefined;
+      const targetId = positionals[2];
+      if (!nameOrUid || !targetType || !targetId) {
+        logger.error(
+          "usage: browserbird docs bind <uid|title> <channel|bird> <target>\n  example: browserbird docs bind tone-guide channel '*'",
+        );
+        process.exitCode = 1;
+        return;
+      }
+      if (targetType !== 'channel' && targetType !== 'bird') {
+        logger.error('target type must be "channel" or "bird"');
+        process.exitCode = 1;
+        return;
+      }
+      const doc = await resolveDoc(nameOrUid);
+      if (!doc) return;
+      if (doc.bindings.some((b) => b.targetType === targetType && b.targetId === targetId)) {
+        logger.warn(`doc "${doc.title}" is already bound to ${targetType} ${targetId}`);
+        return;
+      }
+      const bindResult = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'PUT',
+          path: `/api/docs/${doc.uid}/bindings`,
+          body: [...doc.bindings, { targetType, targetId }],
+        }),
+      );
+      if (bindResult === undefined) return;
+      logger.success(`doc "${doc.title}" bound to ${targetType} ${targetId}`);
+      return;
+    }
+
+    case 'unbind': {
+      const nameOrUid = positionals[0];
+      const targetType = positionals[1] as 'channel' | 'bird' | undefined;
+      const targetId = positionals[2];
+      if (!nameOrUid || !targetType || !targetId) {
+        logger.error('usage: browserbird docs unbind <uid|title> <channel|bird> <target>');
+        process.exitCode = 1;
+        return;
+      }
+      if (targetType !== 'channel' && targetType !== 'bird') {
+        logger.error('target type must be "channel" or "bird"');
+        process.exitCode = 1;
+        return;
+      }
+      const doc = await resolveDoc(nameOrUid);
+      if (!doc) return;
+      const filtered = doc.bindings.filter(
+        (b) => !(b.targetType === targetType && b.targetId === targetId),
+      );
+      if (filtered.length === doc.bindings.length) {
+        logger.warn(`doc "${doc.title}" is not bound to ${targetType} ${targetId}`);
+        return;
+      }
+      const unbindResult = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'PUT',
+          path: `/api/docs/${doc.uid}/bindings`,
+          body: filtered,
+        }),
+      );
+      if (unbindResult === undefined) return;
+      logger.success(`doc "${doc.title}" unbound from ${targetType} ${targetId}`);
+      return;
+    }
+
+    case 'sync': {
+      const result = await runDaemonCall<{ changed: boolean }>(() =>
+        daemonRequest<{ changed: boolean }>({
+          method: 'POST',
+          path: '/api/docs/sync',
+        }),
+      );
+      if (!result) return;
+      if (result.changed) {
+        logger.success('docs synced');
+      } else {
+        logger.info('docs already in sync');
+      }
+      return;
+    }
+
+    default:
+      unknownSubcommand(subcommand, 'docs', ['list', 'add', 'remove', 'bind', 'unbind', 'sync']);
   }
 }

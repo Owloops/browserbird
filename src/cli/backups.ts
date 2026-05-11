@@ -1,12 +1,10 @@
 /** @fileoverview Backups command: create, list, delete, and restore backups. */
 
 import { parseArgs } from 'node:util';
-import { dirname } from 'node:path';
 import { logger } from '../core/logger.ts';
 import { unknownSubcommand } from '../core/utils.ts';
 import { c } from './style.ts';
-import { openDatabase, closeDatabase, resolveDbPathFromArgv } from '../db/index.ts';
-import { listBackups } from '../core/backup.ts';
+import type { BackupInfo } from '../core/backup.ts';
 import {
   daemonRequest,
   DaemonAuthError,
@@ -30,7 +28,6 @@ ${c('dim', 'options:')}
 
   ${c('yellow', '--name')} <name>     custom backup filename (with create)
   ${c('yellow', '--json')}            output as JSON (with list)
-  ${c('yellow', '--db')} <path>       database file path (env: BROWSERBIRD_DB)
   ${c('yellow', '-h, --help')}        show this help
 `.trim();
 
@@ -71,89 +68,81 @@ export async function handleBackups(argv: string[]): Promise<void> {
     strict: false,
   });
 
-  const dbPath = resolveDbPathFromArgv(argv);
-  const dataDir = dirname(dbPath);
-
-  openDatabase(dbPath);
-
-  try {
-    switch (subcommand) {
-      case 'list': {
-        const backups = listBackups(dataDir);
-        if (values.json) {
-          console.log(JSON.stringify(backups, null, 2));
-          break;
-        }
-        console.log(`backups (${backups.length} total):`);
-        if (backups.length === 0) {
-          console.log('\n  no backups found');
-          return;
-        }
-        console.log('');
-        for (const b of backups) {
-          const date = new Date(b.created).toLocaleString();
-          console.log(`  ${c('cyan', b.name)}  ${formatSize(b.size)}  ${c('dim', date)}`);
-        }
-        break;
+  switch (subcommand) {
+    case 'list': {
+      const backups = await runDaemonCall<BackupInfo[]>(() =>
+        daemonRequest<BackupInfo[]>({ method: 'GET', path: '/api/backups' }),
+      );
+      if (!backups) return;
+      if (values.json) {
+        console.log(JSON.stringify(backups, null, 2));
+        return;
       }
-
-      case 'create': {
-        const customName = values.name as string | undefined;
-        const info = await runDaemonCall<{ name: string; size: number; created: string }>(() =>
-          daemonRequest({
-            method: 'POST',
-            path: '/api/backups',
-            body: customName ? { name: customName } : {},
-          }),
-        );
-        if (!info) break;
-        logger.success(`backup created: ${info.name} (${formatSize(info.size)})`);
-        break;
+      console.log(`backups (${backups.length} total):`);
+      if (backups.length === 0) {
+        console.log('\n  no backups found');
+        return;
       }
-
-      case 'delete': {
-        const name = positionals[0];
-        if (!name) {
-          logger.error('usage: browserbird backups delete <name>');
-          process.exitCode = 1;
-          return;
-        }
-        const deleted = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'DELETE',
-            path: `/api/backups/${encodeURIComponent(name)}`,
-          }),
-        );
-        if (deleted === undefined) break;
-        logger.success(`backup ${name} deleted`);
-        break;
+      console.log('');
+      for (const b of backups) {
+        const date = new Date(b.created).toLocaleString();
+        console.log(`  ${c('cyan', b.name)}  ${formatSize(b.size)}  ${c('dim', date)}`);
       }
-
-      case 'restore': {
-        const name = positionals[0];
-        if (!name) {
-          logger.error('usage: browserbird backups restore <name>');
-          process.exitCode = 1;
-          return;
-        }
-        const restored = await runDaemonCall(() =>
-          daemonRequest<{ success?: boolean }>({
-            method: 'POST',
-            path: `/api/backups/${encodeURIComponent(name)}/restore`,
-          }),
-        );
-        if (restored === undefined) break;
-        logger.success(`restore initiated from ${name}`);
-        process.stderr.write(
-          c('dim', '  the daemon will restart to apply the restored data') + '\n',
-        );
-        break;
-      }
-
-      default:
-        unknownSubcommand(subcommand, 'backups', ['list', 'create', 'delete', 'restore']);
+      return;
     }
-  } finally {
-    closeDatabase();
+
+    case 'create': {
+      const customName = values.name as string | undefined;
+      const info = await runDaemonCall<BackupInfo>(() =>
+        daemonRequest({
+          method: 'POST',
+          path: '/api/backups',
+          body: customName ? { name: customName } : {},
+        }),
+      );
+      if (!info) return;
+      logger.success(`backup created: ${info.name} (${formatSize(info.size)})`);
+      return;
+    }
+
+    case 'delete': {
+      const name = positionals[0];
+      if (!name) {
+        logger.error('usage: browserbird backups delete <name>');
+        process.exitCode = 1;
+        return;
+      }
+      const deleted = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'DELETE',
+          path: `/api/backups/${encodeURIComponent(name)}`,
+        }),
+      );
+      if (deleted === undefined) return;
+      logger.success(`backup ${name} deleted`);
+      return;
+    }
+
+    case 'restore': {
+      const name = positionals[0];
+      if (!name) {
+        logger.error('usage: browserbird backups restore <name>');
+        process.exitCode = 1;
+        return;
+      }
+      const restored = await runDaemonCall(() =>
+        daemonRequest<{ success?: boolean }>({
+          method: 'POST',
+          path: `/api/backups/${encodeURIComponent(name)}/restore`,
+        }),
+      );
+      if (restored === undefined) return;
+      logger.success(`restore initiated from ${name}`);
+      process.stderr.write(c('dim', '  the daemon will restart to apply the restored data') + '\n');
+      return;
+    }
+
+    default:
+      unknownSubcommand(subcommand, 'backups', ['list', 'create', 'delete', 'restore']);
   }
 }

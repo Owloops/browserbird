@@ -3,7 +3,12 @@
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const pkg = require('../package.json') as { version: string };
+let pkg: { version: string };
+try {
+  pkg = require('../../package.json') as { version: string };
+} catch {
+  pkg = require('../package.json') as { version: string };
+}
 
 const buildInfo: string[] = [];
 if (process.env.GITHUB_SHA) {
