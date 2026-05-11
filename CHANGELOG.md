@@ -1,3 +1,16 @@
+# [1.24.0](https://github.com/Owloops/browserbird/compare/v1.23.0...v1.24.0) (2026-05-11)
+
+
+### Bug Fixes
+
+* **prompt:** read full input in cooked-mode stdin chunks ([c4e90da](https://github.com/Owloops/browserbird/commit/c4e90da397ac2498c9af5fab7f9b6114d28566f1))
+* **provider:** reconcile claude settings against on-disk content on every start ([eb5c6ae](https://github.com/Owloops/browserbird/commit/eb5c6ae72dbb30e5a7799e9012dda641733ba9ac))
+
+
+### Features
+
+* **auth:** distinguish missing credential from rejected token ([1026025](https://github.com/Owloops/browserbird/commit/1026025f4706149c9f8fdabe5ba844b87d5c317d))
+
 # [1.23.0](https://github.com/Owloops/browserbird/compare/v1.22.2...v1.23.0) (2026-05-11)
 
 
