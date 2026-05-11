@@ -55,13 +55,33 @@ export class DaemonAuthError extends Error {
   constructor() {
     super(
       [
-        'not authenticated.',
+        'not authenticated: no credential found.',
         describeAuthLookup(),
         '',
         'run `browserbird login` or set BROWSERBIRD_TOKEN to authenticate.',
       ].join('\n'),
     );
     this.name = 'DaemonAuthError';
+  }
+}
+
+export class DaemonInvalidTokenError extends DaemonAuthError {
+  status: number;
+  body: string;
+  constructor(status: number, body: string) {
+    super();
+    this.message = [
+      `daemon rejected the credential (HTTP ${status}).`,
+      body ? `  reason: ${body.slice(0, 200)}` : '',
+      '',
+      'your token may have expired or been issued by a different daemon.',
+      'run `browserbird login` to get a fresh token.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    this.name = 'DaemonInvalidTokenError';
+    this.status = status;
+    this.body = body;
   }
 }
 
@@ -114,7 +134,8 @@ export async function daemonRequest<T = unknown>(opts: DaemonRequestOptions): Pr
   }
 
   if (response.status === 401 || response.status === 403) {
-    throw new DaemonAuthError();
+    const body = await response.text();
+    throw new DaemonInvalidTokenError(response.status, body);
   }
 
   const text = await response.text();

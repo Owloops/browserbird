@@ -63,7 +63,14 @@ function readCredentialsFile(path: string): string | null {
   }
 }
 
-export function loadCliToken(): ResolvedCredential | null {
+export interface CliTokenSources {
+  /** Override the data-dir credentials path. Test seam. */
+  dataDirPath?: string;
+  /** Override the XDG credentials path. Test seam. */
+  xdgPath?: string;
+}
+
+export function loadCliToken(sources: CliTokenSources = {}): ResolvedCredential | null {
   const envToken = process.env['BROWSERBIRD_TOKEN'];
   if (envToken && envToken.length > 0) {
     return { token: envToken, source: { kind: 'env', origin: 'BROWSERBIRD_TOKEN' } };
@@ -77,13 +84,13 @@ export function loadCliToken(): ResolvedCredential | null {
     }
   }
 
-  const dataDirPath = dataDirCredentialsPath();
+  const dataDirPath = sources.dataDirPath ?? dataDirCredentialsPath();
   const dataDirToken = readCredentialsFile(dataDirPath);
   if (dataDirToken) {
     return { token: dataDirToken, source: { kind: 'file', origin: dataDirPath } };
   }
 
-  const xdgPath = xdgCredentialsPath();
+  const xdgPath = sources.xdgPath ?? xdgCredentialsPath();
   const xdgToken = readCredentialsFile(xdgPath);
   if (xdgToken) {
     return { token: xdgToken, source: { kind: 'file', origin: xdgPath } };
