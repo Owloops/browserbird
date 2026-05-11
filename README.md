@@ -284,6 +284,9 @@ Authentication is handled via the web UI. On first visit, you create an account.
 | `BROWSERBIRD_VAULT_KEY`   | Vault encryption key (auto-generated on first start, stored in `.env`)                           |
 | `BROWSERBIRD_VERBOSE`     | Set to `1` to enable debug logging. Same as `--verbose` flag                                     |
 | `BROWSERBIRD_BIRD_DATA`   | Persistent data directory for the current bird. Set automatically per bird run                    |
+| `BROWSERBIRD_TOKEN`       | CLI auth token. Takes priority over saved credentials files                                       |
+| `BROWSERBIRD_CREDENTIALS` | Path to a credentials JSON file. Used when `BROWSERBIRD_TOKEN` is unset                          |
+| `BROWSERBIRD_API_URL`     | Daemon URL the CLI talks to (default `http://127.0.0.1:18800`). Overridden by `--url` flag       |
 | `NO_COLOR`                | Disable colored output                                                                           |
 
 > [!NOTE]
@@ -336,6 +339,9 @@ commands:
   logs        show recent log entries
   jobs        inspect and manage the job queue
   doctor      check system dependencies
+  login       authenticate to the daemon
+  logout      clear saved daemon credentials
+  whoami      show the authenticated user
 
 options:
 
@@ -350,13 +356,16 @@ run 'browserbird <command> --help' for command-specific options.
 
 ### Standalone CLI Workflow
 
-BrowserBird works without Slack. Create a bird, trigger it, and check results from the terminal:
+BrowserBird works without Slack. Authenticate once, create a bird, trigger it, and check results from the terminal:
 
 ```bash
+browserbird login
 browserbird birds add --name "hn-digest" --schedule "0 9 * * *" --prompt "Check Hacker News for AI news and summarize"
 browserbird birds fly <name>
 browserbird birds flights <name>
 ```
+
+The CLI talks to the daemon over HTTP and authenticates with a JWT. `browserbird login` prompts for your dashboard email and password and saves the token to `~/.config/browserbird/credentials.json` (use `--system` to write to `<DATA_DIR>/.credentials.json` instead, for container deployments). To skip the file entirely, set `BROWSERBIRD_TOKEN`. Point at a remote daemon with `--url` or `BROWSERBIRD_API_URL`. `browserbird logout` clears the saved token; `browserbird whoami` shows the current principal.
 
 ## Web UI
 
