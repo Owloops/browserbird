@@ -21,6 +21,10 @@ All bird schedules use the global `timezone` from the config file (default: UTC)
 
 Schedule format: standard 5-field cron (`0 9 * * 1-5`) or macros (`@daily`, `@hourly`, `@weekly`, `@monthly`).
 
+`birds edit --prompt <text>` replaces the entire prompt; there is no patch primitive. Read the current prompt with `birds list --json` before editing so you do not drop unrelated instructions. The plain `birds list` view truncates the prompt column to 50 characters and is not safe to use as the source of truth.
+
+For long prompts, use `birds edit <uid> --prompt-file <path>` (also available on `birds add`) to read the prompt from a file. Avoids shell-quoting issues with multi-line content or special characters.
+
 ## Docs (system prompt documents)
 
 ```

@@ -101,4 +101,9 @@ The following npm tools can be used via `npx`. Run with `--help` to see usage.
 
 BrowserBird has a CLI at `./bin/browserbird`. Use it when the user asks to manage birds, inspect sessions, check logs, or interact with the system.
 
+### CLI operating rules
+
+- Do NOT redirect stderr from `browserbird` CLI invocations. No `2>/dev/null`, no `2>&1 >/dev/null`, no suppression of any kind. The CLI surfaces validation errors, auth failures, and daemon-unreachable conditions on stderr. Silencing it has turned real failures into silent no-ops.
+- Do NOT trust memory files for a bird's current schedule, prompt, channel, or enabled state. Read the live record with `./bin/browserbird birds list --json` and parse the entry for the uid you care about. `birds list` (without `--json`) truncates the prompt to 50 characters, so memory snapshots of long prompts may be stale or partial.
+
 @cli-reference.md
