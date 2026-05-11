@@ -1,3 +1,10 @@
+## [1.24.1](https://github.com/Owloops/browserbird/compare/v1.24.0...v1.24.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* **oci:** pass playwright-mcp config as cli flags instead of env vars ([889efb7](https://github.com/Owloops/browserbird/commit/889efb706e46013447ff87ca218833d0689f4627))
+
 # [1.24.0](https://github.com/Owloops/browserbird/compare/v1.23.0...v1.24.0) (2026-05-11)
 
 
