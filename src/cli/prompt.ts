@@ -19,18 +19,21 @@ export function promptLine(prompt: string): Promise<string> {
     stdin.setEncoding('utf-8');
     stdin.resume();
     let value = '';
-    const onData = (ch: string) => {
-      if (ch === '\r' || ch === '\n') {
-        stdin.removeListener('data', onData);
-        stdin.pause();
-        resolve(value.trim());
-      } else if (ch === CTRL_C) {
+    const onData = (chunk: string) => {
+      if (chunk.includes(CTRL_C)) {
         stdin.removeListener('data', onData);
         process.stderr.write('\n');
         process.exit(130);
-      } else {
-        value += ch;
       }
+      const nl = chunk.search(/[\r\n]/);
+      if (nl === -1) {
+        value += chunk;
+        return;
+      }
+      value += chunk.slice(0, nl);
+      stdin.removeListener('data', onData);
+      stdin.pause();
+      resolve(value.trim());
     };
     stdin.on('data', onData);
   });
