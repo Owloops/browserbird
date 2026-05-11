@@ -1,11 +1,4 @@
 #!/bin/bash
-export PLAYWRIGHT_MCP_PORT=3000
-export PLAYWRIGHT_MCP_HOST=0.0.0.0
-export PLAYWRIGHT_MCP_ALLOWED_HOSTNAMES='*'
-export PLAYWRIGHT_MCP_CONFIG=/opt/browserbird/playwright.config.json
-export PLAYWRIGHT_MCP_INIT_SCRIPT=/opt/browserbird/stealth.js
-export PLAYWRIGHT_MCP_ALLOW_UNRESTRICTED_FILE_ACCESS=true
-
 # Wait for sway
 timeout=30
 while [ $timeout -gt 0 ]; do
@@ -15,14 +8,22 @@ while [ $timeout -gt 0 ]; do
 done
 [ $timeout -eq 0 ] && { echo "sway socket not found" >&2; exit 1; }
 
-# Handle browser mode
+ARGS=(
+    --port 3000
+    --host 0.0.0.0
+    --allowed-hosts '*'
+    --config /opt/browserbird/playwright.config.json
+    --init-script /opt/browserbird/stealth.js
+    --allow-unrestricted-file-access
+)
+
 if [ "${BROWSER_MODE}" = "isolated" ]; then
-    export PLAYWRIGHT_MCP_ISOLATED=true
+    ARGS+=(--isolated)
 else
     BROWSER_PROFILE="/home/${USERNAME:-bbuser}/.browserbird/browser-profile"
     mkdir -p "$BROWSER_PROFILE"
     rm -f "$BROWSER_PROFILE/SingletonLock"
-    export PLAYWRIGHT_MCP_USER_DATA_DIR="$BROWSER_PROFILE"
+    ARGS+=(--user-data-dir "$BROWSER_PROFILE")
 fi
 
-exec playwright-mcp
+exec playwright-mcp "${ARGS[@]}"
