@@ -2,14 +2,22 @@
 
 import type { Route } from '../http.ts';
 import { pathToRegex, json, jsonError, readJsonBody } from '../http.ts';
-import { getUserCount, getUserByEmail, createUser, getSetting } from '../../db/index.ts';
+import {
+  getUserCount,
+  getUserByEmail,
+  getUserById,
+  createUser,
+  getSetting,
+} from '../../db/index.ts';
 import {
   hashPassword,
   verifyPassword,
   generateTokenKey,
   getOrCreateSecret,
   signToken,
+  extractUserIdFromToken,
 } from '../auth.ts';
+import { isServiceUser } from '../service-user.ts';
 
 export function buildAuthRoutes(): Route[] {
   return [
@@ -95,6 +103,29 @@ export function buildAuthRoutes(): Route[] {
       pattern: pathToRegex('/api/auth/verify'),
       handler(_req, res) {
         json(res, { valid: true });
+      },
+    },
+    {
+      method: 'GET',
+      pattern: pathToRegex('/api/auth/me'),
+      handler(req, res) {
+        const authHeader = req.headers['authorization'] ?? '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+        const userId = token ? extractUserIdFromToken(token) : null;
+        if (userId === null) {
+          jsonError(res, 'No authenticated user', 401);
+          return;
+        }
+        const user = getUserById(userId);
+        if (!user) {
+          jsonError(res, 'User not found', 404);
+          return;
+        }
+        json(res, {
+          id: user.id,
+          email: user.email,
+          isService: isServiceUser(user),
+        });
       },
     },
   ];

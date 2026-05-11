@@ -10,6 +10,7 @@ const SCRYPT_KEYLEN = 64;
 const SALT_BYTES = 16;
 
 const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+export const SERVICE_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 export function hashPassword(password: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -80,13 +81,18 @@ export interface TokenPayload {
   jti: string;
 }
 
-export function signToken(userId: number, tokenKey: string, secret: string): string {
+export function signToken(
+  userId: number,
+  tokenKey: string,
+  secret: string,
+  ttlMs: number = TOKEN_EXPIRY_MS,
+): string {
   const now = Date.now();
   const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const payload = base64UrlEncode(
     JSON.stringify({
       sub: userId,
-      exp: now + TOKEN_EXPIRY_MS,
+      exp: now + ttlMs,
       iat: now,
       jti: randomBytes(16).toString('hex'),
     }),
@@ -100,6 +106,22 @@ export function signToken(userId: number, tokenKey: string, secret: string): str
  * Verifies a raw token string: structure, signature, expiry, and that the
  * user still exists in the DB. Returns true if valid, false otherwise.
  */
+/**
+ * Decodes the user id from a JWT payload without verifying the signature.
+ * Use only after `verifyToken` returns true, or in contexts where the caller
+ * has already verified authentication.
+ */
+export function extractUserIdFromToken(token: string): number | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const decoded = JSON.parse(base64UrlDecode(parts[1]!)) as { sub?: number };
+    return typeof decoded.sub === 'number' ? decoded.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 export function verifyToken(token: string): boolean {
   const parts = token.split('.');
   if (parts.length !== 3) return false;

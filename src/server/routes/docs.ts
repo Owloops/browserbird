@@ -22,6 +22,7 @@ import {
   deleteDoc,
   setDocPinned,
   replaceDocBindings,
+  syncDocs,
 } from '../../db/index.ts';
 
 export function buildDocsRoutes(): Route[] {
@@ -141,6 +142,15 @@ export function buildDocsRoutes(): Route[] {
         replaceDocBindings(doc.uid, bindings);
         broadcastSSE('invalidate', { resource: 'docs' });
         json(res, { success: true });
+      },
+    },
+    {
+      method: 'POST',
+      pattern: pathToRegex('/api/docs/sync'),
+      handler(_req, res) {
+        const changed = syncDocs();
+        if (changed) broadcastSSE('invalidate', { resource: 'docs' });
+        json(res, { changed });
       },
     },
   ];

@@ -9,12 +9,14 @@ import {
   closeDatabase,
   listJobs,
   getJobStats,
-  retryJob,
-  retryAllFailedJobs,
-  deleteJob,
-  clearJobs,
   resolveDbPathFromArgv,
 } from '../db/index.ts';
+import {
+  daemonRequest,
+  DaemonAuthError,
+  DaemonError,
+  DaemonUnreachableError,
+} from './daemon-rpc.ts';
 
 export const JOBS_HELP = `
 ${c('cyan', 'usage:')} browserbird jobs [subcommand] [options]
@@ -42,7 +44,24 @@ ${c('dim', 'options:')}
   ${c('yellow', '-h, --help')}       show this help
 `.trim();
 
-export function handleJobs(argv: string[]): void {
+async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (
+      err instanceof DaemonAuthError ||
+      err instanceof DaemonUnreachableError ||
+      err instanceof DaemonError
+    ) {
+      logger.error(err.message);
+      process.exitCode = 1;
+      return undefined;
+    }
+    throw err;
+  }
+}
+
+export async function handleJobs(argv: string[]): Promise<void> {
   const { values, positionals } = parseArgs({
     args: argv,
     options: {
@@ -112,8 +131,11 @@ export function handleJobs(argv: string[]): void {
       }
       case 'retry': {
         if (values['all-failed']) {
-          const count = retryAllFailedJobs();
-          logger.success(`reset ${count} failed job(s) to pending`);
+          const result = await runDaemonCall<{ count: number }>(() =>
+            daemonRequest({ method: 'POST', path: '/api/jobs/retry-failed' }),
+          );
+          if (!result) return;
+          logger.success(`reset ${result.count} failed job(s) to pending`);
           return;
         }
         const id = Number(positionals[1]);
@@ -122,12 +144,14 @@ export function handleJobs(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        if (retryJob(id)) {
-          logger.success(`job #${id} reset to pending`);
-        } else {
-          logger.error(`job #${id} not found or not in failed state`);
-          process.exitCode = 1;
-        }
+        const retried = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'POST',
+            path: `/api/jobs/${id}/retry`,
+          }),
+        );
+        if (retried === undefined) break;
+        logger.success(`job #${id} reset to pending`);
         break;
       }
       case 'delete': {
@@ -137,12 +161,14 @@ export function handleJobs(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        if (deleteJob(id)) {
-          logger.success(`job #${id} deleted`);
-        } else {
-          logger.error(`job #${id} not found`);
-          process.exitCode = 1;
-        }
+        const deleted = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'DELETE',
+            path: `/api/jobs/${id}`,
+          }),
+        );
+        if (deleted === undefined) break;
+        logger.success(`job #${id} deleted`);
         break;
       }
       case 'clear': {
@@ -151,10 +177,14 @@ export function handleJobs(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        let total = 0;
-        if (values.completed) total += clearJobs('completed');
-        if (values.failed) total += clearJobs('failed');
-        logger.success(`cleared ${total} job(s)`);
+        const statuses: string[] = [];
+        if (values.completed) statuses.push('completed');
+        if (values.failed) statuses.push('failed');
+        const result = await runDaemonCall<{ count: number }>(() =>
+          daemonRequest({ method: 'POST', path: '/api/jobs/clear', body: { statuses } }),
+        );
+        if (!result) break;
+        logger.success(`cleared ${result.count} job(s)`);
         break;
       }
       default:

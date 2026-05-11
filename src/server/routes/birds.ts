@@ -219,9 +219,19 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
     {
       method: 'POST',
       pattern: pathToRegex('/api/birds/:id/fly'),
-      handler(_req, res, params) {
+      async handler(req, res, params) {
         const bird = resolveBird(params, res);
         if (!bird) return;
+        let body: { args?: string } = {};
+        if (req.method === 'POST' && req.headers['content-length'] !== '0') {
+          try {
+            body = await readJsonBody(req);
+          } catch {
+            body = {};
+          }
+        }
+        const args = body.args?.trim() ?? '';
+        const prompt = args ? bird.prompt.replace(/\$ARGUMENTS/g, args) : bird.prompt;
         const isSystem = bird.name.startsWith(SYSTEM_CRON_PREFIX);
         const job = isSystem
           ? enqueue(
@@ -234,7 +244,7 @@ export function buildBirdsRoutes(getConfig: () => Config): Route[] {
               {
                 cronJobUid: bird.uid,
                 birdName: bird.name,
-                prompt: bird.prompt,
+                prompt,
                 channelId: bird.target_channel_id,
                 agentId: bird.agent_id,
               },

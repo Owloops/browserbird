@@ -1,7 +1,6 @@
 /** @fileoverview Cron scheduler: evaluates cron jobs every 60s and enqueues due jobs. */
 
 import type { Config } from '../core/types.ts';
-import type { CronSchedule } from './parse.ts';
 import type { ChannelClient } from '../channel/types.ts';
 
 import { logger } from '../core/logger.ts';
@@ -28,6 +27,7 @@ import { createBackup, enforceRetention } from '../core/backup.ts';
 import { dirname } from 'node:path';
 import { resolveDbPath } from '../db/path.ts';
 import { spawnProvider } from '../provider/spawn.ts';
+import { signServiceToken } from '../server/service-user.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
 import { getDocsSystemPrompt } from '../db/docs.ts';
 import { redact } from '../core/redact.ts';
@@ -158,6 +158,7 @@ export function startScheduler(
           globalTimeoutMs: config.sessions.processTimeoutMs,
           extraEnv,
           docsPrompt: getDocsSystemPrompt(targets),
+          serviceToken: signServiceToken(),
         },
         signal,
       );
@@ -264,7 +265,6 @@ export function startScheduler(
     return result ?? undefined;
   });
 
-  const scheduleCache = new Map<string, CronSchedule>();
   const scheduleErrors = new Map<string, number>();
 
   const tick = () => {
@@ -275,28 +275,25 @@ export function startScheduler(
     const jobs = getEnabledCronJobs();
 
     for (const job of jobs) {
-      let schedule = scheduleCache.get(job.uid);
-      if (!schedule) {
-        try {
-          schedule = parseCron(job.schedule);
-          scheduleCache.set(job.uid, schedule);
+      let schedule;
+      try {
+        schedule = parseCron(job.schedule);
+        scheduleErrors.delete(job.uid);
+      } catch {
+        const count = (scheduleErrors.get(job.uid) ?? 0) + 1;
+        scheduleErrors.set(job.uid, count);
+        if (count >= MAX_SCHEDULE_ERRORS) {
+          logger.warn(
+            `bird ${shortUid(job.uid)}: invalid expression "${job.schedule}" (${count} consecutive failures), disabling`,
+          );
+          setCronJobEnabled(job.uid, false);
           scheduleErrors.delete(job.uid);
-        } catch {
-          const count = (scheduleErrors.get(job.uid) ?? 0) + 1;
-          scheduleErrors.set(job.uid, count);
-          if (count >= MAX_SCHEDULE_ERRORS) {
-            logger.warn(
-              `bird ${shortUid(job.uid)}: invalid expression "${job.schedule}" (${count} consecutive failures), disabling`,
-            );
-            setCronJobEnabled(job.uid, false);
-            scheduleErrors.delete(job.uid);
-          } else {
-            logger.warn(
-              `bird ${shortUid(job.uid)}: invalid expression "${job.schedule}" (attempt ${count}/${MAX_SCHEDULE_ERRORS})`,
-            );
-          }
-          continue;
+        } else {
+          logger.warn(
+            `bird ${shortUid(job.uid)}: invalid expression "${job.schedule}" (attempt ${count}/${MAX_SCHEDULE_ERRORS})`,
+          );
         }
+        continue;
       }
 
       if (!matchesCron(schedule, now, config.timezone)) continue;
@@ -351,7 +348,6 @@ export function startScheduler(
 
   signal.addEventListener('abort', () => {
     clearInterval(timer);
-    scheduleCache.clear();
     scheduleErrors.clear();
     activeKills.clear();
   });

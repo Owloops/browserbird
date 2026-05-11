@@ -97,6 +97,9 @@ export const COMMANDS = {
   JOBS: 'jobs',
   BACKUPS: 'backups',
   DOCTOR: 'doctor',
+  LOGIN: 'login',
+  LOGOUT: 'logout',
+  WHOAMI: 'whoami',
 } as const;
 
 export type Command = (typeof COMMANDS)[keyof typeof COMMANDS];

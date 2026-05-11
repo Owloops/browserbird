@@ -8,6 +8,7 @@ import { getSession, createSession, touchSession } from '../db/index.ts';
 import { getDocsSystemPrompt } from '../db/docs.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
 import { spawnProvider } from '../provider/spawn.ts';
+import { ensureServiceUser, signServiceToken } from '../server/service-user.ts';
 
 export async function runChat(
   message: string,
@@ -47,6 +48,7 @@ export async function runChat(
   const ac = new AbortController();
   process.on('SIGINT', () => ac.abort());
 
+  await ensureServiceUser();
   const { events } = spawnProvider(
     {
       message,
@@ -57,6 +59,7 @@ export async function runChat(
       globalTimeoutMs: config.sessions.processTimeoutMs,
       extraEnv,
       docsPrompt,
+      serviceToken: signServiceToken(),
     },
     ac.signal,
   );

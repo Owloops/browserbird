@@ -6,15 +6,13 @@ import { logger } from '../core/logger.ts';
 import { unknownSubcommand } from '../core/utils.ts';
 import { c } from './style.ts';
 import { openDatabase, closeDatabase, resolveDbPathFromArgv } from '../db/index.ts';
-import { loadConfig, DEFAULT_CONFIG_PATH } from '../config.ts';
-import { resolve } from 'node:path';
+import { listBackups } from '../core/backup.ts';
 import {
-  createBackup,
-  listBackups,
-  deleteBackup,
-  restoreBackup,
-  enforceRetention,
-} from '../core/backup.ts';
+  daemonRequest,
+  DaemonAuthError,
+  DaemonError,
+  DaemonUnreachableError,
+} from './daemon-rpc.ts';
 
 export const BACKUPS_HELP = `
 ${c('cyan', 'usage:')} browserbird backups <subcommand> [options]
@@ -42,7 +40,24 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function handleBackups(argv: string[]): void {
+async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (
+      err instanceof DaemonAuthError ||
+      err instanceof DaemonUnreachableError ||
+      err instanceof DaemonError
+    ) {
+      logger.error(err.message);
+      process.exitCode = 1;
+      return undefined;
+    }
+    throw err;
+  }
+}
+
+export async function handleBackups(argv: string[]): Promise<void> {
   const subcommand = argv[0] ?? 'list';
   const rest = argv.slice(1);
 
@@ -84,12 +99,14 @@ export function handleBackups(argv: string[]): void {
 
       case 'create': {
         const customName = values.name as string | undefined;
-        const info = createBackup(dataDir, customName);
-        const configPath = process.env['BROWSERBIRD_CONFIG']
-          ? resolve(process.env['BROWSERBIRD_CONFIG'])
-          : DEFAULT_CONFIG_PATH;
-        const maxCount = loadConfig(configPath).database.backups?.maxCount ?? 10;
-        enforceRetention(dataDir, maxCount);
+        const info = await runDaemonCall<{ name: string; size: number; created: string }>(() =>
+          daemonRequest({
+            method: 'POST',
+            path: '/api/backups',
+            body: customName ? { name: customName } : {},
+          }),
+        );
+        if (!info) break;
         logger.success(`backup created: ${info.name} (${formatSize(info.size)})`);
         break;
       }
@@ -101,13 +118,14 @@ export function handleBackups(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        try {
-          deleteBackup(dataDir, name);
-          logger.success(`backup ${name} deleted`);
-        } catch (err) {
-          logger.error((err as Error).message);
-          process.exitCode = 1;
-        }
+        const deleted = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'DELETE',
+            path: `/api/backups/${encodeURIComponent(name)}`,
+          }),
+        );
+        if (deleted === undefined) break;
+        logger.success(`backup ${name} deleted`);
         break;
       }
 
@@ -118,15 +136,17 @@ export function handleBackups(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        try {
-          closeDatabase();
-          restoreBackup(dataDir, name);
-          logger.success(`restored from ${name}`);
-          process.stderr.write(c('dim', '  restart the daemon to use the restored data') + '\n');
-        } catch (err) {
-          logger.error((err as Error).message);
-          process.exitCode = 1;
-        }
+        const restored = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'POST',
+            path: `/api/backups/${encodeURIComponent(name)}/restore`,
+          }),
+        );
+        if (restored === undefined) break;
+        logger.success(`restore initiated from ${name}`);
+        process.stderr.write(
+          c('dim', '  the daemon will restart to apply the restored data') + '\n',
+        );
         break;
       }
 

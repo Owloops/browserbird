@@ -11,6 +11,7 @@ import { buildDataRoutes } from './data.ts';
 import { buildDocsRoutes } from './docs.ts';
 import { buildKeysRoutes } from './keys.ts';
 import { buildBackupsRoutes } from './backups.ts';
+import { buildJobsRoutes } from './jobs.ts';
 import { buildOnboardingRoutes } from './onboarding.ts';
 
 export { buildStatusPayload } from './data.ts';
@@ -55,6 +56,7 @@ export function buildRoutes(
     }),
     ...buildKeysRoutes(),
     ...buildBackupsRoutes(dirname(options.configPath), getConfig, options.onRestart),
+    ...buildJobsRoutes(),
     ...buildDocsRoutes(),
     ...buildChatRoutes(() => getDeps().webChannel()),
   ];

@@ -13,13 +13,15 @@ import {
   resolveByUid,
   resolveDbPathFromArgv,
   listDocs,
-  createDoc,
-  deleteDoc,
-  syncDocs,
-  replaceDocBindings,
   getDocBindings,
 } from '../db/index.ts';
 import type { DocRow } from '../db/docs.ts';
+import {
+  daemonRequest,
+  DaemonAuthError,
+  DaemonError,
+  DaemonUnreachableError,
+} from './daemon-rpc.ts';
 
 export const DOCS_HELP = `
 ${c('cyan', 'usage:')} browserbird docs <subcommand> [options]
@@ -69,7 +71,24 @@ function resolveDoc(nameOrUid: string): DocRow | undefined {
   return result.row;
 }
 
-export function handleDocs(argv: string[]): void {
+async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (
+      err instanceof DaemonAuthError ||
+      err instanceof DaemonUnreachableError ||
+      err instanceof DaemonError
+    ) {
+      logger.error(err.message);
+      process.exitCode = 1;
+      return undefined;
+    }
+    throw err;
+  }
+}
+
+export async function handleDocs(argv: string[]): Promise<void> {
   const subcommand = argv[0] ?? 'list';
   const rest = argv.slice(1);
 
@@ -88,7 +107,6 @@ export function handleDocs(argv: string[]): void {
   try {
     switch (subcommand) {
       case 'list': {
-        syncDocs();
         const result = listDocs(1, 100);
         if (values.json) {
           console.log(JSON.stringify(result.items, null, 2));
@@ -116,7 +134,14 @@ export function handleDocs(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        const doc = createDoc(title, (values.content as string | undefined) ?? '');
+        const doc = await runDaemonCall<DocRow>(() =>
+          daemonRequest<DocRow>({
+            method: 'POST',
+            path: '/api/docs',
+            body: { title, content: (values.content as string | undefined) ?? '' },
+          }),
+        );
+        if (!doc) break;
         logger.success(`doc "${doc.title}" created at ${basename(doc.file_path)}`);
         process.stderr.write(c('dim', `  path: ${doc.file_path}`) + '\n');
         break;
@@ -131,12 +156,14 @@ export function handleDocs(argv: string[]): void {
         }
         const doc = resolveDoc(nameOrUid);
         if (!doc) return;
-        if (deleteDoc(doc.uid)) {
-          logger.success(`doc "${doc.title}" removed`);
-        } else {
-          logger.error(`doc "${nameOrUid}" not found`);
-          process.exitCode = 1;
-        }
+        const removed = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'DELETE',
+            path: `/api/docs/${doc.uid}`,
+          }),
+        );
+        if (removed === undefined) break;
+        logger.success(`doc "${doc.title}" removed`);
         break;
       }
 
@@ -158,12 +185,19 @@ export function handleDocs(argv: string[]): void {
         }
         const doc = resolveDoc(nameOrUid);
         if (!doc) return;
-        const existing = getDocBindings(doc.uid);
-        if (existing.some((b) => b.targetType === targetType && b.targetId === targetId)) {
+        const existingForBind = getDocBindings(doc.uid);
+        if (existingForBind.some((b) => b.targetType === targetType && b.targetId === targetId)) {
           logger.warn(`doc "${doc.title}" is already bound to ${targetType} ${targetId}`);
           return;
         }
-        replaceDocBindings(doc.uid, [...existing, { targetType, targetId }]);
+        const bindResult = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'PUT',
+            path: `/api/docs/${doc.uid}/bindings`,
+            body: [...existingForBind, { targetType, targetId }],
+          }),
+        );
+        if (bindResult === undefined) break;
         logger.success(`doc "${doc.title}" bound to ${targetType} ${targetId}`);
         break;
       }
@@ -184,22 +218,35 @@ export function handleDocs(argv: string[]): void {
         }
         const doc = resolveDoc(nameOrUid);
         if (!doc) return;
-        const existing = getDocBindings(doc.uid);
-        const filtered = existing.filter(
+        const existingForUnbind = getDocBindings(doc.uid);
+        const filtered = existingForUnbind.filter(
           (b) => !(b.targetType === targetType && b.targetId === targetId),
         );
-        if (filtered.length === existing.length) {
+        if (filtered.length === existingForUnbind.length) {
           logger.warn(`doc "${doc.title}" is not bound to ${targetType} ${targetId}`);
           return;
         }
-        replaceDocBindings(doc.uid, filtered);
+        const unbindResult = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'PUT',
+            path: `/api/docs/${doc.uid}/bindings`,
+            body: filtered,
+          }),
+        );
+        if (unbindResult === undefined) break;
         logger.success(`doc "${doc.title}" unbound from ${targetType} ${targetId}`);
         break;
       }
 
       case 'sync': {
-        const changed = syncDocs();
-        if (changed) {
+        const result = await runDaemonCall<{ changed: boolean }>(() =>
+          daemonRequest<{ changed: boolean }>({
+            method: 'POST',
+            path: '/api/docs/sync',
+          }),
+        );
+        if (!result) break;
+        if (result.changed) {
           logger.success('docs synced');
         } else {
           logger.info('docs already in sync');

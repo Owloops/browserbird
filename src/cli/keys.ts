@@ -13,13 +13,15 @@ import {
   getDb,
   resolveDbPathFromArgv,
   listKeys,
-  createKey,
-  updateKey,
-  deleteKey,
-  replaceBindings,
 } from '../db/index.ts';
 import type { KeyRow, KeyBinding } from '../db/keys.ts';
 import { validateKeyName } from '../db/keys.ts';
+import {
+  daemonRequest,
+  DaemonAuthError,
+  DaemonError,
+  DaemonUnreachableError,
+} from './daemon-rpc.ts';
 
 export const KEYS_HELP = `
 ${c('cyan', 'usage:')} browserbird keys <subcommand> [options]
@@ -52,6 +54,23 @@ ${c('dim', 'examples:')}
   browserbird keys unbind GITHUB_TOKEN channel '*'
   browserbird keys remove GITHUB_TOKEN
 `.trim();
+
+async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (
+      err instanceof DaemonAuthError ||
+      err instanceof DaemonUnreachableError ||
+      err instanceof DaemonError
+    ) {
+      logger.error(err.message);
+      process.exitCode = 1;
+      return undefined;
+    }
+    throw err;
+  }
+}
 
 function resolveKey(nameOrUid: string): KeyRow | undefined {
   const d = getDb();
@@ -195,25 +214,23 @@ export async function handleKeys(argv: string[]): Promise<void> {
             return;
           }
         }
-        try {
-          const key = createKey(
-            validated.name,
-            secret,
-            (values.description as string | undefined)?.trim(),
-          );
-          logger.success(`key ${key.name} created`);
-          process.stderr.write(
-            c('dim', `  hint: run 'browserbird keys bind ${key.name} channel *' to bind it`) + '\n',
-          );
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (msg.includes('UNIQUE constraint')) {
-            logger.error(`a key named "${name.toUpperCase()}" already exists`);
-          } else {
-            logger.error(msg);
-          }
-          process.exitCode = 1;
-        }
+        const created = await runDaemonCall<{ uid: string }>(() =>
+          daemonRequest<{ uid: string }>({
+            method: 'POST',
+            path: '/api/keys',
+            body: {
+              name: validated.name,
+              value: secret,
+              description: (values.description as string | undefined)?.trim(),
+            },
+          }),
+        );
+        if (!created) break;
+        logger.success(`key ${validated.name} created`);
+        process.stderr.write(
+          c('dim', `  hint: run 'browserbird keys bind ${validated.name} channel *' to bind it`) +
+            '\n',
+        );
         break;
       }
 
@@ -244,13 +261,15 @@ export async function handleKeys(argv: string[]): Promise<void> {
           process.exitCode = 1;
           return;
         }
-        const updated = updateKey(key.uid, fields);
-        if (updated) {
-          logger.success(`key ${key.name} updated`);
-        } else {
-          logger.error(`key ${key.name} not found`);
-          process.exitCode = 1;
-        }
+        const updated = await runDaemonCall<{ uid: string }>(() =>
+          daemonRequest<{ uid: string }>({
+            method: 'PATCH',
+            path: `/api/keys/${key.uid}`,
+            body: fields,
+          }),
+        );
+        if (!updated) break;
+        logger.success(`key ${key.name} updated`);
         break;
       }
 
@@ -263,12 +282,14 @@ export async function handleKeys(argv: string[]): Promise<void> {
         }
         const key = resolveKey(nameOrUid);
         if (!key) return;
-        if (deleteKey(key.uid)) {
-          logger.success(`key ${key.name} removed`);
-        } else {
-          logger.error(`key ${key.name} not found`);
-          process.exitCode = 1;
-        }
+        const removed = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'DELETE',
+            path: `/api/keys/${key.uid}`,
+          }),
+        );
+        if (removed === undefined) break;
+        logger.success(`key ${key.name} removed`);
         break;
       }
 
@@ -290,12 +311,19 @@ export async function handleKeys(argv: string[]): Promise<void> {
         }
         const key = resolveKey(nameOrUid);
         if (!key) return;
-        const existing = loadBindings(key.uid);
-        if (existing.some((b) => b.targetType === targetType && b.targetId === targetId)) {
+        const existingForBind = loadBindings(key.uid);
+        if (existingForBind.some((b) => b.targetType === targetType && b.targetId === targetId)) {
           logger.warn(`key ${key.name} is already bound to ${targetType} ${targetId}`);
           return;
         }
-        replaceBindings(key.uid, [...existing, { targetType, targetId }]);
+        const bindResult = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'PUT',
+            path: `/api/keys/${key.uid}/bindings`,
+            body: [...existingForBind, { targetType, targetId }],
+          }),
+        );
+        if (bindResult === undefined) break;
         logger.success(`key ${key.name} bound to ${targetType} ${targetId}`);
         break;
       }
@@ -316,15 +344,22 @@ export async function handleKeys(argv: string[]): Promise<void> {
         }
         const key = resolveKey(nameOrUid);
         if (!key) return;
-        const existing = loadBindings(key.uid);
-        const filtered = existing.filter(
+        const existingForUnbind = loadBindings(key.uid);
+        const filtered = existingForUnbind.filter(
           (b) => !(b.targetType === targetType && b.targetId === targetId),
         );
-        if (filtered.length === existing.length) {
+        if (filtered.length === existingForUnbind.length) {
           logger.warn(`key ${key.name} is not bound to ${targetType} ${targetId}`);
           return;
         }
-        replaceBindings(key.uid, filtered);
+        const unbindResult = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'PUT',
+            path: `/api/keys/${key.uid}/bindings`,
+            body: filtered,
+          }),
+        );
+        if (unbindResult === undefined) break;
         logger.success(`key ${key.name} unbound from ${targetType} ${targetId}`);
         break;
       }

@@ -22,6 +22,8 @@ export interface SpawnOptions {
   globalTimeoutMs?: number;
   extraEnv?: Record<string, string>;
   docsPrompt?: string;
+  /** Service token to expose as BROWSERBIRD_TOKEN inside the spawned subprocess. */
+  serviceToken?: string;
 }
 
 type CompletionSubtype =
@@ -87,6 +89,9 @@ export function buildCommand(options: SpawnOptions): ProviderCommand {
   const configDir = resolve(DATA_DIR, 'claude');
   ensureClaudeSettings(configDir);
   env['CLAUDE_CONFIG_DIR'] = configDir;
+  if (options.serviceToken) env['BROWSERBIRD_TOKEN'] = options.serviceToken;
+  const apiUrl = process.env['BROWSERBIRD_API_URL'];
+  if (apiUrl) env['BROWSERBIRD_API_URL'] = apiUrl;
 
   return { binary: 'claude', args, env };
 }

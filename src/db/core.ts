@@ -335,6 +335,15 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    name: 'cron jobs updated_at',
+    up(d) {
+      d.exec(`
+        ALTER TABLE cron_jobs ADD COLUMN updated_at TEXT;
+        UPDATE cron_jobs SET updated_at = created_at WHERE updated_at IS NULL;
+      `);
+    },
+  },
 ];
 
 let db: DatabaseSync | null = null;
@@ -378,7 +387,8 @@ function migrate(d: DatabaseSync): void {
 
 /**
  * Opens (or creates) the SQLite database at the given path.
- * Configures WAL mode, runs pending migrations.
+ * Configures WAL mode, runs pending migrations. Pragmas are reapplied on
+ * every call so a process restart or connection reset re-establishes them.
  */
 export function openDatabase(dbPath: string): void {
   mkdirSync(dirname(dbPath), { recursive: true });

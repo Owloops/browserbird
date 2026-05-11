@@ -6,6 +6,7 @@ import type { ChannelClient } from './types.ts';
 
 import { resolveSession } from '../provider/session.ts';
 import { spawnProvider } from '../provider/spawn.ts';
+import { signServiceToken } from '../server/service-user.ts';
 import * as db from '../db/index.ts';
 import { resolveExtraEnv } from '../db/keys.ts';
 import { getDocsSystemPrompt } from '../db/docs.ts';
@@ -141,6 +142,7 @@ export function createHandler(
           globalTimeoutMs: config.sessions.processTimeoutMs,
           extraEnv,
           docsPrompt: getDocsSystemPrompt(targets),
+          serviceToken: signServiceToken(),
         },
         signal,
       );

@@ -32,6 +32,7 @@ import type { WebChannel } from './channel/web.ts';
 import { createWebServer, broadcastSSE } from './server/index.ts';
 import type { WebServerDeps } from './server/index.ts';
 import { startHealthChecks, getServiceHealth } from './server/health.ts';
+import { ensureServiceUser } from './server/service-user.ts';
 import type { Config } from './core/types.ts';
 import type { ChannelHandle } from './channel/types.ts';
 import { resolve, dirname } from 'node:path';
@@ -95,6 +96,7 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     loadDotEnv(envPath);
     ensureVaultKey(envPath);
     migrateUnencryptedKeys();
+    await ensureServiceUser();
     syncDocs();
     const stopDocWatcher = watchDocs(() => broadcastSSE('invalidate', { resource: 'docs' }));
     const vaultValues = getAllKeyValues();
@@ -114,6 +116,11 @@ export async function startDaemon(options: DaemonOptions): Promise<void> {
     } catch (err) {
       logger.warn(`config validation failed: ${err instanceof Error ? err.message : String(err)}`);
       currentConfig = loadRawConfig(configPath) as unknown as Config;
+    }
+
+    if (!process.env['BROWSERBIRD_API_URL']) {
+      const { host, port } = currentConfig.web;
+      process.env['BROWSERBIRD_API_URL'] = `http://${host}:${port}`;
     }
 
     const onBirdDisabled = (event: BirdDisabledEvent) => {

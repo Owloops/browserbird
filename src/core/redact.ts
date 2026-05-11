@@ -20,6 +20,16 @@ const TOKEN_PATTERNS: Array<[string, number]> = [
   ['sk-or-', 20],
 ];
 
+/**
+ * Literal-regex patterns for token shapes that need dot or other non-base64url
+ * characters (which the prefix-based generator cannot express). The HS256 JWT
+ * header is deterministic so it's a reliable anchor for browserbird-issued
+ * service tokens.
+ */
+const TOKEN_REGEX_PATTERNS: string[] = [
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\\.[A-Za-z0-9_\\-]+\\.[A-Za-z0-9_\\-]+',
+];
+
 let knownSecrets: string[] | undefined;
 
 function collectSecrets(): string[] {
@@ -67,11 +77,12 @@ function escapeForRegex(s: string): string {
 }
 
 function buildPatternRegex(): RegExp {
-  const parts = TOKEN_PATTERNS.map(([prefix, minLength]) => {
+  const prefixParts = TOKEN_PATTERNS.map(([prefix, minLength]) => {
     const escaped = escapeForRegex(prefix);
     const remaining = minLength - prefix.length;
     return `${escaped}[A-Za-z0-9_\\-]{${remaining},}`;
   });
+  const parts = [...prefixParts, ...TOKEN_REGEX_PATTERNS];
   return new RegExp(parts.join('|'), 'g');
 }
 

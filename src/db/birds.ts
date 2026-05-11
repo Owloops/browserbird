@@ -13,6 +13,11 @@ import {
 } from './core.ts';
 import { generateUid, UID_PREFIX } from '../core/uid.ts';
 import { DATA_DIR } from '../core/paths.ts';
+import {
+  scheduleEvents,
+  SCHEDULE_UPDATED,
+  type ScheduleUpdatedPayload,
+} from '../cron/schedule-events.ts';
 
 const BIRDS_DIR = resolve(DATA_DIR, 'birds');
 
@@ -42,6 +47,7 @@ export interface CronJobRow {
   last_run: string | null;
   last_status: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface CronRunRow {
@@ -154,13 +160,13 @@ export function updateCronJobStatus(
   if (enabled != null) {
     getDb()
       .prepare(
-        `UPDATE cron_jobs SET last_run = datetime('now'), last_status = ?, failure_count = ?, enabled = ? WHERE uid = ?`,
+        `UPDATE cron_jobs SET last_run = datetime('now'), last_status = ?, failure_count = ?, enabled = ?, updated_at = datetime('now') WHERE uid = ?`,
       )
       .run(status, failureCount, enabled ? 1 : 0, jobUid);
   } else {
     getDb()
       .prepare(
-        `UPDATE cron_jobs SET last_run = datetime('now'), last_status = ?, failure_count = ? WHERE uid = ?`,
+        `UPDATE cron_jobs SET last_run = datetime('now'), last_status = ?, failure_count = ?, updated_at = datetime('now') WHERE uid = ?`,
       )
       .run(status, failureCount, jobUid);
   }
@@ -174,9 +180,13 @@ export function getCronJob(jobUid: string): CronJobRow | undefined {
 
 export function setCronJobEnabled(jobUid: string, enabled: boolean): boolean {
   const result = getDb()
-    .prepare('UPDATE cron_jobs SET enabled = ? WHERE uid = ?')
+    .prepare(`UPDATE cron_jobs SET enabled = ?, updated_at = datetime('now') WHERE uid = ?`)
     .run(enabled ? 1 : 0, jobUid);
-  return Number(result.changes) > 0;
+  const changed = Number(result.changes) > 0;
+  if (changed) {
+    scheduleEvents.emit(SCHEDULE_UPDATED, { uid: jobUid } satisfies ScheduleUpdatedPayload);
+  }
+  return changed;
 }
 
 export function updateCronJob(jobUid: string, fields: UpdateCronJobFields): CronJobRow | undefined {
@@ -214,10 +224,15 @@ export function updateCronJob(jobUid: string, fields: UpdateCronJobFields): Cron
 
   if (sets.length === 0) return getCronJob(jobUid);
 
+  sets.push(`updated_at = datetime('now')`);
   params.push(jobUid);
-  return getDb()
+  const row = getDb()
     .prepare(`UPDATE cron_jobs SET ${sets.join(', ')} WHERE uid = ? RETURNING *`)
     .get(...params) as unknown as CronJobRow | undefined;
+  if (row) {
+    scheduleEvents.emit(SCHEDULE_UPDATED, { uid: jobUid } satisfies ScheduleUpdatedPayload);
+  }
+  return row;
 }
 
 export function deleteCronJob(jobUid: string): boolean {

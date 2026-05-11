@@ -26,6 +26,7 @@ import { handleBackups } from './backups.ts';
 import { BACKUPS_HELP } from './backups.ts';
 import { handleDoctor } from './doctor.ts';
 import { DOCTOR_HELP } from './doctor.ts';
+import { handleLogin, handleLogout, handleWhoami, AUTH_HELP } from './auth-commands.ts';
 
 const MAIN_HELP =
   BANNER +
@@ -43,6 +44,9 @@ ${c('dim', 'commands:')}
   ${c('cyan', 'jobs')}        inspect and manage the job queue
   ${c('cyan', 'backups')}     manage database backups
   ${c('cyan', 'doctor')}      check system dependencies
+  ${c('cyan', 'login')}       authenticate to the daemon
+  ${c('cyan', 'logout')}      clear saved daemon credentials
+  ${c('cyan', 'whoami')}      show the authenticated user
 
 ${c('dim', 'options:')}
 
@@ -64,6 +68,9 @@ const COMMAND_HELP: Record<string, string> = {
   jobs: JOBS_HELP,
   backups: BACKUPS_HELP,
   doctor: DOCTOR_HELP,
+  login: AUTH_HELP,
+  logout: AUTH_HELP,
+  whoami: AUTH_HELP,
 };
 
 export async function run(argv: string[]): Promise<void> {
@@ -105,14 +112,14 @@ export async function run(argv: string[]): Promise<void> {
         console.log(COMMAND_HELP.birds);
         return;
       }
-      handleBirds(rest);
+      await handleBirds(rest);
       break;
     case COMMANDS.DOCS:
       if (isHelp) {
         console.log(COMMAND_HELP.docs);
         return;
       }
-      handleDocs(rest);
+      await handleDocs(rest);
       break;
     case COMMANDS.KEYS:
       if (isHelp) {
@@ -140,17 +147,38 @@ export async function run(argv: string[]): Promise<void> {
         console.log(COMMAND_HELP.jobs);
         return;
       }
-      handleJobs(rest);
+      await handleJobs(rest);
       break;
     case COMMANDS.BACKUPS:
       if (isHelp) {
         console.log(COMMAND_HELP.backups);
         return;
       }
-      handleBackups(rest);
+      await handleBackups(rest);
       break;
     case COMMANDS.DOCTOR:
       handleDoctor();
+      break;
+    case COMMANDS.LOGIN:
+      if (isHelp) {
+        console.log(COMMAND_HELP.login);
+        return;
+      }
+      await handleLogin(rest);
+      break;
+    case COMMANDS.LOGOUT:
+      if (isHelp) {
+        console.log(COMMAND_HELP.logout);
+        return;
+      }
+      handleLogout(rest);
+      break;
+    case COMMANDS.WHOAMI:
+      if (isHelp) {
+        console.log(COMMAND_HELP.whoami);
+        return;
+      }
+      await handleWhoami(rest);
       break;
     default:
       unknownSubcommand(command, '', [
@@ -163,6 +191,9 @@ export async function run(argv: string[]): Promise<void> {
         'jobs',
         'backups',
         'doctor',
+        'login',
+        'logout',
+        'whoami',
       ]);
   }
 }

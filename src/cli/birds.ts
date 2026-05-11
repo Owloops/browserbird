@@ -10,15 +10,16 @@ import {
   closeDatabase,
   resolveByUid,
   listCronJobs,
-  createCronJob,
-  updateCronJob,
-  setCronJobEnabled,
-  deleteCronJob,
   listFlights,
   resolveDbPathFromArgv,
 } from '../db/index.ts';
 import type { CronJobRow } from '../db/index.ts';
-import { enqueue } from '../jobs.ts';
+import {
+  daemonRequest,
+  DaemonAuthError,
+  DaemonError,
+  DaemonUnreachableError,
+} from './daemon-rpc.ts';
 
 export const BIRDS_HELP = `
 ${c('cyan', 'usage:')} browserbird birds <subcommand> [options]
@@ -70,6 +71,23 @@ function parseActiveHours(raw: string): { start: string; end: string } | null {
   return { start: match[1]!, end: match[2]! };
 }
 
+async function runDaemonCall<T>(fn: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (
+      err instanceof DaemonAuthError ||
+      err instanceof DaemonUnreachableError ||
+      err instanceof DaemonError
+    ) {
+      logger.error(err.message);
+      process.exitCode = 1;
+      return undefined;
+    }
+    throw err;
+  }
+}
+
 function resolveBird(uidPrefix: string): CronJobRow | undefined {
   const result = resolveByUid<CronJobRow>('cron_jobs', uidPrefix);
   if (!result) {
@@ -87,7 +105,7 @@ function resolveBird(uidPrefix: string): CronJobRow | undefined {
   return result.row;
 }
 
-export function handleBirds(argv: string[]): void {
+export async function handleBirds(argv: string[]): Promise<void> {
   const subcommand = argv[0] ?? 'list';
   const rest = argv.slice(1);
 
@@ -171,15 +189,22 @@ export function handleBirds(argv: string[]): void {
           activeStart = parsed.start;
           activeEnd = parsed.end;
         }
-        const job = createCronJob(
-          birdName,
-          schedule,
-          prompt,
-          values.channel as string | undefined,
-          values.agent as string | undefined,
-          activeStart,
-          activeEnd,
+        const job = await runDaemonCall<CronJobRow>(() =>
+          daemonRequest<CronJobRow>({
+            method: 'POST',
+            path: '/api/birds',
+            body: {
+              name: birdName,
+              schedule,
+              prompt,
+              channel: values.channel as string | undefined,
+              agent: values.agent as string | undefined,
+              activeHoursStart: activeStart,
+              activeHoursEnd: activeEnd,
+            },
+          }),
         );
+        if (!job) break;
         logger.success(`bird ${shortUid(job.uid)} created: "${birdName}"`);
         process.stderr.write(
           c('dim', `  hint: run 'browserbird birds fly ${shortUid(job.uid)}' to trigger it now`) +
@@ -234,24 +259,26 @@ export function handleBirds(argv: string[]): void {
           process.exitCode = 1;
           return;
         }
-        const updated = updateCronJob(bird.uid, {
-          schedule,
-          prompt,
-          name: editName,
-          targetChannelId: channel !== undefined ? channel || null : undefined,
-          agentId: agent,
-          activeHoursStart: editActiveStart,
-          activeHoursEnd: editActiveEnd,
-        });
-        if (updated) {
-          logger.success(`bird ${shortUid(bird.uid)} updated`);
-          process.stderr.write(
-            c('dim', `  hint: run 'browserbird birds list' to see updated birds`) + '\n',
-          );
-        } else {
-          logger.error(`bird ${shortUid(bird.uid)} not found`);
-          process.exitCode = 1;
-        }
+        const updated = await runDaemonCall<CronJobRow>(() =>
+          daemonRequest<CronJobRow>({
+            method: 'PATCH',
+            path: `/api/birds/${bird.uid}`,
+            body: {
+              schedule,
+              prompt,
+              name: editName,
+              channel: channel !== undefined ? channel || null : undefined,
+              agent,
+              activeHoursStart: editActiveStart,
+              activeHoursEnd: editActiveEnd,
+            },
+          }),
+        );
+        if (!updated) break;
+        logger.success(`bird ${shortUid(bird.uid)} updated`);
+        process.stderr.write(
+          c('dim', `  hint: run 'browserbird birds list' to see updated birds`) + '\n',
+        );
         break;
       }
 
@@ -264,12 +291,14 @@ export function handleBirds(argv: string[]): void {
         }
         const bird = resolveBird(uidPrefix);
         if (!bird) return;
-        if (deleteCronJob(bird.uid)) {
-          logger.success(`bird ${shortUid(bird.uid)} removed`);
-        } else {
-          logger.error(`bird ${shortUid(bird.uid)} not found`);
-          process.exitCode = 1;
-        }
+        const removed = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'DELETE',
+            path: `/api/birds/${bird.uid}`,
+          }),
+        );
+        if (removed === undefined) break;
+        logger.success(`bird ${shortUid(bird.uid)} removed`);
         break;
       }
 
@@ -284,19 +313,21 @@ export function handleBirds(argv: string[]): void {
         const bird = resolveBird(uidPrefix);
         if (!bird) return;
         const enabled = subcommand === 'enable';
-        if (setCronJobEnabled(bird.uid, enabled)) {
-          logger.success(`bird ${shortUid(bird.uid)} ${enabled ? 'enabled' : 'disabled'}`);
-          if (enabled) {
-            process.stderr.write(
-              c(
-                'dim',
-                `  hint: run 'browserbird birds fly ${shortUid(bird.uid)}' to trigger it now`,
-              ) + '\n',
-            );
-          }
-        } else {
-          logger.error(`bird ${shortUid(bird.uid)} not found`);
-          process.exitCode = 1;
+        const result = await runDaemonCall(() =>
+          daemonRequest<{ success?: boolean }>({
+            method: 'PATCH',
+            path: `/api/birds/${bird.uid}/${enabled ? 'enable' : 'disable'}`,
+          }),
+        );
+        if (result === undefined) break;
+        logger.success(`bird ${shortUid(bird.uid)} ${enabled ? 'enabled' : 'disabled'}`);
+        if (enabled) {
+          process.stderr.write(
+            c(
+              'dim',
+              `  hint: run 'browserbird birds fly ${shortUid(bird.uid)}' to trigger it now`,
+            ) + '\n',
+          );
         }
         break;
       }
@@ -311,19 +342,16 @@ export function handleBirds(argv: string[]): void {
         const cronJob = resolveBird(uidPrefix);
         if (!cronJob) return;
         const flyArgs = positionals.slice(1).join(' ');
-        const prompt = flyArgs ? cronJob.prompt.replace(/\$ARGUMENTS/g, flyArgs) : cronJob.prompt;
-        const enqueuedJob = enqueue(
-          'cron_run',
-          {
-            cronJobUid: cronJob.uid,
-            birdName: cronJob.name,
-            prompt,
-            channelId: cronJob.target_channel_id,
-            agentId: cronJob.agent_id,
-          },
-          { cronJobUid: cronJob.uid },
+        const result = await runDaemonCall<{ success?: boolean; jobId?: number }>(() =>
+          daemonRequest<{ success?: boolean; jobId?: number }>({
+            method: 'POST',
+            path: `/api/birds/${cronJob.uid}/fly`,
+            body: flyArgs ? { args: flyArgs } : {},
+          }),
         );
-        logger.success(`enqueued job #${enqueuedJob.id} for bird ${shortUid(cronJob.uid)}`);
+        if (!result) break;
+        const jobLabel = result.jobId !== undefined ? `job #${result.jobId}` : 'job';
+        logger.success(`enqueued ${jobLabel} for bird ${shortUid(cronJob.uid)}`);
         process.stderr.write(
           c(
             'dim',
