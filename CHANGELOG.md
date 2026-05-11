@@ -1,3 +1,10 @@
+## [1.24.2](https://github.com/Owloops/browserbird/compare/v1.24.1...v1.24.2) (2026-05-11)
+
+
+### Bug Fixes
+
+* **oci:** install chromium via @playwright/mcp's bundled playwright-core ([4846c12](https://github.com/Owloops/browserbird/commit/4846c12dd65e64554f32469a0277165455aa31b4))
+
 ## [1.24.1](https://github.com/Owloops/browserbird/compare/v1.24.0...v1.24.1) (2026-05-11)
 
 
