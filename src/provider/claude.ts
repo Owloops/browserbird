@@ -1,7 +1,7 @@
 /** @fileoverview Claude Code CLI provider: arg building and stream-json parsing. */
 
 import { resolve } from 'node:path';
-import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { DATA_DIR } from '../core/paths.ts';
 import { DEFAULT_PERMISSION_MODE } from '../core/types.ts';
 import type { StreamEvent, ToolImage } from './stream.ts';
@@ -117,10 +117,19 @@ function ensureClaudeSettings(configDir: string): void {
   settingsEnsured = true;
 
   const settingsPath = resolve(configDir, 'settings.json');
-  if (existsSync(settingsPath)) return;
+  const desired = JSON.stringify(CLAUDE_SETTINGS, null, 2) + '\n';
+
+  if (existsSync(settingsPath)) {
+    try {
+      const current = readFileSync(settingsPath, 'utf-8');
+      if (current === desired) return;
+    } catch {
+      /* unreadable; fall through to overwrite */
+    }
+  }
 
   mkdirSync(configDir, { recursive: true });
-  writeFileSync(settingsPath, JSON.stringify(CLAUDE_SETTINGS, null, 2) + '\n');
+  writeFileSync(settingsPath, desired);
 }
 
 /** Parses a single line of stream-json output into zero or more StreamEvents. */
